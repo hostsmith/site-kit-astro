@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # cog computes the next version from Conventional Commits. Its pre-bump hook
+  # writes the version to `kit.version` in hostsmith.json, and the bump commit
+  # "chore(version): X.Y.Z" goes to main with the tag vX.Y.Z. The kit is not
+  # published to npm: the release is the GitHub release and the template.
+  release:
+    # Kit-only, and skipped on the bot's own version commit.
+    if: >-
+      github.repository == 'hostsmith/site-kit' &&
+      (github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(version):'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .tool-versions
+
+      - name: Capture pre-bump tag
+        id: before
+        run: echo "tag=$(git describe --tags --abbrev=0 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+
+      - name: Bump
+        uses: cocogitto/cocogitto-action@9a9fe03b31c47444290c0d7f9b1ee1b44ee13f20 # v4.1.0
+        # cog exits non-zero when no commit since the last tag needs a release.
+        continue-on-error: true
+        with:
+          command: bump
+          args: --auto
+          git-user: github-actions[bot]
+          git-user-email: 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          AFTER=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [[ -z "$AFTER" || "$AFTER" == "${{ steps.before.outputs.tag }}" ]]; then
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            echo "No releasable commits since '${{ steps.before.outputs.tag }}'"
+          else
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$AFTER" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push the version commit and tag
+        if: steps.tag.outputs.released == 'true'
+        run: git push origin "HEAD:${{ github.ref_name }}" "${{ steps.tag.outputs.tag }}"
+
+      - name: Generate release notes
+        if: steps.tag.outputs.released == 'true'
+        id: changelog
+        uses: cocogitto/cocogitto-action@9a9fe03b31c47444290c0d7f9b1ee1b44ee13f20 # v4.1.0
+        with:
+          command: changelog
+          args: --at ${{ steps.tag.outputs.tag }}
+
+      - name: Create GitHub release
+        if: steps.tag.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          NOTES: ${{ steps.changelog.outputs.stdout }}
+        run: |
+          printf '%s\n' "$NOTES" > release-notes.md
+          gh release create "$TAG" --title "$TAG" --notes-file release-notes.md

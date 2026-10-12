@@ -1,0 +1,17 @@
+tag_prefix = "v"
+ignore_merge_commits = true
+
+# cog decides the next version from Conventional Commits. The bump commit
+# ("chore(version): X.Y.Z") records the version as `kit.version` in
+# hostsmith.json, so sites created from the template know their kit release.
+# No CHANGELOG.md is committed; release notes go on the GitHub release.
+disable_changelog = true
+
+pre_bump_hooks = [
+  "node scripts/set-kit-version.mjs {{version}}",
+]
+
+[changelog]
+remote = "github.com"
+owner = "hostsmith"
+repository = "site-kit"
