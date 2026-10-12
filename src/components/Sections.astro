@@ -1,0 +1,29 @@
+---
+// Renders a page's sections in list order through the registry.
+//
+// A page has exactly one h1. The first hero renders its title as h1, unless
+// the page already has one (`hasH1`, for hand-written pages). A page without a
+// hero gets its title as a visually hidden h1.
+import type { Section } from "../content.config.ts";
+import { field } from "../lib/field.ts";
+import { sectionComponent } from "./sections/registry.ts";
+
+interface Props {
+  // Field-attribute entry name, such as "pages/home".
+  entry: string;
+  title: string;
+  sections: Section[];
+  hasH1?: boolean;
+}
+
+const { entry, title, sections, hasH1 = false } = Astro.props;
+const firstHero = hasH1 ? undefined : sections.find((s) => s.type === "hero")?.id;
+---
+
+{!hasH1 && firstHero === undefined && <h1 class="sr-only" {...field(entry, "title")}>{title}</h1>}
+{
+  sections.map((section) => {
+    const Component = sectionComponent(section.type);
+    return <Component section={section} entry={entry} primary={section.id === firstHero} />;
+  })
+}

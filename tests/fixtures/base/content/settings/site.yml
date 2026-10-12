@@ -1,0 +1,30 @@
+name: Test Bakery
+language: en
+nav:
+  - label: Home
+    link: /
+  - label: About
+    link: /about
+  - label: Plumbing
+    link: /services/plumbing
+  - label: News
+    link: /news
+footer:
+  text: A test site.
+  links:
+    - label: News
+      link: /news
+contact:
+  email: test@example.com
+  phone: "+1 555 0100"
+  address: 1 Test Street
+social:
+  - label: Example
+    url: https://social.example.com/test
+seo:
+  description: Default description
+  ogImage: /assets/test/share.svg
+ui:
+  skipLink: Skip to content
+  menu: Menu
+  readMore: Read more

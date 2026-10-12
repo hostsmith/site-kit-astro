@@ -1,0 +1,38 @@
+---
+// The generic route (design D1): every page entry that doesn't set
+// `template: custom`, and every non-draft collection entry under its base path.
+import Sections from "../components/Sections.astro";
+import Base from "../layouts/Base.astro";
+import { detailTemplate, getRoutes, type Route } from "../lib/routes.ts";
+
+export async function getStaticPaths() {
+  const routes = await getRoutes();
+  return routes
+    .filter((route) => route.kind !== "custom")
+    .map((route) => ({ params: { slug: route.path === "/" ? undefined : route.path.slice(1) }, props: { route } }));
+}
+
+interface Props {
+  route: Exclude<Route, { kind: "custom" }>;
+}
+
+const { route } = Astro.props;
+---
+
+{
+  route.kind === "page" ? (
+    <Base title={route.entry.data.title} description={route.entry.data.description} image={route.entry.data.ogImage} path={route.path}>
+      <Sections entry={`pages/${route.entry.id}`} title={route.entry.data.title} sections={route.entry.data.sections ?? []} />
+    </Base>
+  ) : (
+    (() => {
+      const Detail = detailTemplate(route.collection);
+      const data = route.entry.data as { title: string; description?: string; image?: string };
+      return (
+        <Base title={data.title} description={data.description} image={data.image} path={route.path}>
+          <Detail entry={route.entry} />
+        </Base>
+      );
+    })()
+  )
+}

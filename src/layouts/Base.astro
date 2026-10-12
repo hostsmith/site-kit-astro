@@ -1,0 +1,175 @@
+---
+// The base layout of every page: SEO head, skip link, header with nav,
+// main and footer. All visible text comes from content or settings.
+import "../styles/global.css";
+import { field } from "../lib/field.ts";
+import { absoluteUrl, isNoindexBuild } from "../lib/seo.ts";
+import { getSettings, SETTINGS } from "../lib/settings.ts";
+
+interface Props {
+  // Used verbatim as the document title.
+  title: string;
+  description?: string;
+  // Public media path of the Open Graph image.
+  image?: string;
+  // The page's URL path, such as "/about". Omitted on the 404 page, which
+  // has no canonical URL and is never indexed.
+  path?: string;
+}
+
+const { title, description, image, path } = Astro.props;
+const settings = await getSettings();
+const metaDescription = description ?? settings.seo.description;
+const ogImage = image ?? settings.seo.ogImage;
+const canonical = path === undefined ? undefined : absoluteUrl(path, Astro.site);
+const robots = isNoindexBuild() ? "noindex, nofollow" : path === undefined ? "noindex" : undefined;
+const year = new Date().getFullYear();
+const { contact, footer, logo, nav, social, ui } = settings;
+---
+
+<!doctype html>
+<html lang={settings.language}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={metaDescription} />
+    {robots && <meta name="robots" content={robots} />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={metaDescription} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    {ogImage && <meta property="og:image" content={absoluteUrl(ogImage, Astro.site)} />}
+  </head>
+  <body class="flex min-h-screen flex-col bg-bg font-body text-fg">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-fg"
+      {...field(SETTINGS, "ui", "skipLink")}>{ui.skipLink}</a
+    >
+
+    <header class="border-b border-border">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <a href="/" class="font-heading text-xl font-bold">
+          {
+            logo ? (
+              <img src={logo.image} alt={logo.alt} class="h-10 w-auto" {...field(SETTINGS, "logo", "image")} />
+            ) : (
+              <span {...field(SETTINGS, "name")}>{settings.name}</span>
+            )
+          }
+        </a>
+        {
+          nav.length > 0 && (
+            <>
+              <button
+                type="button"
+                hidden
+                aria-expanded="true"
+                aria-controls="site-nav"
+                class="rounded-md border border-border px-3 py-2 font-semibold md:hidden"
+                data-menu-button
+                {...field(SETTINGS, "ui", "menu")}
+              >
+                {ui.menu}
+              </button>
+              <nav id="site-nav" class="w-full md:w-auto" data-menu>
+                <ul class="flex flex-col gap-1 md:flex-row md:gap-6">
+                  {nav.map((item, i) => (
+                    <li>
+                      <a
+                        href={item.link}
+                        aria-current={item.link === path ? "page" : undefined}
+                        class="block py-2 hover:underline aria-[current=page]:font-semibold"
+                        {...field(SETTINGS, "nav", i, "label")}
+                      >
+                        {item.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              {/* Runs during parsing, so the mobile menu never flashes open. Without JavaScript the menu stays open. */}
+              <script is:inline>
+                (() => {
+                  const button = document.querySelector("[data-menu-button]");
+                  const menu = document.querySelector("[data-menu]");
+                  const setOpen = (open) => {
+                    button.setAttribute("aria-expanded", String(open));
+                    menu.toggleAttribute("data-closed", !open);
+                  };
+                  button.hidden = false;
+                  setOpen(false);
+                  button.addEventListener("click", () => setOpen(button.getAttribute("aria-expanded") !== "true"));
+                  document.addEventListener("keydown", (event) => {
+                    if (event.key === "Escape" && button.getAttribute("aria-expanded") === "true") {
+                      setOpen(false);
+                      button.focus();
+                    }
+                  });
+                })();
+              </script>
+            </>
+          )
+        }
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1" class="flex-1 focus:outline-none">
+      <slot />
+    </main>
+
+    <footer class="mt-16 border-t border-border">
+      <div class="mx-auto grid max-w-6xl gap-8 px-6 py-10 text-sm md:grid-cols-3">
+        <div class="flex flex-col gap-2">
+          {footer.text && <p {...field(SETTINGS, "footer", "text")}>{footer.text}</p>}
+          <p>
+            © {year} <span {...field(SETTINGS, "name")}>{settings.name}</span>
+          </p>
+        </div>
+        {
+          contact && (
+            <address class="flex flex-col gap-1 not-italic">
+              {contact.address && (
+                <span class="whitespace-pre-line" {...field(SETTINGS, "contact", "address")}>
+                  {contact.address}
+                </span>
+              )}
+              {contact.phone && (
+                <a href={`tel:${contact.phone.replace(/[^+\d]/g, "")}`} class="underline" {...field(SETTINGS, "contact", "phone")}>
+                  {contact.phone}
+                </a>
+              )}
+              {contact.email && (
+                <a href={`mailto:${contact.email}`} class="underline" {...field(SETTINGS, "contact", "email")}>
+                  {contact.email}
+                </a>
+              )}
+            </address>
+          )
+        }
+        {
+          (footer.links?.length ?? 0) + (social?.length ?? 0) > 0 && (
+            <ul class="flex flex-col gap-1">
+              {footer.links?.map((item, i) => (
+                <li>
+                  <a href={item.link} class="underline" {...field(SETTINGS, "footer", "links", i, "label")}>
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+              {social?.map((item, i) => (
+                <li>
+                  <a href={item.url} rel="me noopener" class="underline" {...field(SETTINGS, "social", i, "label")}>
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </div>
+    </footer>
+  </body>
+</html>

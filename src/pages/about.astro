@@ -1,0 +1,39 @@
+---
+// Example `template: custom` page. It reads its own page entry
+// (src/content/pages/about.md), declares the props it adds, and gives every
+// rendered value a field attribute.
+import { z } from "astro/zod";
+import Sections from "../components/Sections.astro";
+import Base from "../layouts/Base.astro";
+import { customPage } from "../lib/custom-page.ts";
+import { field } from "../lib/field.ts";
+import { pagePath } from "../lib/routes.ts";
+
+const { entry, ref, data } = await customPage("about", {
+  heading: z.string().min(1),
+  intro: z.string().min(1),
+  values: z.array(z.strictObject({ title: z.string().min(1), text: z.string().min(1) })),
+});
+---
+
+<Base title={data.title} description={data.description} image={data.ogImage} path={pagePath(entry.id)}>
+  <div class="mx-auto max-w-6xl px-6 py-16">
+    <h1 class="max-w-3xl font-heading text-4xl font-bold leading-tight md:text-5xl" {...field(ref, "heading")}>{data.heading}</h1>
+    <p class="mt-6 max-w-prose text-lg" {...field(ref, "intro")}>{data.intro}</p>
+    <ul class="mt-12 grid gap-8 md:grid-cols-3">
+      {
+        data.values.map((value, i) => (
+          <li class="rounded-lg border border-border p-6">
+            <h2 class="font-heading text-xl font-semibold" {...field(ref, "values", i, "title")}>
+              {value.title}
+            </h2>
+            <p class="mt-2" {...field(ref, "values", i, "text")}>
+              {value.text}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+  {data.sections && <Sections entry={ref} title={data.title} sections={data.sections} hasH1 />}
+</Base>

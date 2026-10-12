@@ -1,0 +1,38 @@
+# Site-wide content that is not specific to one page. Fictional example
+# content: the migration replaces all of it.
+name: Rye & Rise Bakery
+language: en
+# logo:
+#   image: /assets/images/logo.svg
+#   alt: Rye & Rise Bakery
+nav:
+  - label: Home
+    link: /
+  - label: About
+    link: /about
+  - label: Catering
+    link: /services/catering
+  - label: News
+    link: /news
+footer:
+  text: Sourdough rye, baked every morning since 1998.
+  links:
+    - label: Catering
+      link: /services/catering
+    - label: News
+      link: /news
+contact:
+  email: hello@example.com
+  phone: "+372 555 0100"
+  address: |-
+    Leiva 12
+    10111 Tallinn
+social:
+  - label: Instagram
+    url: https://www.instagram.com/example
+seo:
+  description: A neighborhood bakery in Tallinn with fresh rye bread every morning.
+ui:
+  skipLink: Skip to content
+  menu: Menu
+  readMore: Read more

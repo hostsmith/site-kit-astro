@@ -1,0 +1,13 @@
+---
+// The 404 page, rendered from page entry `404` as 404.html at the output root.
+import { getEntry } from "astro:content";
+import Sections from "../components/Sections.astro";
+import Base from "../layouts/Base.astro";
+
+const page = await getEntry("pages", "404");
+if (!page) throw new Error("Missing page entry src/content/pages/404.md. It renders the 404 page.");
+---
+
+<Base title={page.data.title} description={page.data.description} image={page.data.ogImage}>
+  <Sections entry="pages/404" title={page.data.title} sections={page.data.sections ?? []} />
+</Base>

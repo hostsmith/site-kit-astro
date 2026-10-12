@@ -1,0 +1,161 @@
+# Decap CMS config: the schema source of this site's content.
+#
+# Only the Decap-compatible subset is used, so Decap and Sveltia CMS both read
+# it. src/content.config.ts mirrors these fields by hand: change both files in
+# the same commit. The build removes /admin, so this file is never deployed.
+backend:
+  name: github
+  repo: OWNER/REPOSITORY
+  branch: main
+media_folder: public/assets
+public_folder: /assets
+
+collections:
+  - name: pages
+    label: Pages
+    label_singular: Page
+    folder: src/content/pages
+    extension: md
+    format: frontmatter
+    create: true
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: description, label: Description, widget: text, required: false }
+      - { name: ogImage, label: Social image, widget: image, required: false }
+      - &sections
+        name: sections
+        label: Sections
+        widget: list
+        typeKey: type
+        types:
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - &section_id { name: id, label: Section id, widget: string, pattern: ["^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$", "A lowercase letter, then 3 lowercase letters or digits, with at least one digit"] }
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string, required: false }
+              - { name: image, label: Image, widget: image, required: false }
+              - { name: imageAlt, label: Image alt text, widget: string, required: false }
+              - name: cta
+                label: Call to action
+                widget: object
+                required: false
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: link, label: Link, widget: string }
+              - { name: variant, label: Variant, widget: select, options: [centered, image-left, image-right, background], default: centered }
+          - name: rich-text
+            label: Rich text
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: body, label: Body, widget: markdown }
+              - { name: variant, label: Variant, widget: select, options: [narrow, wide], default: narrow }
+          - name: collection-list
+            label: Collection list
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: collection, label: Collection, widget: select, options: [news] }
+              - { name: limit, label: Limit, widget: number, value_type: int, min: 1, required: false }
+              - { name: variant, label: Variant, widget: select, options: [cards, list], default: cards }
+
+  # Pages with `template: custom`, one file each, with the props their
+  # hand-written page declares. They also show in the pages collection above.
+  - name: custom-pages
+    label: Custom pages
+    files:
+      - name: about
+        label: About
+        file: src/content/pages/about.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: description, label: Description, widget: text, required: false }
+          - { name: ogImage, label: Social image, widget: image, required: false }
+          - { name: template, label: Template, widget: hidden, default: custom }
+          - { name: heading, label: Heading, widget: string }
+          - { name: intro, label: Intro, widget: text }
+          - name: values
+            label: Values
+            widget: list
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: text, label: Text, widget: text }
+          - *sections
+
+  - name: settings
+    label: Settings
+    files:
+      - name: site
+        label: Site
+        file: src/content/settings/site.yml
+        fields:
+          - { name: name, label: Site name, widget: string }
+          - { name: language, label: Language (BCP 47), widget: string }
+          - name: logo
+            label: Logo
+            widget: object
+            required: false
+            fields:
+              - { name: image, label: Image, widget: image }
+              - { name: alt, label: Alt text, widget: string }
+          - name: nav
+            label: Navigation
+            widget: list
+            fields: &link_fields
+              - { name: label, label: Label, widget: string }
+              - { name: link, label: Link, widget: string }
+          - name: footer
+            label: Footer
+            widget: object
+            fields:
+              - { name: text, label: Text, widget: text, required: false }
+              - { name: links, label: Links, widget: list, required: false, fields: *link_fields }
+          - name: contact
+            label: Contact
+            widget: object
+            required: false
+            fields:
+              - { name: email, label: Email, widget: string, required: false }
+              - { name: phone, label: Phone, widget: string, required: false }
+              - { name: address, label: Address, widget: text, required: false }
+          - name: social
+            label: Social links
+            widget: list
+            required: false
+            fields:
+              - { name: label, label: Label, widget: string }
+              - { name: url, label: URL, widget: string }
+          - name: seo
+            label: Search and sharing defaults
+            widget: object
+            fields:
+              - { name: description, label: Description, widget: text }
+              - { name: ogImage, label: Social image, widget: image, required: false }
+          - name: ui
+            label: Interface text
+            widget: object
+            fields:
+              - { name: skipLink, label: Skip link, widget: string }
+              - { name: menu, label: Menu button, widget: string }
+              - { name: readMore, label: Read more link, widget: string }
+
+  - name: news
+    label: News
+    label_singular: News entry
+    folder: src/content/news
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: date, label: Date, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false }
+      - { name: description, label: Description, widget: text, required: false }
+      - { name: image, label: Image, widget: image, required: false }
+      - { name: imageAlt, label: Image alt text, widget: string, required: false }
+      - { name: draft, label: Draft, widget: boolean, required: false }
+      - { name: body, label: Body, widget: markdown }
