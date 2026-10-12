@@ -1,0 +1,9 @@
+# Paths of the old site that this site keeps, one per line.
+# `npm run check:urls` fails when one of them has no page in the build output.
+# These are the template's example pages; a migration replaces the list.
+/
+/about
+/news
+/news/fresh-rye
+/news/new-opening-hours
+/services/catering

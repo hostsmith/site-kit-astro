@@ -1,0 +1,23 @@
+{
+  "name": "site-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "node --test --test-concurrency=4 \"tests/**/*.test.mjs\"",
+    "section-id": "node scripts/section-id.mjs",
+    "check:urls": "node scripts/check-urls.mjs"
+  },
+  "dependencies": {
+    "@astrojs/markdown-satteri": "0.4.3",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.3.8",
+    "tailwindcss": "4.3.3"
+  }
+}

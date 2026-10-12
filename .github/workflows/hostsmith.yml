@@ -1,0 +1,16 @@
+# Placeholder for the workflow that builds the site and deploys it to
+# Hostsmith. It comes in a later kit release.
+name: Hostsmith
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.repository != 'hostsmith/site-kit'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "::notice::Deploys to Hostsmith are not set up yet."
