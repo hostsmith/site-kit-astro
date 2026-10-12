@@ -35,6 +35,19 @@ The kit is plain Astro. Hostsmith appears only in deployment tooling, so a kit s
 | `npm run section-id -- <page file>` | Prints a new section id for that page. |
 | `npm run check:urls` | Checks that every path in `.hostsmith/old-urls.txt` has a page. Add `--live <url>` to check a deployed site. |
 
+## Deploying to Hostsmith
+
+`.github/workflows/hostsmith.yml` deploys a push to `main` to the production site (`site.id` in `hostsmith.json`), and a push to any other branch to the preview site. Set these in the repository settings:
+
+| Setting | Kind | What it is |
+| --- | --- | --- |
+| `HOSTSMITH_TOKEN` | secret | A Hostsmith API token restricted to the production and preview sites, with the "Deploy" permissions |
+| `HOSTSMITH_PREVIEW_SITE_ID` | variable | The preview site. Without it, branch pushes only build. |
+| `HOSTSMITH_PARTITION` | variable | `us` or `eu`, when the sites aren't in your account's home partition |
+| `SITE_NOINDEX` | variable | `true` until the site's domain points to Hostsmith. Previews are always no-index. |
+
+The workflow never runs in the kit's own repository.
+
 ## License
 
 [MIT](./LICENSE)
