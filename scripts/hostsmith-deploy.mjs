@@ -74,12 +74,18 @@ export function explain(step, error, siteId) {
   return status === undefined ? `${step} failed${detail}.` : `${step} failed (${status}${detail}).`;
 }
 
-// Polls until the uploaded version is live, the site has failed, or the timeout passes.
+// Polls until the uploaded version is live, the site has failed, or the timeout
+// passes. Finalize sets the site to UPDATING; processing ends in ACTIVE (live)
+// or FAILED. Deploys to one target run one at a time, so the status belongs to
+// this deploy. The first poll waits one interval, so an eventually-consistent
+// read can't return the status from before finalize. Hostsmith doesn't keep the
+// site's deployId up to date yet; when it does, a matching one counts as live too.
 export async function waitUntilLive(client, siteId, versionId, { sleep = delay, now = Date.now, interval = POLL_INTERVAL_MS, timeout = TIMEOUT_MS } = {}) {
   const expected = `${siteId}.${versionId}`;
   const deadline = now() + timeout;
   let last;
   for (;;) {
+    await sleep(interval);
     try {
       last = await client.sites.get(siteId);
     } catch (error) {
@@ -88,13 +94,10 @@ export async function waitUntilLive(client, siteId, versionId, { sleep = delay, 
     if (last.siteStatus === "FAILED") {
       throw new DeployError(`Processing failed: site ${siteId} has status FAILED after the upload. Check the storage quota and the files in the build output.`);
     }
-    if (last.siteStatus === "ACTIVE" && last.deployId === expected) return last;
+    if (last.siteStatus === "ACTIVE" || last.deployId === expected) return last;
     if (now() >= deadline) {
-      throw new DeployError(
-        `Timed out after ${timeout / 60_000} minutes waiting for version ${versionId}. Last status: ${last.siteStatus ?? "unknown"}, deploy ${last.deployId ?? "none"}.`,
-      );
+      throw new DeployError(`Timed out after ${timeout / 60_000} minutes waiting for version ${versionId}. Last status: ${last.siteStatus ?? "unknown"}.`);
     }
-    await sleep(interval);
   }
 }
 

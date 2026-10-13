@@ -13,7 +13,8 @@ const env = { HOSTSMITH_TARGET: "production", HOSTSMITH_TOKEN: TOKEN };
 
 const apiError = (status, message) => Object.assign(new Error(message), { name: status === 401 ? "AuthError" : "ApiError", status });
 
-// A client whose site goes through the given statuses after the upload.
+// A client whose site goes through the given statuses after the upload. Like
+// Hostsmith today, it reports no deployId.
 function mockClient({ statuses = ["ACTIVE"], deployError, versionId = "v2" } = {}) {
   const calls = { deploy: [], get: 0 };
   return {
@@ -26,7 +27,7 @@ function mockClient({ statuses = ["ACTIVE"], deployError, versionId = "v2" } = {
       },
       get: async (siteId) => {
         const status = statuses[Math.min(calls.get++, statuses.length - 1)];
-        return { id: siteId, subdomain: "acme", domain: "us.hostsmith.link", siteStatus: status, deployId: status === "ACTIVE" ? `${siteId}.${versionId}` : `${siteId}.v1` };
+        return { id: siteId, subdomain: "acme", domain: "us.hostsmith.link", siteStatus: status };
       },
     },
   };
@@ -71,7 +72,7 @@ describe("deploy", () => {
   const config = resolveConfig(env, manifest);
 
   it("uploads, waits until the new version is live, and writes the summary", async () => {
-    const client = mockClient({ statuses: ["PROCESSING", "PROCESSING", "ACTIVE"] });
+    const client = mockClient({ statuses: ["UPDATING", "UPDATING", "ACTIVE"] });
     const out = capture();
     const result = await deploy(config, { client, sha: "abc1234", ...out, ...fakeTime() });
     assert.deepEqual(client.calls.deploy, [["prod-site", "dist"]]);
@@ -82,22 +83,41 @@ describe("deploy", () => {
     assert.match(summary, /Commit: `abc1234`/);
   });
 
-  it("waits for the uploaded version, not an older active one", async () => {
-    const client = mockClient();
-    client.sites.get = async (siteId) => ({ siteStatus: "ACTIVE", deployId: `${siteId}.v1`, subdomain: "acme", domain: "x" });
+  it("checks only after the first interval, so a stale read can't pass", async () => {
     const time = fakeTime();
-    await assert.rejects(waitUntilLive(client, "prod-site", "v2", { ...time, timeout: 20_000 }), /Timed out .* Last status: ACTIVE, deploy prod-site\.v1/);
+    const client = mockClient({ statuses: ["ACTIVE"] });
+    const firstCheckAt = [];
+    const get = client.sites.get;
+    client.sites.get = async (siteId) => {
+      firstCheckAt.push(time.now());
+      return get(siteId);
+    };
+    await waitUntilLive(client, "prod-site", "v2", time);
+    assert.deepEqual(firstCheckAt, [5_000]);
+  });
+
+  it("keeps waiting while the site is UPDATING", async () => {
+    const client = mockClient({ statuses: ["UPDATING"] });
+    await assert.rejects(waitUntilLive(client, "prod-site", "v2", { ...fakeTime(), timeout: 20_000 }), /Timed out .* Last status: UPDATING\./);
+    assert.ok(client.calls.get >= 4);
+  });
+
+  it("counts a matching deployId as live", async () => {
+    const client = mockClient();
+    client.sites.get = async (siteId) => ({ siteStatus: "UPDATING", deployId: `${siteId}.v2`, subdomain: "acme", domain: "x" });
+    const site = await waitUntilLive(client, "prod-site", "v2", fakeTime());
+    assert.equal(site.deployId, "prod-site.v2");
   });
 
   it("fails when processing fails", async () => {
-    const client = mockClient({ statuses: ["PROCESSING", "FAILED"] });
+    const client = mockClient({ statuses: ["UPDATING", "FAILED"] });
     await assert.rejects(deploy(config, { client, ...capture(), ...fakeTime() }), /Processing failed: site prod-site has status FAILED/);
   });
 
   it("fails after 10 minutes with the last status", async () => {
-    const client = mockClient({ statuses: ["PROCESSING"] });
+    const client = mockClient({ statuses: ["UPDATING"] });
     const time = fakeTime();
-    await assert.rejects(deploy(config, { client, ...capture(), ...time }), /Timed out after 10 minutes .* Last status: PROCESSING/);
+    await assert.rejects(deploy(config, { client, ...capture(), ...time }), /Timed out after 10 minutes .* Last status: UPDATING/);
     assert.ok(time.now() >= 10 * 60_000);
   });
 
