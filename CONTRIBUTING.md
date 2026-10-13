@@ -16,8 +16,8 @@ New section types and new dependencies need a discussion in an issue first. The 
 ## Development
 
 ```bash
-git clone https://github.com/hostsmith/site-kit
-cd site-kit
+git clone https://github.com/hostsmith/site-kit-astro
+cd site-kit-astro
 npm ci
 git config core.hooksPath .githooks
 ```

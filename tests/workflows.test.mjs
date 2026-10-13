@@ -25,8 +25,14 @@ describe("workflows", () => {
 
   it("deploy with read-only contents, outside the template repository", () => {
     assert.match(deploy, /^permissions:\n {2}contents: read\n\n/m);
-    assert.match(deploy, /if: github\.repository != 'hostsmith\/site-kit'/);
+    assert.match(deploy, /if: github\.repository != 'hostsmith\/site-kit-astro'\n/);
     assert.doesNotMatch(deploy, /pull_request/);
+  });
+
+  it("run the kit's tests and releases only in the kit repository", () => {
+    for (const file of ["ci.yml", "release.yml"]) {
+      assert.match(readFileSync(join(dir, file), "utf8"), /github\.repository == 'hostsmith\/site-kit-astro'/, file);
+    }
   });
 
   it("checks the configuration before the build and deploys after it", () => {

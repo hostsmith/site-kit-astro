@@ -38,7 +38,7 @@ permissions:
 jobs:
   deploy:
     # The kit's own template repository never deploys.
-    if: github.repository != 'hostsmith/site-kit'
+    if: github.repository != 'hostsmith/site-kit-astro'
     runs-on: ubuntu-latest
     # The target's secrets and branch rules come from this environment.
     environment:

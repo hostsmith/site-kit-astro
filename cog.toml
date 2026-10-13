@@ -14,4 +14,4 @@ pre_bump_hooks = [
 [changelog]
 remote = "github.com"
 owner = "hostsmith"
-repository = "site-kit"
+repository = "site-kit-astro"
