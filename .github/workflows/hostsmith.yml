@@ -7,7 +7,7 @@
 #
 # Settings:
 # - secret HOSTSMITH_TOKEN: a Hostsmith API token restricted to the production
-#   and preview sites, with the "Deploy" permissions
+#   and preview sites, with "Custom" permissions sites:read and files:write
 # - variable HOSTSMITH_PREVIEW_SITE_ID: the preview site (optional)
 # - variable HOSTSMITH_PARTITION: "us" or "eu", when the sites aren't in the
 #   account's home partition (optional)

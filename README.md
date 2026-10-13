@@ -41,7 +41,7 @@ The kit is plain Astro. Hostsmith appears only in deployment tooling, so a kit s
 
 | Setting | Kind | What it is |
 | --- | --- | --- |
-| `HOSTSMITH_TOKEN` | secret | A Hostsmith API token restricted to the production and preview sites, with the "Deploy" permissions |
+| `HOSTSMITH_TOKEN` | secret | A Hostsmith API token restricted to the production and preview sites, with "Custom" permissions `sites:read` and `files:write` |
 | `HOSTSMITH_PREVIEW_SITE_ID` | variable | The preview site. Without it, branch pushes only build. |
 | `HOSTSMITH_PARTITION` | variable | `us` or `eu`, when the sites aren't in your account's home partition |
 | `SITE_NOINDEX` | variable | `true` until the site's domain points to Hostsmith. Previews are always no-index. |
