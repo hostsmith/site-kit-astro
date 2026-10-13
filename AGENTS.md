@@ -13,4 +13,4 @@ Every dependency is pinned to an exact version, and `package-lock.json` is commi
 - `@hostsmith/sdk` (development dependency only)
 - `@astrojs/react`, `react` and `react-dom`, only for the DevLink experiment
 
-Don't add a package that isn't on this list. If a change seems to need one, stop and raise it with the freelancer instead.
+Don't add a package that isn't on this list. If a change seems to need one, stop and raise it with the developer instead.
