@@ -58,8 +58,8 @@ describe("configuration", () => {
     assert.throws(() => resolveConfig(env, { ...manifest, site: { id: "" } }), /site\.id in hostsmith\.json must be set/);
   });
 
-  it("fails without the token, naming the secret", () => {
-    assert.throws(() => resolveConfig({ HOSTSMITH_TARGET: "production" }, manifest), /secret HOSTSMITH_TOKEN isn't set/);
+  it("fails without the token, naming the secret and the environment", () => {
+    assert.throws(() => resolveConfig({ HOSTSMITH_TARGET: "production" }, manifest), /secret HOSTSMITH_TOKEN isn't set in the production environment or the repository/);
   });
 
   it("fails on an unknown partition or target", () => {
@@ -74,13 +74,22 @@ describe("deploy", () => {
   it("uploads, waits until the new version is live, and writes the summary", async () => {
     const client = mockClient({ statuses: ["UPDATING", "UPDATING", "ACTIVE"] });
     const out = capture();
-    const result = await deploy(config, { client, sha: "abc1234", ...out, ...fakeTime() });
+    const outputs = [];
+    const result = await deploy(config, { client, sha: "abc1234", ...out, setOutput: (line) => outputs.push(line), ...fakeTime() });
     assert.deepEqual(client.calls.deploy, [["prod-site", "dist"]]);
     assert.equal(client.calls.get, 3);
     assert.equal(result.address, "https://acme.us.hostsmith.link");
     const summary = out.lines.at(-1);
     assert.match(summary, /Site: https:\/\/acme\.us\.hostsmith\.link/);
     assert.match(summary, /Commit: `abc1234`/);
+    // The GitHub environment's URL.
+    assert.deepEqual(outputs, ["url=https://acme.us.hostsmith.link"]);
+  });
+
+  it("sets no URL when the deploy fails", async () => {
+    const outputs = [];
+    await assert.rejects(deploy(config, { client: mockClient({ statuses: ["FAILED"] }), ...capture(), setOutput: (line) => outputs.push(line), ...fakeTime() }));
+    assert.deepEqual(outputs, []);
   });
 
   it("checks only after the first interval, so a stale read can't pass", async () => {
@@ -125,7 +134,7 @@ describe("deploy", () => {
     const client = mockClient({ deployError: apiError(401, "Invalid or expired token") });
     await assert.rejects(deploy(config, { client, ...capture() }), (error) => {
       assert.ok(error instanceof DeployError);
-      assert.match(error.message, /Upload failed \(401: Invalid or expired token\)\. .*Create a new Hostsmith API token and store it in HOSTSMITH_TOKEN/);
+      assert.match(error.message, /Upload failed \(401: Invalid or expired token\)\. .*Create a new Hostsmith API token and store it in the HOSTSMITH_TOKEN secret of the production environment \(or of the repository\)/);
       return true;
     });
   });

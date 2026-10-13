@@ -2,13 +2,20 @@
 #
 # - A push to main deploys to the production site (`site.id` in hostsmith.json).
 # - A push to another branch deploys to the preview site
-#   (repository variable HOSTSMITH_PREVIEW_SITE_ID), or only builds without one.
+#   (variable HOSTSMITH_PREVIEW_SITE_ID), or only builds without one.
 # - A manual run deploys to the target chosen when starting it.
 #
+# The job runs in the GitHub environment named after its target, "production"
+# or "preview", and links the deployment to the site's address.
+#
 # Settings:
-# - secret HOSTSMITH_TOKEN: a Hostsmith API token restricted to the production
-#   and preview sites, with "Custom" permissions sites:read and files:write
-# - variable HOSTSMITH_PREVIEW_SITE_ID: the preview site (optional)
+# - secret HOSTSMITH_TOKEN in each environment: a Hostsmith API token
+#   restricted to that target's site, with "Custom" permissions sites:read and
+#   files:write. Limit the production environment to the main branch, so other
+#   branches can't use its token. On GitHub Free, private repositories have no
+#   environment secrets: use one repository secret restricted to both sites.
+# - variable HOSTSMITH_PREVIEW_SITE_ID: the preview site (optional), in the
+#   repository or the preview environment
 # - variable HOSTSMITH_PARTITION: "us" or "eu", when the sites aren't in the
 #   account's home partition (optional)
 # - variable SITE_NOINDEX: "true" until the DNS switch. Previews are always no-index.
@@ -33,6 +40,10 @@ jobs:
     # The kit's own template repository never deploys.
     if: github.repository != 'hostsmith/site-kit'
     runs-on: ubuntu-latest
+    # The target's secrets and branch rules come from this environment.
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.target || (github.ref_name == 'main' && 'production' || 'preview') }}
+      url: ${{ steps.deploy.outputs.url }}
     env:
       HOSTSMITH_TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || (github.ref_name == 'main' && 'production' || 'preview') }}
     # One deploy per target at a time. A running deploy finishes; a newer push
@@ -75,6 +86,7 @@ jobs:
         run: $BUILD_COMMAND
 
       - name: Deploy
+        id: deploy
         if: steps.check.outputs.deploy == 'true'
         env:
           HOSTSMITH_TOKEN: ${{ secrets.HOSTSMITH_TOKEN }}

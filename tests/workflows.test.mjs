@@ -35,6 +35,16 @@ describe("workflows", () => {
     assert.deepEqual([...order].sort((a, b) => a - b), order);
   });
 
+  it("runs in the target's environment and links the deployment to the site", () => {
+    const target = "github.event_name == 'workflow_dispatch' && inputs.target || (github.ref_name == 'main' && 'production' || 'preview')";
+    const expression = `\${{ ${target} }}`;
+    assert.ok(deploy.includes(`environment:\n      name: ${expression}\n      url: \${{ steps.deploy.outputs.url }}\n`), "environment name and url");
+    // The environment, the concurrency group and the script agree on the target.
+    assert.ok(deploy.includes(`HOSTSMITH_TARGET: ${expression}`));
+    assert.ok(deploy.includes(`group: hostsmith-${expression}`));
+    assert.match(deploy, /- name: Deploy\n {8}id: deploy\n/);
+  });
+
   it("always builds previews with SITE_NOINDEX=true", () => {
     assert.match(deploy, /SITE_NOINDEX: \$\{\{ env\.HOSTSMITH_TARGET == 'preview' && 'true' \|\| vars\.SITE_NOINDEX \}\}/);
   });

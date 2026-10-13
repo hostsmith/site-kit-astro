@@ -37,11 +37,19 @@ The kit is plain Astro. Hostsmith appears only in deployment tooling, so a kit s
 
 ## Deploying to Hostsmith
 
-`.github/workflows/hostsmith.yml` deploys a push to `main` to the production site (`site.id` in `hostsmith.json`), and a push to any other branch to the preview site. Set these in the repository settings:
+`.github/workflows/hostsmith.yml` deploys a push to `main` to the production site (`site.id` in `hostsmith.json`), and a push to any other branch to the preview site. Each deploy runs in the GitHub environment named after its target, `production` or `preview`, and the repository's deployments list links to the site.
+
+In the repository settings, under Environments:
+
+1. In `production`, add the secret `HOSTSMITH_TOKEN`: a Hostsmith API token restricted to the production site, with "Custom" permissions `sites:read` and `files:write`. Under deployment branches, allow only `main`, so other branches can't use this token.
+2. In `preview`, add the secret `HOSTSMITH_TOKEN`: a token restricted to the preview site, with the same permissions.
+
+Private repositories on GitHub Free have no environment secrets. There, add one repository secret `HOSTSMITH_TOKEN` restricted to both sites instead.
+
+Variables, in the repository or the environment:
 
 | Setting | Kind | What it is |
 | --- | --- | --- |
-| `HOSTSMITH_TOKEN` | secret | A Hostsmith API token restricted to the production and preview sites, with "Custom" permissions `sites:read` and `files:write` |
 | `HOSTSMITH_PREVIEW_SITE_ID` | variable | The preview site. Without it, branch pushes only build. |
 | `HOSTSMITH_PARTITION` | variable | `us` or `eu`, when the sites aren't in your account's home partition |
 | `SITE_NOINDEX` | variable | `true` until the site's domain points to Hostsmith. Previews are always no-index. |

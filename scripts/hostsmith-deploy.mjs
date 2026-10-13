@@ -5,7 +5,7 @@
 //
 // Environment:
 //   HOSTSMITH_TARGET           "production" or "preview"
-//   HOSTSMITH_TOKEN            Hostsmith API token, restricted to the production and preview sites
+//   HOSTSMITH_TOKEN            Hostsmith API token from the target's GitHub environment, restricted to its site
 //   HOSTSMITH_PREVIEW_SITE_ID  site id of the preview site (optional; previews are skipped without it)
 //   HOSTSMITH_PARTITION        "us" or "eu", when the sites aren't in the account's home partition
 //
@@ -40,7 +40,7 @@ export function resolveConfig(env, manifest) {
   }
 
   if (!env.HOSTSMITH_TOKEN) {
-    throw new DeployError("The repository secret HOSTSMITH_TOKEN isn't set. Create a Hostsmith API token restricted to this site and store it there.");
+    throw new DeployError(`The secret HOSTSMITH_TOKEN isn't set in the ${target} environment or the repository. Create a Hostsmith API token restricted to this site and store it in the ${target} environment.`);
   }
   const partition = env.HOSTSMITH_PARTITION || undefined;
   if (partition !== undefined && partition !== "us" && partition !== "eu") {
@@ -56,11 +56,12 @@ export function redact(text, token) {
 }
 
 // Turns an SDK error into a message that says what to fix.
-export function explain(step, error, siteId) {
+export function explain(step, error, siteId, target) {
   const status = typeof error?.status === "number" ? error.status : undefined;
   const detail = error?.message ? `: ${error.message}` : "";
   if (error?.name === "AuthError" || status === 401) {
-    return `${step} failed (401${detail}). The API token in HOSTSMITH_TOKEN is invalid, expired or revoked. Create a new Hostsmith API token and store it in HOSTSMITH_TOKEN.`;
+    const secret = target ? `the HOSTSMITH_TOKEN secret of the ${target} environment (or of the repository)` : "the HOSTSMITH_TOKEN secret";
+    return `${step} failed (401${detail}). The API token in HOSTSMITH_TOKEN is invalid, expired or revoked. Create a new Hostsmith API token and store it in ${secret}.`;
   }
   if (status === 403) {
     return `${step} failed (403${detail}). The API token in HOSTSMITH_TOKEN can't access site ${siteId}. Create a token that includes this site.`;
@@ -101,19 +102,21 @@ export async function waitUntilLive(client, siteId, versionId, { sleep = delay, 
   }
 }
 
-export async function deploy(config, { client, sha, log = console.log, summary, sleep, now }) {
+export async function deploy(config, { client, sha, log = console.log, summary, setOutput, sleep, now }) {
   log(`Deploying ${config.output}/ to the ${config.target} site ${config.siteId}...`);
   let result;
   try {
     result = await client.sites.deploy(config.siteId, config.output);
   } catch (error) {
-    throw new DeployError(explain("Upload", error, config.siteId));
+    throw new DeployError(explain("Upload", error, config.siteId, config.target));
   }
   log(`Uploaded version ${result.versionId}. Waiting until it is live...`);
   const site = await waitUntilLive(client, config.siteId, result.versionId, { sleep, now });
   const address = `https://${site.subdomain}.${site.domain}`;
   log(`Live: ${address}`);
   summary?.(`### Deployed to ${config.target}\n\n- Site: ${address}\n- Commit: \`${sha ?? "unknown"}\`\n- Version: \`${result.versionId}\`\n`);
+  // The workflow sets the GitHub environment's URL from this output.
+  setOutput?.(`url=${address}`);
   return { address, versionId: result.versionId };
 }
 
@@ -147,6 +150,7 @@ async function main(command, env) {
     client,
     sha: env.GITHUB_SHA,
     summary: env.GITHUB_STEP_SUMMARY ? (text) => appendFileSync(env.GITHUB_STEP_SUMMARY, text) : undefined,
+    setOutput,
   });
 }
 
