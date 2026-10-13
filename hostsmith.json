@@ -1,5 +1,5 @@
 {
-  "kit": { "framework": "astro", "version": "0.1.0" },
+  "kit": { "framework": "astro", "version": "0.2.0" },
   "site": { "id": "" },
   "build": { "command": "npm run build", "output": "dist", "node": "24" },
   "content": {
