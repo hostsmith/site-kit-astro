@@ -20,7 +20,7 @@ jobs:
   release:
     # Kit-only, and skipped on the bot's own version commit.
     if: >-
-      github.repository == 'hostsmith/site-kit' &&
+      github.repository == 'hostsmith/site-kit-astro' &&
       (github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(version):'))
     runs-on: ubuntu-latest
     steps:
