@@ -62,6 +62,12 @@ function requireAlt(imageKey: string, altKey: string) {
 
 const navItem = z.strictObject({ label: z.string().min(1), link });
 
+// A button or a text link: what it says and where it goes.
+const labeledLink = z.strictObject({ label: z.string().min(1), link });
+
+// A list prop of a section, such as `items`, has at least one item.
+const itemList = <T extends z.ZodType>(item: T) => z.array(item).min(1, { error: "needs at least one item" });
+
 // ---------------------------------------------------------------------------
 // Section types
 // ---------------------------------------------------------------------------
@@ -107,6 +113,83 @@ export const sectionSchemas = {
       .transform((name) => ({ name })),
     limit: z.int().positive().optional(),
     variant: z.enum(["cards", "list"]).default("cards"),
+  }),
+
+  "services-grid": section("services-grid", {
+    title: z.string().min(1).optional(),
+    intro: z.string().min(1).optional(),
+    items: itemList(
+      z
+        .strictObject({
+          title: z.string().min(1),
+          text: z.string().min(1).optional(),
+          image: mediaPath.optional(),
+          imageAlt: z.string().min(1).optional(),
+          // The item's title links here.
+          link: link.optional(),
+        })
+        .superRefine(requireAlt("image", "imageAlt")),
+    ),
+    variant: z.enum(["cards", "list"]).default("cards"),
+  }),
+
+  gallery: section("gallery", {
+    title: z.string().min(1).optional(),
+    images: itemList(
+      z
+        .strictObject({
+          image: mediaPath,
+          // Required: optional here only so the alt check names the image.
+          alt: z.string().min(1).optional(),
+          caption: z.string().min(1).optional(),
+        })
+        .superRefine(requireAlt("image", "alt")),
+    ),
+    variant: z.enum(["grid", "masonry"]).default("grid"),
+  }),
+
+  testimonials: section("testimonials", {
+    title: z.string().min(1).optional(),
+    items: itemList(
+      z
+        .strictObject({
+          quote: z.string().min(1),
+          name: z.string().min(1),
+          role: z.string().min(1).optional(),
+          image: mediaPath.optional(),
+          imageAlt: z.string().min(1).optional(),
+        })
+        .superRefine(requireAlt("image", "imageAlt")),
+    ),
+    variant: z.enum(["grid", "single"]).default("grid"),
+  }),
+
+  // One layout, so no variant. Answers are markdown, rendered like rich-text.
+  faq: section("faq", {
+    title: z.string().min(1).optional(),
+    items: itemList(z.strictObject({ question: z.string().min(1), answer: z.string().min(1) })),
+  }),
+
+  cta: section("cta", {
+    title: z.string().min(1),
+    text: z.string().min(1).optional(),
+    button: labeledLink,
+    secondaryButton: labeledLink.optional(),
+    variant: z.enum(["banner", "card"]).default("banner"),
+  }),
+
+  // One layout, so no variant. Links to a map and never embeds one: an embed
+  // loads the provider's scripts and sends visitor data to it.
+  "hours-location": section("hours-location", {
+    title: z.string().min(1).optional(),
+    address: z.string().min(1).optional(),
+    hours: itemList(z.strictObject({ days: z.string().min(1), time: z.string().min(1) })).optional(),
+    note: z.string().min(1).optional(),
+    mapLink: labeledLink.optional(),
+  }).superRefine((value, ctx) => {
+    if (value.address === undefined && value.hours === undefined) {
+      ctx.addIssue({ code: "custom", path: ["address"], message: 'needs an "address", "hours" or both' });
+    }
   }),
 };
 
@@ -184,8 +267,11 @@ export function describeIssue(issue: z.core.$ZodIssue, value: unknown): string {
       return `prop "${path}" has the value ${JSON.stringify(valueAt(value, issue.path))}, expected one of ${issue.values
         .map((v) => JSON.stringify(v))
         .join(", ")}`;
-    case "custom":
-      return issue.message;
+    case "custom": {
+      // Names the list item, such as "images[2]", when the check ran on one.
+      const last = issue.path.findLastIndex((part) => typeof part === "number");
+      return last === -1 ? issue.message : `${formatPath(issue.path.slice(0, last + 1) as PathPart[])}: ${issue.message}`;
+    }
     default:
       return `prop "${path}": ${issue.message}`;
   }

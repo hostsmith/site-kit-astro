@@ -36,7 +36,7 @@ describe("SEO output", () => {
     const urls = [...(await build.read("sitemap.xml")).matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
     assert.deepEqual(
       urls.sort(),
-      ["/", "/about", "/heroes", "/news", "/news/first", "/news/fresh-rye", "/news/second", "/news/third", "/services/plumbing"].map((p) => `${SITE}${p}`).sort(),
+      ["/", "/about", "/heroes", "/library", "/news", "/news/first", "/news/fresh-rye", "/news/second", "/news/third", "/services/plumbing"].map((p) => `${SITE}${p}`).sort(),
     );
   });
 

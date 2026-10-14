@@ -1,0 +1,63 @@
+---
+// cta: title, text, button, secondaryButton. Variants: banner (default), a
+// full-width band in the primary color; card, a bordered box. Both buttons
+// are links, the main one first.
+import type { Section } from "../../content.config.ts";
+import { sectionFields } from "../../lib/field.ts";
+
+interface Props {
+  section: Extract<Section, { type: "cta" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { title, text, button, secondaryButton, variant } = section;
+const f = sectionFields(entry, section);
+const banner = variant === "banner";
+// Both buttons have a border, so they are the same height side by side.
+const buttonBase = "inline-block rounded-md border-2 px-6 py-3 font-semibold";
+---
+
+<section {...f.root} class:list={["px-6", banner ? "bg-primary py-16 text-primary-fg" : "py-12"]}>
+  <div
+    class:list={[
+      "mx-auto flex flex-col gap-6",
+      banner ? "max-w-3xl items-center text-center" : "max-w-6xl rounded-lg border border-border p-8 md:flex-row md:items-center md:justify-between md:p-12",
+    ]}
+  >
+    <div>
+      <h2 class="font-heading text-3xl font-bold" {...f.field("title")}>{title}</h2>
+      {text && <p class:list={["mt-3 text-lg", banner && "max-w-prose"]} {...f.field("text")}>{text}</p>}
+    </div>
+    <div class="flex flex-wrap gap-4 md:shrink-0">
+      <a
+        href={button.link}
+        class:list={[
+          buttonBase,
+          "border-transparent",
+          banner ? "bg-bg text-fg hover:bg-bg/90 focus-visible:outline-primary-fg" : "bg-primary text-primary-fg hover:bg-primary/90",
+        ]}
+        {...f.field("button", "label")}
+      >
+        {button.label}
+      </a>
+      {
+        secondaryButton && (
+          <a
+            href={secondaryButton.link}
+            class:list={[
+              buttonBase,
+              banner
+                ? "border-primary-fg hover:bg-primary-fg/10 focus-visible:outline-primary-fg"
+                : "border-primary text-primary hover:bg-primary/10",
+            ]}
+            {...f.field("secondaryButton", "label")}
+          >
+            {secondaryButton.label}
+          </a>
+        )
+      }
+    </div>
+  </div>
+</section>

@@ -15,8 +15,21 @@ sections:
   - id: v6b1
     type: hero
     title: Visit the shop
-    subtitle: Open every day from 7:00 to 18:00.
+    subtitle: Open every day from 7:00.
     image: /assets/images/bakery-front.svg
     imageAlt: The bakery's front with a brown awning and a wooden door
     variant: image-left
+  - id: pe1f
+    type: gallery
+    title: Inside the bakery
+    images:
+      - image: /assets/images/oven.svg
+        alt: Three rye loaves baking in an arched brick oven
+        caption: The oven is lit at 3:00 every morning.
+      - image: /assets/images/flour-sacks.svg
+        alt: Three flour sacks with red labels against a beige wall
+        caption: Rye and spelt flour from two local farms.
+      - image: /assets/images/cinnamon-buns.svg
+        alt: Three round cinnamon buns with dark spirals
+        caption: Cinnamon buns, rolled by hand twice a day.
 ---
