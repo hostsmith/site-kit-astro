@@ -17,6 +17,10 @@ jobs:
   # writes the version to `kit.version` in hostsmith.json, and the bump commit
   # "chore(version): X.Y.Z" goes to main with the tag vX.Y.Z. The kit is not
   # published to npm: the release is the GitHub release and the template.
+  #
+  # main only takes pull requests. The release GitHub App is a bypass actor on
+  # main's ruleset, so the bump commit is pushed with the App's token (secrets
+  # RELEASE_APP_CLIENT_ID and RELEASE_APP_PRIVATE_KEY, as in mcp-server).
   release:
     # Kit-only, and skipped on the bot's own version commit.
     if: >-
@@ -24,9 +28,19 @@ jobs:
       (github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(version):'))
     runs-on: ubuntu-latest
     steps:
+      - name: Get the release App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      # The checkout keeps the App token, so `git push` below runs as the App.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -46,21 +60,32 @@ jobs:
           git-user: github-actions[bot]
           git-user-email: 41898282+github-actions[bot]@users.noreply.github.com
 
+      # No new tag means either nothing to release, or cog failed. A dry run
+      # tells them apart: it names a next version only when one is due.
       - name: Resolve tag
         id: tag
+        env:
+          BEFORE: ${{ steps.before.outputs.tag }}
         run: |
           AFTER=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [[ -z "$AFTER" || "$AFTER" == "${{ steps.before.outputs.tag }}" ]]; then
-            echo "released=false" >> "$GITHUB_OUTPUT"
-            echo "No releasable commits since '${{ steps.before.outputs.tag }}'"
-          else
+          if [[ -n "$AFTER" && "$AFTER" != "$BEFORE" ]]; then
             echo "released=true" >> "$GITHUB_OUTPUT"
             echo "tag=$AFTER" >> "$GITHUB_OUTPUT"
+          elif ! command -v cog >/dev/null; then
+            echo "::error::cog isn't installed. See the Bump step's log."
+            exit 1
+          elif NEXT=$(cog bump --auto --dry-run 2>/dev/null); then
+            echo "::error::Commits since '$BEFORE' need release $NEXT, but cog bump made no tag. See the Bump step's log."
+            exit 1
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            echo "No releasable commits since '$BEFORE'"
           fi
 
+      # Atomic: the version commit and the tag land together or not at all.
       - name: Push the version commit and tag
         if: steps.tag.outputs.released == 'true'
-        run: git push origin "HEAD:${{ github.ref_name }}" "${{ steps.tag.outputs.tag }}"
+        run: git push --atomic origin "HEAD:${{ github.ref_name }}" "${{ steps.tag.outputs.tag }}"
 
       - name: Generate release notes
         if: steps.tag.outputs.released == 'true'
