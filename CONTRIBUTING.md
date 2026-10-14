@@ -38,7 +38,11 @@ We use [Conventional Commits](https://www.conventionalcommits.org/). The `commit
 | `feat!:` or `BREAKING CHANGE:` | breaking change to the content model or a section type | major |
 | `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `chore:` | non-shipping | none |
 
-Releases are automated from `main`.
+Releases are automated from `main`. The release workflow pushes the version commit `chore(version): vX.Y.Z` and the tag `vX.Y.Z` to `main`, which otherwise only takes pull requests. It pushes as the release GitHub App, which needs:
+
+- the App installed on this repository, with contents write access;
+- the App in the bypass list of `main`'s ruleset;
+- the repository secrets `RELEASE_APP_CLIENT_ID` (the App's client ID) and `RELEASE_APP_PRIVATE_KEY` (its private key).
 
 ## Pull requests
 
