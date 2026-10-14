@@ -20,6 +20,28 @@ function* walk(value) {
   }
 }
 
+// The object shape of a prop schema, through optional, default and list wrappers.
+function shapeOf(schema) {
+  for (let s = schema; s; ) {
+    if (s.shape) return s.shape;
+    const def = s._zod.def;
+    s = def.type === "array" ? def.element : def.innerType;
+  }
+  return undefined;
+}
+
+// Compares Decap fields with Zod props, including the fields of object and list props.
+function assertSameFields(fields, shape, where) {
+  const names = fields.map((f) => f.name);
+  const props = Object.keys(shape).filter((key) => key !== "type");
+  assert.deepEqual([...names].sort(), props.sort(), `${where}: Decap fields and Zod props differ`);
+  for (const field of fields.filter((f) => f.fields)) {
+    const inner = shapeOf(shape[field.name]);
+    assert.ok(inner, `${where}.${field.name} has Decap fields but no Zod object`);
+    assertSameFields(field.fields, inner, `${where}.${field.name}`);
+  }
+}
+
 describe("public/admin/config.yml", () => {
   it("uses the github backend and the media folders", () => {
     assert.equal(config.backend.name, "github");
@@ -37,10 +59,8 @@ describe("public/admin/config.yml", () => {
 
   it("gives every section type an id field and the schema's props", () => {
     for (const type of sections.types) {
-      const fields = type.fields.map((f) => f.name);
-      assert.ok(fields.includes("id"), `${type.name} has no id field`);
-      const props = Object.keys(sectionSchemas[type.name].shape).filter((key) => key !== "type");
-      assert.deepEqual([...fields].sort(), props.sort(), `${type.name}: Decap fields and Zod props differ`);
+      assert.ok(type.fields.some((f) => f.name === "id"), `${type.name} has no id field`);
+      assertSameFields(type.fields, sectionSchemas[type.name].shape, type.name);
     }
   });
 
