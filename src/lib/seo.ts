@@ -5,8 +5,8 @@ export function isNoindexBuild(): boolean {
   return process.env.SITE_NOINDEX === "true";
 }
 
-// An absolute URL on the production site, set once as `site` in astro.config.mjs.
+// An absolute URL on the production site, set once as `url` in src/site.config.ts.
 export function absoluteUrl(path: string, site: URL | undefined): string {
-  if (!site) throw new Error('Set `site` in astro.config.mjs to the production site URL, such as "https://www.example.com".');
+  if (!site) throw new Error('Set `url` in src/site.config.ts to the production site URL, such as "https://www.example.com".');
   return new URL(path, site).href;
 }

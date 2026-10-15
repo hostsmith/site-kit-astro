@@ -1,8 +1,10 @@
-# Decap CMS config: the schema source of this site's content.
+# Decap CMS config, assembled by `npm run decap-config` from
+# public/admin/config.kit.yml (the kit's part) and
+# public/admin/config.site.yml (this site's part). Don't edit this
+# file: edit one of those two and run the command again.
 #
-# Only the Decap-compatible subset is used, so Decap and Sveltia CMS both read
-# it. src/content.config.ts mirrors these fields by hand: change both files in
-# the same commit. The build removes /admin, so this file is never deployed.
+# Decap CMS and Sveltia CMS both read it. The build removes /admin, so it is
+# never deployed.
 backend:
   name: github
   repo: OWNER/REPOSITORY
@@ -59,7 +61,10 @@ collections:
             fields:
               - *section_id
               - { name: title, label: Title, widget: string, required: false }
-              - { name: collection, label: Collection, widget: select, options: [news] }
+              - name: collection
+                label: Collection
+                widget: select
+                options: [news]
               - { name: limit, label: Limit, widget: number, value_type: int, min: 1, required: false }
               - { name: variant, label: Variant, widget: select, options: [cards, list], default: cards }
           - name: services-grid
@@ -157,29 +162,6 @@ collections:
               - { name: note, label: Note, widget: text, required: false }
               - { name: mapLink, label: Map link, widget: object, required: false, fields: *labeled_link }
 
-  # Pages with `template: custom`, one file each, with the props their
-  # hand-written page declares. They also show in the pages collection above.
-  - name: custom-pages
-    label: Custom pages
-    files:
-      - name: about
-        label: About
-        file: src/content/pages/about.md
-        fields:
-          - { name: title, label: Title, widget: string }
-          - { name: description, label: Description, widget: text, required: false }
-          - { name: ogImage, label: Social image, widget: image, required: false }
-          - { name: template, label: Template, widget: hidden, default: custom }
-          - { name: heading, label: Heading, widget: string }
-          - { name: intro, label: Intro, widget: text }
-          - name: values
-            label: Values
-            widget: list
-            fields:
-              - { name: title, label: Title, widget: string }
-              - { name: text, label: Text, widget: text }
-          - *sections
-
   - name: settings
     label: Settings
     files:
@@ -236,6 +218,29 @@ collections:
               - { name: skipLink, label: Skip link, widget: string }
               - { name: menu, label: Menu button, widget: string }
               - { name: readMore, label: Read more link, widget: string }
+
+  # Pages with `template: custom`, one file each, with the props their
+  # hand-written page declares. They also show in the pages collection.
+  - name: custom-pages
+    label: Custom pages
+    files:
+      - name: about
+        label: About
+        file: src/content/pages/about.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: description, label: Description, widget: text, required: false }
+          - { name: ogImage, label: Social image, widget: image, required: false }
+          - { name: template, label: Template, widget: hidden, default: custom }
+          - { name: heading, label: Heading, widget: string }
+          - { name: intro, label: Intro, widget: text }
+          - name: values
+            label: Values
+            widget: list
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: text, label: Text, widget: text }
+          - *sections
 
   - name: news
     label: News

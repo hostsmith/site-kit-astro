@@ -1,10 +1,14 @@
 // Fixture builds for the kit's self-tests (design D12).
 //
 // A fixture is a folder under tests/fixtures/ with a `content/` tree, which
-// replaces src/content, and an optional `assets/` folder, which is copied to
-// public/assets/test/. buildFixture() builds a temporary copy of the repo with
-// the fixture and returns the result, so tests can check the output or the
-// failure message. Fixtures use only library section types.
+// replaces src/content, an optional `assets/` folder, which is copied to
+// public/assets/test/, and a `site/` tree with the site code the fixture
+// builds with (site config, site schema, collection templates, tokens, the
+// site's Decap part), copied over the repo's own (site-kit-updates design
+// D23). The repo's site-local section types and collection templates are left
+// out, so fixture tests pass in any site repo. buildFixture() builds a
+// temporary copy of the repo with the fixture and returns the result, so
+// tests can check the output or the failure message.
 import { spawn } from "node:child_process";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
@@ -16,6 +20,8 @@ export const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 const NOT_COPIED = new Set(["node_modules", "dist", ".astro", ".git", "tests"]);
 const KIT_PAGES = new Set(["[...slug].astro", "404.astro"]);
+// Site code that a fixture build leaves out, in favor of the fixture's site/.
+const SITE_CODE_FOLDERS = ["src/components/sections/site", "src/components/collections"];
 
 // True in the template repository itself; a site repo sets `site.id`.
 export function isTemplate() {
@@ -29,7 +35,8 @@ export function isTemplate() {
  * - edit: functions that rewrite a file, keyed by its path.
  * - env: extra environment variables for the build.
  * With a fixture, the repo's hand-written pages are left out, so the fixture
- * doesn't need their page entries.
+ * doesn't need their page entries, and the fixture's site code replaces the
+ * repo's.
  */
 export async function buildFixture(fixture, { files = {}, edit = {}, env = {} } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "site-kit-test-"));
@@ -49,6 +56,11 @@ export async function buildFixture(fixture, { files = {}, edit = {}, env = {} } 
     for (const file of await readdir(join(dir, "src", "pages"), { recursive: true })) {
       if (file.endsWith(".astro") && !KIT_PAGES.has(file)) await rm(join(dir, "src", "pages", file));
     }
+    for (const folder of SITE_CODE_FOLDERS) {
+      await rm(join(dir, folder), { recursive: true, force: true });
+      await mkdir(join(dir, folder), { recursive: true });
+    }
+    await cp(join(source, "site"), dir, { recursive: true });
   }
 
   for (const [path, rewrite] of Object.entries(edit)) {

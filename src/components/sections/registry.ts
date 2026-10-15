@@ -2,10 +2,11 @@
 //
 // A type's name is its component's file name: library types live in
 // src/components/sections/<type>.astro, site-local types in
-// src/components/sections/site/<type>.astro. Each type also needs a schema
-// in `sectionSchemas` (src/content.config.ts) and a Decap type in
-// public/admin/config.yml. Any mismatch fails the build here.
-import { sectionSchemas, type Section } from "../../content.config.ts";
+// src/components/sections/site/<type>.astro. Each type also needs a schema,
+// in src/content.config.ts for library types and src/site.schema.ts for
+// site-local ones, and a Decap type in public/admin/config.kit.yml or
+// config.site.yml. Any mismatch fails the build here.
+import { isSiteSectionType, sectionSchemas, type Section } from "../../content.config.ts";
 
 type SectionComponent = (props: { section: Section; entry: string; primary: boolean }) => unknown;
 
@@ -34,18 +35,19 @@ for (const [type, { file }] of components) {
     problems.push(`Section type "${type}" (${file}) must be a kebab-case name, such as "menu-board".`);
   }
   if (!Object.hasOwn(sectionSchemas, type)) {
-    problems.push(`Section type "${type}" has a component (${file}) but no schema in sectionSchemas in src/content.config.ts.`);
+    const schemaFile = file.includes("/site/") ? "siteSectionSchemas in src/site.schema.ts" : "src/content.config.ts";
+    problems.push(`Section type "${type}" has a component (${file}) but no schema in ${schemaFile}.`);
   }
 }
 
 for (const [type, schema] of Object.entries(sectionSchemas)) {
+  const schemaFile = isSiteSectionType(type) ? "src/site.schema.ts" : "src/content.config.ts";
   if (schema.shape.type.value !== type) {
-    problems.push(`Section schema "${type}" in src/content.config.ts has type "${schema.shape.type.value}". The key and the type must be the same.`);
+    problems.push(`Section schema "${type}" in ${schemaFile} has type "${schema.shape.type.value}". The key and the type must be the same.`);
   }
   if (!components.has(type)) {
-    problems.push(
-      `Section type "${type}" has a schema in src/content.config.ts but no component. Add src/components/sections/${type}.astro or src/components/sections/site/${type}.astro.`,
-    );
+    const component = isSiteSectionType(type) ? `src/components/sections/site/${type}.astro` : `src/components/sections/${type}.astro`;
+    problems.push(`Section type "${type}" has a schema in ${schemaFile} but no component. Add ${component}.`);
   }
 }
 

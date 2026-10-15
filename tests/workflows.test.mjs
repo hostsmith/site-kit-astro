@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { ROOT } from "./helpers.mjs";
+import { isTemplate, ROOT } from "./helpers.mjs";
 
 const dir = join(ROOT, ".github", "workflows");
 const workflows = readdirSync(dir).filter((f) => f.endsWith(".yml"));
@@ -29,7 +29,7 @@ describe("workflows", () => {
     assert.doesNotMatch(deploy, /pull_request/);
   });
 
-  it("run the kit's tests and releases only in the kit repository", () => {
+  it("run the kit's tests and releases only in the kit repository", { skip: !isTemplate() && "not the template repository" }, () => {
     for (const file of ["ci.yml", "release.yml"]) {
       assert.match(readFileSync(join(dir, file), "utf8"), /github\.repository == 'hostsmith\/site-kit-astro'/, file);
     }

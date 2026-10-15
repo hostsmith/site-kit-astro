@@ -1,88 +1,28 @@
-// Content collections, written by hand in v0.
+// Content collections: the kit's part, written by hand in v0.
 //
-// public/admin/config.yml (Decap) is the schema source. Every field change
-// goes into both files in the same commit. Every object is strict, so a key
-// that this file doesn't define fails the build.
+// public/admin/config.kit.yml (Decap) is the schema source for this file.
+// Every field change goes into both files in the same commit. The site's own
+// section types and collections are in src/site.schema.ts. Every object is
+// strict, so a key that the schemas don't define fails the build.
 //
 // `defineCollection` is imported from "astro/content/config" rather than
 // "astro:content" so that the kit's tests can import this file in plain Node.
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { defineCollection } from "astro/content/config";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 import { formatPath, type PathPart } from "./lib/field.ts";
+import { itemList, labeledLink, link, mediaPath, requireAlt, section } from "./lib/schema.ts";
 import { siteConfig, type CollectionName } from "./site.config.ts";
-
-// ---------------------------------------------------------------------------
-// Field types
-// ---------------------------------------------------------------------------
-
-// Media lives under public/assets/ and is referenced by its public path.
-const mediaPath = z
-  .string()
-  .regex(/^\/assets\/\S+$/, { error: "must be a media path starting with /assets/" })
-  .refine((path) => existsSync(join(process.cwd(), "public", path)), {
-    error: (issue) => `media file public${String(issue.input)} doesn't exist`,
-  });
-
-// Dates are quoted ISO 8601 strings, so YAML never turns them into objects.
-const dateError = 'must be a quoted ISO 8601 date, such as "2026-10-01"';
-const isoDate = z
-  .string({ error: dateError })
-  .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/, { error: dateError });
-
-// Internal links use the no-trailing-slash form, as on Webflow.
-const link = z.string().superRefine((value, ctx) => {
-  if (!/^(\/|#|https?:\/\/|mailto:|tel:)/.test(value)) {
-    ctx.addIssue({
-      code: "custom",
-      message: `link "${value}" must start with "/", "#", "https://", "http://", "mailto:" or "tel:"`,
-    });
-    return;
-  }
-  const path = value.split(/[?#]/)[0];
-  if (value.startsWith("/") && path.length > 1 && path.endsWith("/")) {
-    ctx.addIssue({ code: "custom", message: `link "${value}" ends with "/". Internal links have no trailing slash.` });
-  }
-});
-
-// Every image prop is paired with alt text.
-function requireAlt(imageKey: string, altKey: string) {
-  return (value: Record<string, unknown>, ctx: z.RefinementCtx) => {
-    if (value[imageKey] !== undefined && !value[altKey]) {
-      ctx.addIssue({
-        code: "custom",
-        path: [altKey],
-        message: `image "${String(value[imageKey])}" has no alt text. Set "${altKey}".`,
-      });
-    }
-  };
-}
+import { siteCollections, siteSectionSchemas } from "./site.schema.ts";
 
 const navItem = z.strictObject({ label: z.string().min(1), link });
-
-// A button or a text link: what it says and where it goes.
-const labeledLink = z.strictObject({ label: z.string().min(1), link });
-
-// A list prop of a section, such as `items`, has at least one item.
-const itemList = <T extends z.ZodType>(item: T) => z.array(item).min(1, { error: "needs at least one item" });
 
 // ---------------------------------------------------------------------------
 // Section types
 // ---------------------------------------------------------------------------
 
-// A section type's schema. The record key, the `type` literal and the
-// component's file name are the same kebab-case name (design D2).
-function section<const T extends string, S extends z.core.$ZodLooseShape>(type: T, props: S) {
-  // The id format and per-page uniqueness are checked on the whole list.
-  return z.strictObject({ id: z.string(), type: z.literal(type), ...props });
-}
-
-// The section registry: library types, then site-local types. A site-local
-// type is added here, as a Decap type in config.yml, and as a component in
-// src/components/sections/site/<type>.astro.
-export const sectionSchemas = {
+// The library section types. Site-local types are in src/site.schema.ts.
+const librarySectionSchemas = {
   hero: section("hero", {
     title: z.string().min(1),
     subtitle: z.string().min(1).optional(),
@@ -192,6 +132,20 @@ export const sectionSchemas = {
     }
   }),
 };
+
+for (const type of Object.keys(siteSectionSchemas)) {
+  if (Object.hasOwn(librarySectionSchemas, type)) {
+    throw new Error(`Site-local section type "${type}" in src/site.schema.ts has the same name as a library type. Rename it.`);
+  }
+}
+
+// The section registry: library types, then site-local types.
+export const sectionSchemas = { ...librarySectionSchemas, ...siteSectionSchemas };
+
+// True for a type defined in src/site.schema.ts.
+export function isSiteSectionType(type: string): boolean {
+  return Object.hasOwn(siteSectionSchemas, type);
+}
 
 export type SectionType = keyof typeof sectionSchemas;
 type SectionSchema = (typeof sectionSchemas)[SectionType];
@@ -342,18 +296,10 @@ const settings = defineCollection({
   }),
 });
 
-const news = defineCollection({
-  loader: glob({ pattern: "*.md", base: "./src/content/news" }),
-  schema: z
-    .strictObject({
-      title: z.string().min(1),
-      date: isoDate,
-      description: z.string().min(1).optional(),
-      image: mediaPath.optional(),
-      imageAlt: z.string().min(1).optional(),
-      draft: z.boolean().optional(),
-    })
-    .superRefine(requireAlt("image", "imageAlt")),
-});
+for (const name of Object.keys(siteCollections)) {
+  if (name === "pages" || name === "settings") {
+    throw new Error(`Collection "${name}" in src/site.schema.ts has the name of a kit collection. Rename it.`);
+  }
+}
 
-export const collections = { pages, settings, news };
+export const collections = { pages, settings, ...siteCollections };

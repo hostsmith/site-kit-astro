@@ -4,34 +4,40 @@ import { existsSync, readFileSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { buildFixture, ROOT } from "./helpers.mjs";
+import { siteConfig } from "../src/site.config.ts";
+import { buildFixture, isTemplate, ROOT } from "./helpers.mjs";
 
+// Paths every kit site has.
 const LAYOUT = [
   "hostsmith.json",
+  "kit.lock.json",
   "AGENTS.md",
   "CLAUDE.md",
   ".hostsmith/brief.md",
   ".claude/skills/migrate-webflow/SKILL.md",
+  "public/admin/config.kit.yml",
+  "public/admin/config.site.yml",
   "public/admin/config.yml",
   "public/assets",
   "src/content.config.ts",
+  "src/site.schema.ts",
   "src/content/pages",
   "src/content/settings/site.yml",
   "src/components/sections",
   "src/components/sections/site",
   "src/components/collections",
   "src/lib/field.ts",
+  "src/lib/schema.ts",
   "src/styles/tokens.css",
   "src/site.config.ts",
   "src/pages/[...slug].astro",
   ".github/workflows/hostsmith.yml",
   "LICENSE",
   "README.md",
-  "CONTRIBUTING.md",
-  "SECURITY.md",
-  ".github/PULL_REQUEST_TEMPLATE.md",
-  ".github/ISSUE_TEMPLATE",
 ];
+
+// Paths of the kit repository that a site may drop (site-kit-updates design D18).
+const KIT_REPO_LAYOUT = ["CONTRIBUTING.md", "SECURITY.md", ".github/PULL_REQUEST_TEMPLATE.md", ".github/ISSUE_TEMPLATE"];
 
 const ALLOWLIST = ["astro", "@astrojs/markdown-satteri", "tailwindcss", "@tailwindcss/vite", "@hostsmith/sdk", "@astrojs/react", "react", "react-dom"];
 
@@ -43,10 +49,17 @@ describe("repository layout", () => {
     it(`has ${path}`, () => assert.ok(existsSync(join(ROOT, path)), `${path} is missing`));
   }
 
-  it("has a page file and a detail template per collection", () => {
-    assert.ok(existsSync(join(ROOT, "src/content/pages")));
-    assert.ok(existsSync(join(ROOT, "src/components/collections/news.astro")));
+  it("has a detail template per collection", () => {
+    for (const name of Object.keys(siteConfig.collections)) {
+      assert.ok(existsSync(join(ROOT, `src/components/collections/${name}.astro`)), `no detail template for ${name}`);
+    }
   });
+});
+
+describe("kit repository layout", { skip: !isTemplate() && "not the template repository" }, () => {
+  for (const path of KIT_REPO_LAYOUT) {
+    it(`has ${path}`, () => assert.ok(existsSync(join(ROOT, path)), `${path} is missing`));
+  }
 });
 
 describe("hostsmith.json", () => {

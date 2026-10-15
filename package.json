@@ -12,7 +12,9 @@
     "preview": "astro preview",
     "test": "node --test --test-concurrency=4 \"tests/**/*.test.mjs\"",
     "section-id": "node scripts/section-id.mjs",
-    "check:urls": "node scripts/check-urls.mjs"
+    "check:urls": "node scripts/check-urls.mjs",
+    "decap-config": "node scripts/decap-config.mjs",
+    "kit:update": "node scripts/kit-update.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "0.4.3",
