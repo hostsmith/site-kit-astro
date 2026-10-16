@@ -21,10 +21,10 @@ Each example is a complete site, and each release deploys it from this repositor
 
 ## Start a site
 
-1. Create the site from an example of a kit release. `basics` names the example, and `v0.4.0` the release: use the latest one from the [releases](https://github.com/hostsmith/site-kit-astro/releases).
+1. Create the site from an example of a kit release. `basics` names the example, and `v0.4.0` the release: use the latest one from the [releases](https://github.com/hostsmith/site-kit-astro/releases). `--no-ai` keeps the example's `AGENTS.md`, which points agents to the kit's rules. Without it, create-astro replaces the file with its own.
 
    ```bash
-   npm create astro@latest my-site -- --template hostsmith/site-kit-astro/examples/basics#v0.4.0
+   npm create astro@latest my-site -- --template hostsmith/site-kit-astro/examples/basics#v0.4.0 --no-ai
    cd my-site
    npm run build   # writes the static site to dist/
    npm run dev     # local preview with live reload

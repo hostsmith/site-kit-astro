@@ -128,6 +128,14 @@ describe("kit repository layout", () => {
   it("has the same LICENSE in the package", () => {
     assert.equal(readFileSync(join(PACKAGE, "LICENSE"), "utf8"), readFileSync(join(REPO, "LICENSE"), "utf8"));
   });
+
+  // create-astro writes its own AGENTS.md over the example's unless it gets
+  // --no-ai, and the example's is the one that points to the kit's rules.
+  it("creates sites in the README with --no-ai", () => {
+    const commands = readFileSync(join(REPO, "README.md"), "utf8").match(/^.*npm create astro.*$/gm) ?? [];
+    assert.ok(commands.length > 0, "README.md has no npm create astro command");
+    for (const command of commands) assert.match(command, / --no-ai\b/, `no --no-ai in: ${command.trim()}`);
+  });
 });
 
 describe("package dependencies", () => {
