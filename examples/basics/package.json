@@ -15,7 +15,7 @@
     "decap-config": "site-kit decap-config"
   },
   "dependencies": {
-    "@hostsmith/site-kit-astro": "0.3.0",
+    "@hostsmith/site-kit-astro": "0.4.0",
     "astro": "7.3.8"
   }
 }

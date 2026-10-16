@@ -1,6 +1,6 @@
 {
   "name": "@hostsmith/site-kit-astro",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "An Astro kit for small-business sites migrated from Webflow: typed sections in Markdown, Webflow URLs kept, a deploy workflow for Hostsmith.",
   "license": "MIT",
   "type": "module",
