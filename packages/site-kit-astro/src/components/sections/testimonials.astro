@@ -1,0 +1,57 @@
+---
+// testimonials: title, items (quote, name, role, image + imageAlt). Variants:
+// grid (default), single. Single shows each quote large in one column, for one
+// featured testimonial or a short stack. No carousel.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+
+interface Props {
+  section: Extract<Section, { type: "testimonials" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { title, items, variant } = section;
+const f = sectionFields(entry, section);
+const single = variant === "single";
+---
+
+<section {...f.root} class="px-6 py-12">
+  <div class:list={["mx-auto", single ? "max-w-3xl text-center" : "max-w-6xl"]}>
+    {title && <h2 class="mb-8 font-heading text-3xl font-bold" {...f.field("title")}>{title}</h2>}
+    <ul class:list={[single ? "flex flex-col gap-12" : "grid gap-8 md:grid-cols-2 lg:grid-cols-3"]}>
+      {
+        items.map((item, i) => (
+          <li>
+            <figure class:list={["flex h-full flex-col gap-6", single ? "items-center" : "rounded-lg border border-border p-6"]}>
+              <blockquote class:list={[single ? "text-2xl leading-snug" : "text-lg"]}>
+                <p {...f.field("items", i, "quote")}>{item.quote}</p>
+              </blockquote>
+              <figcaption class="mt-auto flex items-center gap-3 text-left">
+                {item.image && (
+                  <img
+                    src={item.image}
+                    alt={item.imageAlt}
+                    class="h-12 w-12 rounded-full object-cover"
+                    {...f.field("items", i, "image")}
+                  />
+                )}
+                <span class="flex flex-col">
+                  <span class="font-semibold" {...f.field("items", i, "name")}>
+                    {item.name}
+                  </span>
+                  {item.role && (
+                    <span class="text-sm text-muted" {...f.field("items", i, "role")}>
+                      {item.role}
+                    </span>
+                  )}
+                </span>
+              </figcaption>
+            </figure>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

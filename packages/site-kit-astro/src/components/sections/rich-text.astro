@@ -1,0 +1,23 @@
+---
+// rich-text: title and a markdown body. Variants: narrow (default), wide.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+import { renderMarkdown } from "../../lib/markdown.ts";
+
+interface Props {
+  section: Extract<Section, { type: "rich-text" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const f = sectionFields(entry, section);
+const html = await renderMarkdown(section.body, `${entry} section "${section.id}" (rich-text) body`);
+---
+
+<section {...f.root} class="px-6 py-12">
+  <div class:list={["mx-auto", section.variant === "wide" ? "max-w-5xl" : "max-w-prose"]}>
+    {section.title && <h2 class="mb-6 font-heading text-3xl font-bold" {...f.field("title")}>{section.title}</h2>}
+    <div class="prose" {...f.field("body")} set:html={html} />
+  </div>
+</section>

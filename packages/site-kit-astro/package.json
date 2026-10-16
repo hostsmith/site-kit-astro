@@ -1,0 +1,64 @@
+{
+  "name": "@hostsmith/site-kit-astro",
+  "version": "0.3.0",
+  "description": "An Astro kit for small-business sites migrated from Webflow: typed sections in Markdown, Webflow URLs kept, a deploy workflow for Hostsmith.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/hostsmith/site-kit-astro#readme",
+  "bugs": {
+    "url": "https://github.com/hostsmith/site-kit-astro/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hostsmith/site-kit-astro.git",
+    "directory": "packages/site-kit-astro"
+  },
+  "keywords": [
+    "astro-integration",
+    "withastro",
+    "webflow",
+    "hostsmith"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./content": "./src/content.ts",
+    "./schema": "./src/lib/schema.ts",
+    "./field": "./src/lib/field.ts",
+    "./markdown": "./src/lib/markdown.ts",
+    "./settings": "./src/lib/settings.ts",
+    "./routes": "./src/lib/routes.ts",
+    "./custom-page": "./src/lib/custom-page.ts",
+    "./components/Sections.astro": "./src/components/Sections.astro",
+    "./layouts/Base.astro": "./src/layouts/Base.astro",
+    "./styles.css": "./styles.css"
+  },
+  "bin": {
+    "site-kit": "./bin/site-kit.mjs"
+  },
+  "files": [
+    "index.ts",
+    "virtual.d.ts",
+    "styles.css",
+    "src",
+    "scripts",
+    "bin",
+    "decap",
+    "AGENTS.md"
+  ],
+  "dependencies": {
+    "@astrojs/markdown-satteri": "0.4.3",
+    "@hostsmith/sdk": "1.4.0",
+    "@tailwindcss/vite": "4.3.3",
+    "tailwindcss": "4.3.3"
+  },
+  "peerDependencies": {
+    "astro": "^7.3.8"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

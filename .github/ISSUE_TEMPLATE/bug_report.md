@@ -18,7 +18,8 @@ labels: bug
 
 ## Environment
 
-- Kit version (`kit.version` in `hostsmith.json`):
+- Kit version (`@hostsmith/site-kit-astro` in `package.json`):
+- Astro version (`astro` in `package.json`):
 - Node.js version (`node -v`):
 - Operating system:
 

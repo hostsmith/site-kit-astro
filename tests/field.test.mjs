@@ -1,7 +1,7 @@
 // site-kit-sections, "Field attribute format".
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { field, formatPath, sectionFields } from "../src/lib/field.ts";
+import { field, formatPath, sectionFields } from "../packages/site-kit-astro/src/lib/field.ts";
 
 describe("field()", () => {
   it("addresses a section prop by section id", () => {

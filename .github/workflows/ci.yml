@@ -11,7 +11,8 @@ permissions:
 
 jobs:
   test:
-    # The kit's own tests. Sites created from the template don't run them.
+    # The kit's own tests: they build the examples in examples/ with the package
+    # from packages/site-kit-astro/. Forks don't run them on their own.
     if: github.repository == 'hostsmith/site-kit-astro'
     runs-on: ubuntu-latest
     steps:

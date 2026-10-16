@@ -5,7 +5,7 @@ import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { newId, SECTION_ID, usedIds } from "../scripts/section-id.mjs";
+import { newId, SECTION_ID, usedIds } from "../packages/site-kit-astro/scripts/section-id.mjs";
 
 describe("section-id", () => {
   it("generates ids that match the pattern", () => {

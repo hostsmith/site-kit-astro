@@ -1,0 +1,10 @@
+{
+  "kit": { "framework": "astro" },
+  "site": { "id": "" },
+  "build": { "command": "npm run build", "output": "dist", "node": "24" },
+  "content": {
+    "schema": { "source": "decap", "path": "public/admin/config.yml" },
+    "root": "src/content"
+  },
+  "media": { "dir": "public/assets", "publicPath": "/assets" }
+}

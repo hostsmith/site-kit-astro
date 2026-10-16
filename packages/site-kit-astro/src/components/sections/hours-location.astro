@@ -1,0 +1,56 @@
+---
+// hours-location: title, address, hours (days, time), note, mapLink. No
+// variants. It links to a map and never embeds one: an embed would load the
+// map provider's scripts and send visitor data to it.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+
+interface Props {
+  section: Extract<Section, { type: "hours-location" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { title, address, hours, note, mapLink } = section;
+const f = sectionFields(entry, section);
+---
+
+<section {...f.root} class="px-6 py-12">
+  <div class="mx-auto max-w-6xl">
+    {title && <h2 class="mb-8 font-heading text-3xl font-bold" {...f.field("title")}>{title}</h2>}
+    <div class="grid gap-8 md:grid-cols-2">
+      {
+        (address || mapLink) && (
+          <div class="flex flex-col items-start gap-4">
+            {address && (
+              <address class="whitespace-pre-line text-lg not-italic" {...f.field("address")}>
+                {address}
+              </address>
+            )}
+            {mapLink && (
+              <a href={mapLink.link} class="font-semibold text-primary underline hover:no-underline" {...f.field("mapLink", "label")}>
+                {mapLink.label}
+              </a>
+            )}
+          </div>
+        )
+      }
+      {
+        hours && (
+          <dl class="divide-y divide-border border-y border-border">
+            {hours.map((row, i) => (
+              <div class="flex flex-wrap justify-between gap-x-6 py-3">
+                <dt class="font-semibold" {...f.field("hours", i, "days")}>
+                  {row.days}
+                </dt>
+                <dd {...f.field("hours", i, "time")}>{row.time}</dd>
+              </div>
+            ))}
+          </dl>
+        )
+      }
+    </div>
+    {note && <p class="mt-6 text-muted" {...f.field("note")}>{note}</p>}
+  </div>
+</section>

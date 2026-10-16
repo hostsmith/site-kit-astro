@@ -1,0 +1,47 @@
+---
+// gallery: title, images (image, alt, caption). Variants: grid (default),
+// masonry. Masonry uses CSS columns, so images run down each column: use grid
+// when their order matters. No lightbox and no carousel.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+
+interface Props {
+  section: Extract<Section, { type: "gallery" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { title, images, variant } = section;
+const f = sectionFields(entry, section);
+const masonry = variant === "masonry";
+---
+
+<section {...f.root} class="px-6 py-12">
+  <div class="mx-auto max-w-6xl">
+    {title && <h2 class="mb-8 font-heading text-3xl font-bold" {...f.field("title")}>{title}</h2>}
+    <ul class:list={[masonry ? "gap-4 sm:columns-2 lg:columns-3" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"]}>
+      {
+        images.map((item, i) => (
+          <li class:list={[masonry && "mb-4 break-inside-avoid"]}>
+            <figure>
+              <img
+                src={item.image}
+                alt={item.alt}
+                loading="lazy"
+                decoding="async"
+                class:list={["w-full rounded-md", !masonry && "aspect-4/3 object-cover"]}
+                {...f.field("images", i, "image")}
+              />
+              {item.caption && (
+                <figcaption class="mt-2 text-sm text-muted" {...f.field("images", i, "caption")}>
+                  {item.caption}
+                </figcaption>
+              )}
+            </figure>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

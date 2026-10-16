@@ -93,9 +93,9 @@ describe("template: custom", () => {
   const teamPage = [
     "---",
     'import { z } from "astro/zod";',
-    'import Base from "../layouts/Base.astro";',
-    'import { customPage } from "../lib/custom-page.ts";',
-    'import { field } from "../lib/field.ts";',
+    'import Base from "@hostsmith/site-kit-astro/layouts/Base.astro";',
+    'import { customPage } from "@hostsmith/site-kit-astro/custom-page";',
+    'import { field } from "@hostsmith/site-kit-astro/field";',
     'const { ref, data } = await customPage("team", { intro: z.string() });',
     "---",
     '<Base title={data.title} path="/team"><h1 {...field(ref, "title")}>{data.title}</h1><p {...field(ref, "intro")}>{data.intro}</p></Base>',

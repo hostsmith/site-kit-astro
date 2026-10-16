@@ -1,0 +1,28 @@
+---
+// Detail template of the news collection: one entry at <base path>/<slug>.
+import { field } from "@hostsmith/site-kit-astro/field";
+import { assertNoH1 } from "@hostsmith/site-kit-astro/markdown";
+import { getSettings } from "@hostsmith/site-kit-astro/settings";
+import { render, type CollectionEntry } from "astro:content";
+
+interface Props {
+  entry: CollectionEntry<"news">;
+}
+
+const { entry } = Astro.props;
+const { title, date, image, imageAlt } = entry.data;
+const ref = `news/${entry.id}`;
+const settings = await getSettings();
+const { Content, headings } = await render(entry);
+assertNoH1(headings, entry.filePath ?? ref);
+const dateFormat = new Intl.DateTimeFormat(settings.language, { dateStyle: "long", timeZone: "UTC" });
+---
+
+<article class="mx-auto max-w-prose px-6 py-12">
+  <h1 class="font-heading text-4xl font-bold leading-tight" {...field(ref, "title")}>{title}</h1>
+  <time datetime={date} class="mt-3 block text-muted" {...field(ref, "date")}>{dateFormat.format(new Date(date))}</time>
+  {image && <img src={image} alt={imageAlt} class="mt-8 w-full rounded-lg" {...field(ref, "image")} />}
+  <div class="prose mt-8" {...field(ref, "body")}>
+    <Content />
+  </div>
+</article>
