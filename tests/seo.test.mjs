@@ -70,3 +70,12 @@ describe("SITE_NOINDEX=true", () => {
     assert.equal(await build.read("robots.txt"), "User-agent: *\nDisallow: /\n");
   });
 });
+
+describe("production site URL", () => {
+  it("fails the build when src/site.config.ts has none", async () => {
+    const build = await buildFixture("base", { edit: { "src/site.config.ts": (text) => text.replace('url: "https://www.example.com"', 'url: ""') } });
+    await build.cleanup();
+    assert.equal(build.ok, false);
+    assert.match(build.output, /Set `url` in src\/site\.config\.ts to the production site URL/);
+  });
+});

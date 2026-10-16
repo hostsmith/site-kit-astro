@@ -1,0 +1,68 @@
+---
+// hero: title, subtitle, image + imageAlt, cta. Variants: centered (default),
+// image-left, image-right, background. The first hero on a page renders its
+// title as h1 (`primary`), later ones as h2.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+
+interface Props {
+  section: Extract<Section, { type: "hero" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry, primary } = Astro.props;
+const { title, subtitle, image, imageAlt, cta, variant } = section;
+const f = sectionFields(entry, section);
+const Heading = primary ? "h1" : "h2";
+const split = variant === "image-left" || variant === "image-right";
+---
+
+<section
+  {...f.root}
+  class:list={[
+    "relative px-6",
+    variant === "background" ? "overflow-hidden py-28 text-bg" : "py-16 md:py-24",
+  ]}
+>
+  {
+    variant === "background" && image && (
+      <>
+        <img src={image} alt={imageAlt} class="absolute inset-0 h-full w-full object-cover" {...f.field("image")} />
+        <div class="absolute inset-0 bg-fg/70" />
+      </>
+    )
+  }
+  <div
+    class:list={[
+      "relative mx-auto max-w-6xl",
+      split ? "grid items-center gap-10 md:grid-cols-2" : "max-w-3xl text-center",
+    ]}
+  >
+    <div class:list={[variant === "image-left" && "md:order-2"]}>
+      <Heading class="font-heading text-4xl font-bold leading-tight md:text-5xl" {...f.field("title")}>{title}</Heading>
+      {subtitle && <p class="mt-4 text-lg" {...f.field("subtitle")}>{subtitle}</p>}
+      {
+        cta && (
+          <a
+            href={cta.link}
+            class="mt-8 inline-block rounded-md bg-primary px-6 py-3 font-semibold text-primary-fg hover:bg-primary/90"
+            {...f.field("cta", "label")}
+          >
+            {cta.label}
+          </a>
+        )
+      }
+    </div>
+    {
+      variant !== "background" && image && (
+        <img
+          src={image}
+          alt={imageAlt}
+          class:list={["w-full rounded-lg object-cover", !split && "mt-10"]}
+          {...f.field("image")}
+        />
+      )
+    }
+  </div>
+</section>

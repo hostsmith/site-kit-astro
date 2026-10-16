@@ -1,0 +1,126 @@
+# Deploys every example as a reference site, with the package from this
+# repository (site-kit-updates design D28):
+#
+# - A push to a branch other than main deploys each example to its preview site.
+# - A release tag (vX.Y.Z) deploys each example to its production site.
+#
+# The deploy job runs once per folder in examples/. Its steps are those of the
+# examples' own deploy workflow (examples/<name>/.github/workflows/hostsmith.yml),
+# run in the example's folder. A test checks that both take the same steps.
+# GitHub runs workflows only from this folder, so the examples' own files never
+# run here.
+#
+# Settings, in each of the environments "production" and "preview". Limit
+# production to v* tags.
+# - secret HOSTSMITH_TOKEN: a Hostsmith API token restricted to that target's
+#   reference sites, with "Custom" permissions sites:read and files:write.
+# - variable HOSTSMITH_SITE_ID_<NAME>, per example: its site for that target.
+#   <NAME> is the example's folder name in capitals, with "-" as "_", so
+#   "basics" reads HOSTSMITH_SITE_ID_BASICS. The examples' own site.id stays
+#   empty, so a site created from one never deploys to a reference site. For
+#   production, the job writes the id into hostsmith.json; for preview, it
+#   passes the id as HOSTSMITH_PREVIEW_SITE_ID. Without the variable, a preview
+#   only builds, and a production deploy fails.
+# - variable HOSTSMITH_PARTITION: "us" or "eu", when the sites aren't in the
+#   account's home partition (optional)
+# - variable SITE_NOINDEX: whether production is no-index. Previews always are.
+name: Reference sites
+
+on:
+  push:
+    branches-ignore: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  examples:
+    # Kit-only. Pull requests from forks never run it, so they never get its secrets.
+    if: github.repository == 'hostsmith/site-kit-astro'
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: List the examples
+        id: list
+        run: node scripts/list-examples.mjs >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: [examples]
+    runs-on: ubuntu-latest
+    strategy:
+      # One example's failed deploy doesn't stop the others.
+      fail-fast: false
+      matrix:
+        example: ${{ fromJSON(needs.examples.outputs.list) }}
+    # The target's token and tag rules come from this environment.
+    environment:
+      name: ${{ github.ref_type == 'tag' && 'production' || 'preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      HOSTSMITH_TARGET: ${{ github.ref_type == 'tag' && 'production' || 'preview' }}
+      HOSTSMITH_SITE_ID: ${{ vars[format('HOSTSMITH_SITE_ID_{0}', matrix.example.key)] }}
+    # One deploy per example and target at a time, as in the examples' workflow.
+    concurrency:
+      group: reference-site-${{ matrix.example.name }}-${{ github.ref_type == 'tag' && 'production' || 'preview' }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: examples/${{ matrix.example.name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read hostsmith.json
+        id: manifest
+        run: |
+          {
+            echo "node=$(jq -er '.build.node' hostsmith.json)"
+            echo "command=$(jq -er '.build.command' hostsmith.json)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.manifest.outputs.node }}
+          cache: npm
+
+      # The workspace's install, which links the package from this repository.
+      - run: npm ci
+        working-directory: .
+
+      - name: Use the reference production site
+        if: env.HOSTSMITH_TARGET == 'production'
+        run: |
+          jq --arg id "$HOSTSMITH_SITE_ID" '.site.id = $id' hostsmith.json > hostsmith.json.tmp
+          mv hostsmith.json.tmp hostsmith.json
+
+      # For production, the deploy command takes the site from hostsmith.json
+      # and ignores HOSTSMITH_PREVIEW_SITE_ID.
+      - name: Check configuration
+        id: check
+        env:
+          HOSTSMITH_TOKEN: ${{ secrets.HOSTSMITH_TOKEN }}
+          HOSTSMITH_PREVIEW_SITE_ID: ${{ env.HOSTSMITH_SITE_ID }}
+          HOSTSMITH_PARTITION: ${{ vars.HOSTSMITH_PARTITION }}
+        run: npx site-kit deploy check
+
+      - name: Build
+        env:
+          SITE_NOINDEX: ${{ env.HOSTSMITH_TARGET == 'preview' && 'true' || vars.SITE_NOINDEX }}
+          BUILD_COMMAND: ${{ steps.manifest.outputs.command }}
+        run: $BUILD_COMMAND
+
+      - name: Deploy
+        id: deploy
+        if: steps.check.outputs.deploy == 'true'
+        env:
+          HOSTSMITH_TOKEN: ${{ secrets.HOSTSMITH_TOKEN }}
+          HOSTSMITH_PREVIEW_SITE_ID: ${{ env.HOSTSMITH_SITE_ID }}
+          HOSTSMITH_PARTITION: ${{ vars.HOSTSMITH_PARTITION }}
+        run: npx site-kit deploy deploy

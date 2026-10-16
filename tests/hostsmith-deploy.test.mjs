@@ -4,8 +4,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { DeployError, deploy, explain, redact, resolveConfig, waitUntilLive } from "../scripts/hostsmith-deploy.mjs";
-import { ROOT, run } from "./helpers.mjs";
+import { DeployError, deploy, explain, redact, resolveConfig, waitUntilLive } from "../packages/site-kit-astro/scripts/hostsmith-deploy.mjs";
+import { PACKAGE, run } from "./helpers.mjs";
 
 const TOKEN = "hsat_secretvalue1234567890";
 const manifest = { kit: { version: "0.2.0" }, site: { id: "prod-site" }, build: { output: "dist" } };
@@ -170,14 +170,14 @@ describe("command line", () => {
     try {
       await writeFile(join(dir, "hostsmith.json"), JSON.stringify(manifest));
       const output = join(dir, "github-output");
-      const script = join(ROOT, "scripts", "hostsmith-deploy.mjs");
-      const ok = await run(process.execPath, [script, "check"], { cwd: dir, env: { ...env, GITHUB_OUTPUT: output } });
+      const script = join(PACKAGE, "bin", "site-kit.mjs");
+      const ok = await run(process.execPath, [script, "deploy", "check"], { cwd: dir, env: { ...env, GITHUB_OUTPUT: output } });
       assert.equal(ok.code, 0, ok.output);
       assert.equal(await readFile(output, "utf8"), "deploy=true\n");
       assert.ok(!ok.output.includes(TOKEN));
 
       await writeFile(join(dir, "hostsmith.json"), JSON.stringify({ ...manifest, site: { id: "" } }));
-      const missing = await run(process.execPath, [script, "check"], { cwd: dir, env });
+      const missing = await run(process.execPath, [script, "deploy", "check"], { cwd: dir, env });
       assert.equal(missing.code, 1);
       assert.match(missing.output, /::error title=Hostsmith deploy::site\.id in hostsmith\.json must be set/);
     } finally {

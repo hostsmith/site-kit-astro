@@ -1,54 +1,67 @@
 // Fixture builds for the kit's self-tests (design D12).
 //
-// A fixture is a folder under tests/fixtures/ with a `content/` tree, which
-// replaces src/content, and an optional `assets/` folder, which is copied to
-// public/assets/test/. buildFixture() builds a temporary copy of the repo with
-// the fixture and returns the result, so tests can check the output or the
-// failure message. Fixtures use only library section types.
+// The tests build the `basics` example (examples/basics/) with the package
+// from the workspace (site-kit-updates design D25). A fixture is a folder
+// under tests/fixtures/ with a `content/` tree, which replaces src/content, an
+// optional `assets/` folder, which is copied to public/assets/test/, and a
+// `site/` tree with the site code the fixture builds with (site config, site
+// schema, collection templates, tokens, the site's Decap part), copied over
+// the example's own. buildFixture() builds a temporary copy of the example
+// with the fixture and returns the result, so tests can check the output or
+// the failure message.
 import { spawn } from "node:child_process";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ASSEMBLED, assembleFiles } from "../packages/site-kit-astro/scripts/decap-config.mjs";
 
-export const ROOT = fileURLToPath(new URL("..", import.meta.url));
+// The kit repository, the package and the examples.
+export const REPO = fileURLToPath(new URL("..", import.meta.url));
+export const PACKAGE = join(REPO, "packages", "site-kit-astro");
+export const EXAMPLES = join(REPO, "examples");
+// The example the fixtures build on.
+export const BASICS = join(EXAMPLES, "basics");
 
-const NOT_COPIED = new Set(["node_modules", "dist", ".astro", ".git", "tests"]);
-const KIT_PAGES = new Set(["[...slug].astro", "404.astro"]);
-
-// True in the template repository itself; a site repo sets `site.id`.
-export function isTemplate() {
-  return JSON.parse(readFileSync(join(ROOT, "hostsmith.json"), "utf8")).site.id === "";
-}
+const NOT_COPIED = new Set(["node_modules", "dist", ".astro"]);
+// Site code that a fixture build leaves out, in favor of the fixture's site/.
+const SITE_CODE_FOLDERS = ["src/components/sections/site", "src/components/collections"];
 
 /**
- * Builds a copy of the repo.
- * - fixture: a folder name under tests/fixtures/, or null to keep the repo's content.
- * - files: extra or replaced files, relative to the repo root.
+ * Builds a copy of an example, `basics` unless `example` names another.
+ * - fixture: a folder name under tests/fixtures/, or null to keep the example's content.
+ * - files: extra or replaced files, relative to the site root.
  * - edit: functions that rewrite a file, keyed by its path.
+ * - remove: files to delete, relative to the site root.
  * - env: extra environment variables for the build.
- * With a fixture, the repo's hand-written pages are left out, so the fixture
- * doesn't need their page entries.
+ * With a fixture, the example's hand-written pages are left out, so the
+ * fixture doesn't need their page entries, and the fixture's site code
+ * replaces the example's. The Decap config is then assembled again, as a site
+ * would with `npm run decap-config`, unless the test sets it itself.
  */
-export async function buildFixture(fixture, { files = {}, edit = {}, env = {} } = {}) {
+export async function buildFixture(fixture, { example = "basics", files = {}, edit = {}, remove = [], env = {} } = {}) {
+  const source = join(EXAMPLES, example);
   const dir = await mkdtemp(join(tmpdir(), "site-kit-test-"));
-  await cp(ROOT, dir, { recursive: true, filter: (src) => !NOT_COPIED.has(relative(ROOT, src).split(/[\\/]/)[0]) });
+  await cp(source, dir, { recursive: true, filter: (src) => !NOT_COPIED.has(relative(source, src).split(/[\\/]/)[0]) });
 
   // Each package is linked on its own, so Astro and Vite caches stay per build.
   await mkdir(join(dir, "node_modules"));
-  for (const name of await readdir(join(ROOT, "node_modules"))) {
-    if (!name.startsWith(".")) await symlink(join(ROOT, "node_modules", name), join(dir, "node_modules", name));
+  for (const name of await readdir(join(REPO, "node_modules"))) {
+    if (!name.startsWith(".")) await symlink(join(REPO, "node_modules", name), join(dir, "node_modules", name));
   }
 
   if (fixture) {
-    const source = join(ROOT, "tests", "fixtures", fixture);
+    const fixtureDir = join(REPO, "tests", "fixtures", fixture);
     await rm(join(dir, "src", "content"), { recursive: true, force: true });
-    await cp(join(source, "content"), join(dir, "src", "content"), { recursive: true });
-    if (existsSync(join(source, "assets"))) await cp(join(source, "assets"), join(dir, "public", "assets", "test"), { recursive: true });
-    for (const file of await readdir(join(dir, "src", "pages"), { recursive: true })) {
-      if (file.endsWith(".astro") && !KIT_PAGES.has(file)) await rm(join(dir, "src", "pages", file));
+    await cp(join(fixtureDir, "content"), join(dir, "src", "content"), { recursive: true });
+    if (existsSync(join(fixtureDir, "assets"))) await cp(join(fixtureDir, "assets"), join(dir, "public", "assets", "test"), { recursive: true });
+    await rm(join(dir, "src", "pages"), { recursive: true, force: true });
+    for (const folder of SITE_CODE_FOLDERS) {
+      await rm(join(dir, folder), { recursive: true, force: true });
+      await mkdir(join(dir, folder), { recursive: true });
     }
+    await cp(join(fixtureDir, "site"), dir, { recursive: true });
   }
 
   for (const [path, rewrite] of Object.entries(edit)) {
@@ -58,9 +71,13 @@ export async function buildFixture(fixture, { files = {}, edit = {}, env = {} } 
     await mkdir(dirname(join(dir, path)), { recursive: true });
     await writeFile(join(dir, path), content);
   }
+  if (!Object.hasOwn(files, ASSEMBLED) && !Object.hasOwn(edit, ASSEMBLED)) {
+    await writeFile(join(dir, ASSEMBLED), assembleFiles(dir));
+  }
+  for (const path of remove) await rm(join(dir, path));
 
   const { SITE_NOINDEX, ...baseEnv } = process.env;
-  const result = await run(process.execPath, [join(ROOT, "node_modules", "astro", "bin", "astro.mjs"), "build"], {
+  const result = await run(process.execPath, [join(REPO, "node_modules", "astro", "bin", "astro.mjs"), "build"], {
     cwd: dir,
     env: { ...baseEnv, ASTRO_TELEMETRY_DISABLED: "1", NO_COLOR: "1", ...env },
   });

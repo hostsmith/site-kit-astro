@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { servedFile } from "../scripts/check-urls.mjs";
-import { buildFixture, ROOT, run } from "./helpers.mjs";
+import { servedFile } from "../packages/site-kit-astro/scripts/check-urls.mjs";
+import { buildFixture, PACKAGE, run } from "./helpers.mjs";
 
 describe("check:urls", () => {
   let build;
   const checkUrls = async (list) => {
     await writeFile(join(build.dir, ".hostsmith", "old-urls.txt"), list);
-    return run(process.execPath, [join(ROOT, "scripts", "check-urls.mjs")], { cwd: build.dir });
+    return run(process.execPath, [join(PACKAGE, "bin", "site-kit.mjs"), "check-urls"], { cwd: build.dir });
   };
 
   before(async () => {

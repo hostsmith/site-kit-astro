@@ -1,0 +1,39 @@
+---
+// faq: title, items (question, answer). No variants. Each item is a native
+// <details> with the question as its <summary>, so it opens and closes with
+// Enter or Space and needs no script. Answers are markdown.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+import { renderMarkdown } from "../../lib/markdown.ts";
+
+interface Props {
+  section: Extract<Section, { type: "faq" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { title, items } = section;
+const f = sectionFields(entry, section);
+const answers = await Promise.all(
+  items.map((item, i) => renderMarkdown(item.answer, `${entry} section "${section.id}" (faq) items[${i}].answer`)),
+);
+---
+
+<section {...f.root} class="px-6 py-12">
+  <div class="mx-auto max-w-3xl">
+    {title && <h2 class="mb-8 font-heading text-3xl font-bold" {...f.field("title")}>{title}</h2>}
+    <div class="divide-y divide-border border-y border-border">
+      {
+        items.map((item, i) => (
+          <details>
+            <summary class="cursor-pointer py-4 text-lg font-semibold" {...f.field("items", i, "question")}>
+              {item.question}
+            </summary>
+            <div class="prose pb-6" {...f.field("items", i, "answer")} set:html={answers[i]} />
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>

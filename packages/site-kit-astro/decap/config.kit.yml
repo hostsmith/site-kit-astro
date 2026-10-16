@@ -1,0 +1,223 @@
+# Decap CMS config: the kit's part. `npm run decap-config` assembles
+# public/admin/config.yml from this file and the site's part,
+# public/admin/config.site.yml, which replaces each `# site:` line below.
+#
+# Only the Decap-compatible subset is used, so Decap and Sveltia CMS both read
+# the assembled file. src/content.config.ts mirrors these fields by hand:
+# change both files in the same commit.
+backend:
+  name: github
+  # site: repo
+  branch: main
+media_folder: public/assets
+public_folder: /assets
+
+collections:
+  - name: pages
+    label: Pages
+    label_singular: Page
+    folder: src/content/pages
+    extension: md
+    format: frontmatter
+    create: true
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: description, label: Description, widget: text, required: false }
+      - { name: ogImage, label: Social image, widget: image, required: false }
+      - &sections
+        name: sections
+        label: Sections
+        widget: list
+        typeKey: type
+        types:
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - &section_id { name: id, label: Section id, widget: string, pattern: ["^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$", "A lowercase letter, then 3 lowercase letters or digits, with at least one digit"] }
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string, required: false }
+              - { name: image, label: Image, widget: image, required: false }
+              - { name: imageAlt, label: Image alt text, widget: string, required: false }
+              - name: cta
+                label: Call to action
+                widget: object
+                required: false
+                fields: &labeled_link
+                  - { name: label, label: Label, widget: string }
+                  - { name: link, label: Link, widget: string }
+              - { name: variant, label: Variant, widget: select, options: [centered, image-left, image-right, background], default: centered }
+          - name: rich-text
+            label: Rich text
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: body, label: Body, widget: markdown }
+              - { name: variant, label: Variant, widget: select, options: [narrow, wide], default: narrow }
+          - name: collection-list
+            label: Collection list
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - name: collection
+                label: Collection
+                widget: select
+                # site: collection options
+              - { name: limit, label: Limit, widget: number, value_type: int, min: 1, required: false }
+              - { name: variant, label: Variant, widget: select, options: [cards, list], default: cards }
+          - name: services-grid
+            label: Services grid
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: intro, label: Intro, widget: text, required: false }
+              - name: items
+                label: Services
+                label_singular: Service
+                widget: list
+                min: 1
+                fields:
+                  - { name: title, label: Title, widget: string }
+                  - { name: text, label: Text, widget: text, required: false }
+                  - { name: image, label: Image, widget: image, required: false }
+                  - { name: imageAlt, label: Image alt text, widget: string, required: false }
+                  - { name: link, label: Link, widget: string, required: false }
+              - { name: variant, label: Variant, widget: select, options: [cards, list], default: cards }
+          - name: gallery
+            label: Gallery
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - name: images
+                label: Images
+                label_singular: Image
+                widget: list
+                min: 1
+                fields:
+                  - { name: image, label: Image, widget: image }
+                  - { name: alt, label: Alt text, widget: string }
+                  - { name: caption, label: Caption, widget: string, required: false }
+              - { name: variant, label: Variant, widget: select, options: [grid, masonry], default: grid }
+          - name: testimonials
+            label: Testimonials
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - name: items
+                label: Testimonials
+                label_singular: Testimonial
+                widget: list
+                min: 1
+                fields:
+                  - { name: quote, label: Quote, widget: text }
+                  - { name: name, label: Name, widget: string }
+                  - { name: role, label: Role, widget: string, required: false }
+                  - { name: image, label: Photo, widget: image, required: false }
+                  - { name: imageAlt, label: Photo alt text, widget: string, required: false }
+              - { name: variant, label: Variant, widget: select, options: [grid, single], default: grid }
+          - name: faq
+            label: FAQ
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - name: items
+                label: Questions
+                label_singular: Question
+                widget: list
+                min: 1
+                fields:
+                  - { name: question, label: Question, widget: string }
+                  - { name: answer, label: Answer, widget: markdown }
+          - name: cta
+            label: Call to action
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string }
+              - { name: text, label: Text, widget: text, required: false }
+              - { name: button, label: Button, widget: object, fields: *labeled_link }
+              - { name: secondaryButton, label: Second button, widget: object, required: false, fields: *labeled_link }
+              - { name: variant, label: Variant, widget: select, options: [banner, card], default: banner }
+          - name: hours-location
+            label: Hours and location
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: address, label: Address, widget: text, required: false }
+              - name: hours
+                label: Opening hours
+                label_singular: Opening hours row
+                widget: list
+                required: false
+                fields:
+                  - { name: days, label: Days, widget: string }
+                  - { name: time, label: Time, widget: string }
+              - { name: note, label: Note, widget: text, required: false }
+              - { name: mapLink, label: Map link, widget: object, required: false, fields: *labeled_link }
+          # site: section types
+
+  - name: settings
+    label: Settings
+    files:
+      - name: site
+        label: Site
+        file: src/content/settings/site.yml
+        fields:
+          - { name: name, label: Site name, widget: string }
+          - { name: language, label: Language (BCP 47), widget: string }
+          - name: logo
+            label: Logo
+            widget: object
+            required: false
+            fields:
+              - { name: image, label: Image, widget: image }
+              - { name: alt, label: Alt text, widget: string }
+          - name: nav
+            label: Navigation
+            widget: list
+            fields: &link_fields
+              - { name: label, label: Label, widget: string }
+              - { name: link, label: Link, widget: string }
+          - name: footer
+            label: Footer
+            widget: object
+            fields:
+              - { name: text, label: Text, widget: text, required: false }
+              - { name: links, label: Links, widget: list, required: false, fields: *link_fields }
+          - name: contact
+            label: Contact
+            widget: object
+            required: false
+            fields:
+              - { name: email, label: Email, widget: string, required: false }
+              - { name: phone, label: Phone, widget: string, required: false }
+              - { name: address, label: Address, widget: text, required: false }
+          - name: social
+            label: Social links
+            widget: list
+            required: false
+            fields:
+              - { name: label, label: Label, widget: string }
+              - { name: url, label: URL, widget: string }
+          - name: seo
+            label: Search and sharing defaults
+            widget: object
+            fields:
+              - { name: description, label: Description, widget: text }
+              - { name: ogImage, label: Social image, widget: image, required: false }
+          - name: ui
+            label: Interface text
+            widget: object
+            fields:
+              - { name: skipLink, label: Skip link, widget: string }
+              - { name: menu, label: Menu button, widget: string }
+              - { name: readMore, label: Read more link, widget: string }
+
+  # site: collections

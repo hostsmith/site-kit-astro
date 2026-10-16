@@ -14,9 +14,9 @@ concurrency:
 
 jobs:
   # cog computes the next version from Conventional Commits. Its pre-bump hook
-  # writes the version to `kit.version` in hostsmith.json, and the bump commit
-  # "chore(version): X.Y.Z" goes to main with the tag vX.Y.Z. The kit is not
-  # published to npm: the release is the GitHub release and the template.
+  # sets the package's version and every example's dependency on it, and the
+  # bump commit "chore(version): X.Y.Z" goes to main with the tag vX.Y.Z. The
+  # publish job below then publishes the package to npm.
   #
   # main only takes pull requests. The release GitHub App is a bypass actor on
   # main's ruleset, so the bump commit is pushed with the App's token (secrets
@@ -27,6 +27,9 @@ jobs:
       github.repository == 'hostsmith/site-kit-astro' &&
       (github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(version):'))
     runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.tag.outputs.released }}
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Get the release App token
         id: app-token
@@ -106,3 +109,49 @@ jobs:
         run: |
           printf '%s\n' "$NOTES" > release-notes.md
           gh release create "$TAG" --title "$TAG" --notes-file release-notes.md
+
+  # Publishes @hostsmith/site-kit-astro from the release tag, with provenance.
+  # npm authenticates the job by GitHub OIDC through the package's trusted
+  # publisher (this repository, release.yml), so there is no npm token. A
+  # failed publish can be re-run: the tag and the GitHub release stay.
+  publish:
+    needs: [release]
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .tool-versions
+          registry-url: https://registry.npmjs.org/
+
+      - run: npm ci
+
+      - run: npm test
+
+      - run: npm publish --workspace packages/site-kit-astro --provenance --access public
+
+      # The package as a site gets it: installed from the registry into a copy
+      # of the basics example outside the workspace, which pins the released
+      # version, then built (site-kit-updates design D26). The registry can
+      # take a moment to serve a new version.
+      - name: Check the published package
+        env:
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          cp -R examples/basics "$RUNNER_TEMP/site"
+          cd "$RUNNER_TEMP/site"
+          for attempt in 1 2 3 4 5 6; do
+            if npm install --no-audit --no-fund; then break; fi
+            if [ "$attempt" = 6 ]; then exit 1; fi
+            echo "The registry doesn't serve ${TAG#v} yet. Retrying in 20 seconds."
+            sleep 20
+          done
+          npm run build

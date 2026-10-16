@@ -2,8 +2,9 @@ tag_prefix = "v"
 ignore_merge_commits = true
 
 # cog decides the next version from Conventional Commits. The bump commit
-# ("chore(version): X.Y.Z") records the version as `kit.version` in
-# hostsmith.json, so sites created from the template know their kit release.
+# ("chore(version): X.Y.Z") sets the package's version and pins every example
+# to it, so an example taken from a tag uses the package of that release. The
+# release workflow then publishes the package to npm.
 # No CHANGELOG.md is committed; release notes go on the GitHub release.
 disable_changelog = true
 

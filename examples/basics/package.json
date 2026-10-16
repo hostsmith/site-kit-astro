@@ -1,0 +1,21 @@
+{
+  "name": "site-kit-example-basics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "section-id": "site-kit section-id",
+    "check:urls": "site-kit check-urls",
+    "decap-config": "site-kit decap-config"
+  },
+  "dependencies": {
+    "@hostsmith/site-kit-astro": "0.3.0",
+    "astro": "7.3.8"
+  }
+}
