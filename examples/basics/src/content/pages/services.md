@@ -54,8 +54,8 @@ sections:
       - Furniture moved and covered
 
       **From $450 per room**
-    image: /assets/images/placeholder-painting.svg
-    imageAlt: Placeholder for a photo of a freshly painted room
+    image: /assets/images/paint-tray-and-bucket.jpg
+    imageAlt: A roller in a tray of white paint next to an open paint bucket on a drop cloth
     link:
       label: View service
       link: /services/painting

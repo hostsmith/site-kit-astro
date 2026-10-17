@@ -6,8 +6,8 @@ sections:
     type: hero
     title: Painting & finishing
     subtitle: Interior and exterior painting with proper prep, so the finish lasts. We move and cover the furniture, and leave the room ready to use.
-    image: /assets/images/placeholder-painting.svg
-    imageAlt: Placeholder for a photo of a freshly painted room
+    image: /assets/images/paint-tray-and-bucket.jpg
+    imageAlt: A roller in a tray of white paint next to an open paint bucket on a drop cloth
     cta:
       label: Book a free visit
       link: /contact
