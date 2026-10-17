@@ -1,0 +1,17 @@
+/*
+ * Kestrel's space: the content width, the section spacing, the gutter and the
+ * breakpoint. These stay with the design: its layout CSS is tuned to them.
+ *
+ * md is where the header shows its nav, 820 px, so the site's own markup
+ * switches with the header at md:. Tailwind's default containers are reset,
+ * so max-w-6xl renders nothing; its spacing scale stays for p-4 or gap-6.
+ */
+
+@theme static {
+  --container-*: initial;
+
+  --container-site: 72.5rem;
+  --spacing-section: clamp(4rem, 8vw, 6rem);
+  --spacing-gutter: clamp(1.25rem, 3vw, 2.5rem);
+  --breakpoint-md: 51.25rem;
+}

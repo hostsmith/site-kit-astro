@@ -1,9 +1,13 @@
 ---
-// services-grid: title, intro, items (title, text, image + imageAlt, link).
-// Variants: cards (default), list. An item with a link renders its title as
-// the link.
+// services-grid: eyebrow, title, intro, link, items (title, text, icon,
+// image + imageAlt, link). Variants: cards (default), list. Tones: plain
+// (default), surface. An item with a link renders its title as the link and
+// gets `sk-card--linked`, so a theme can stretch the link over the card.
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
+import Icon from "../Icon.astro";
+import SectionHeader from "../SectionHeader.astro";
 
 interface Props {
   section: Extract<Section, { type: "services-grid" }>;
@@ -12,45 +16,40 @@ interface Props {
 }
 
 const { section, entry } = Astro.props;
-const { title, intro, items, variant } = section;
+const { eyebrow, title, intro, link, items } = section;
 const f = sectionFields(entry, section);
-const cards = variant === "cards";
 ---
 
-<section {...f.root} class="px-6 py-12">
-  <div class="mx-auto max-w-6xl">
-    {title && <h2 class="font-heading text-3xl font-bold" {...f.field("title")}>{title}</h2>}
-    {intro && <p class="mt-4 max-w-prose text-lg" {...f.field("intro")}>{intro}</p>}
-    <ul
-      class:list={[
-        (title || intro) && "mt-8",
-        cards ? "grid gap-8 sm:grid-cols-2 lg:grid-cols-3" : "divide-y divide-border",
-      ]}
-    >
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <SectionHeader field={f.field} eyebrow={eyebrow} title={title} intro={intro} link={link} />
+    <ul class="sk-services-grid__list">
       {
         items.map((item, i) => (
-          <li class:list={[cards ? "flex flex-col overflow-hidden rounded-lg border border-border" : "flex flex-col gap-6 py-6 sm:flex-row"]}>
-            {item.image && (
-              <img
-                src={item.image}
-                alt={item.imageAlt}
-                class:list={["aspect-video object-cover", cards ? "w-full" : "w-full rounded-md sm:w-56 sm:shrink-0"]}
-                {...f.field("items", i, "image")}
-              />
-            )}
-            <div class:list={["flex flex-col gap-2", cards && "p-5"]}>
+          <li class:list={["sk-card", item.link && "sk-card--linked"]}>
+            {item.image && <img src={item.image} alt={item.imageAlt} class="sk-card__media" {...f.field("items", i, "image")} />}
+            <div class="sk-card__body">
+              {item.icon && (
+                <span class="sk-card__icon">
+                  <Icon name={item.icon} />
+                </span>
+              )}
               {item.link ? (
-                <h3 class="font-heading text-xl font-semibold">
-                  <a href={item.link} class="underline hover:no-underline" {...f.field("items", i, "title")}>
+                <h3 class="sk-card__title">
+                  <a href={item.link} {...f.field("items", i, "title")}>
                     {item.title}
                   </a>
                 </h3>
               ) : (
-                <h3 class="font-heading text-xl font-semibold" {...f.field("items", i, "title")}>
+                <h3 class="sk-card__title" {...f.field("items", i, "title")}>
                   {item.title}
                 </h3>
               )}
-              {item.text && <p {...f.field("items", i, "text")}>{item.text}</p>}
+              {item.text && (
+                <p class="sk-card__text" {...f.field("items", i, "text")}>
+                  {item.text}
+                </p>
+              )}
             </div>
           </li>
         ))

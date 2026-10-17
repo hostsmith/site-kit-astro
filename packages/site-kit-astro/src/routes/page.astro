@@ -3,6 +3,7 @@
 // `template: custom`, and every non-draft collection entry under its base path.
 import Sections from "../components/Sections.astro";
 import Base from "../layouts/Base.astro";
+import { assertBodyRendered } from "../lib/markdown.ts";
 import { detailTemplate, getRoutes, type Route } from "../lib/routes.ts";
 
 export async function getStaticPaths() {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 const { route } = Astro.props;
+if (route.kind === "entry") await assertBodyRendered(route.entry, `${route.collection}/${route.entry.id}`);
 ---
 
 {

@@ -59,6 +59,30 @@ export async function getEntryRoutes(collection: CollectionName): Promise<EntryR
   return list.sort((a, b) => date(b).localeCompare(date(a)) || a.entry.id.localeCompare(b.entry.id));
 }
 
+export type Crumb = { path: string; title: string; ref: string };
+
+// The breadcrumb of a page whose path has more than one segment
+// (site-kit-design-system design D38): each ancestor path that has a page,
+// then the page itself, each by its entry's title. Undefined for a top-level
+// page. The layout adds the home link before it.
+export async function breadcrumbTrail(path: string): Promise<Crumb[] | undefined> {
+  const segments = path.split("/").filter(Boolean);
+  if (segments.length < 2) return undefined;
+  const byPath = new Map((await getRoutes()).map((route) => [route.path, route]));
+  const crumb = (route: Route): Crumb => ({
+    path: route.path,
+    title: (route.entry.data as { title: string }).title,
+    ref: `${route.kind === "entry" ? route.collection : "pages"}/${route.entry.id}`,
+  });
+  const trail: Crumb[] = [];
+  for (let i = 1; i <= segments.length; i++) {
+    const route = byPath.get(`/${segments.slice(0, i).join("/")}`);
+    if (route) trail.push(crumb(route));
+  }
+  // A hand-written page without a page entry has no title to show.
+  return trail.at(-1)?.path === path ? trail : undefined;
+}
+
 async function buildRoutes(): Promise<Route[]> {
   const list: Route[] = [];
   const sources = new Map<string, string>();

@@ -1,62 +1,91 @@
 ---
-title: Rye & Rise Bakery | Fresh bread daily
-description: A neighborhood bakery in Tallinn with fresh rye bread every morning.
+title: Kestrel Home Services | Repairs and renovations in Fenwick Falls, MN
+description: Kitchen and bath renovation, home repairs and painting in Fenwick Falls, Minnesota. Free on-site estimates and fixed, written quotes.
 sections:
-  - id: s7k2
+  - id: a7x3
     type: hero
-    title: Fresh bread daily
-    subtitle: Sourdough rye, baked every morning since 1998.
-    image: /assets/images/hero-loaves.svg
-    imageAlt: Three loaves of dark rye bread on a wooden board
+    badge: Serving Fenwick Falls since 2009
+    title: Repairs and renovations, done right the first time.
+    subtitle: A licensed local team for kitchens, bathrooms and everything in between. Free on-site estimates and fixed quotes, so there are no surprises.
+    image: /assets/images/roofer-on-tiled-roof.jpg
+    imageAlt: Roofer in a safety harness repairing a red tiled roof
     cta:
-      label: Order for an event
-      link: /services/catering
+      label: Get a free estimate
+      link: /contact
+    secondaryCta:
+      label: See our services
+      link: /services
     variant: image-right
-  - id: r4t8
-    type: rich-text
-    title: Baked the slow way
-    body: |-
-      Every loaf starts the evening before. Our rye sourdough rises overnight, so the bread is ready when we open at **7:00**.
-
-      - Rye sourdough, every day
-      - Seeded spelt on weekends
-      - Cinnamon buns while they last
-  - id: u3n9
-    type: services-grid
-    title: What we bake
-    intro: Everything is made in the shop, from the dough to the last cinnamon bun.
+  - id: ch3h
+    type: trust-bar
     items:
-      - title: Rye sourdough
-        text: Dark, dense and slightly sour. Baked every morning since 1998.
-        image: /assets/images/news-rye.svg
-        imageAlt: A dark rye loaf with scored crust on a golden background
-      - title: Cinnamon buns
-        text: Rolled by hand and baked twice a day, while they last.
-        image: /assets/images/cinnamon-buns.svg
-        imageAlt: Three round cinnamon buns with dark spirals
-      - title: Catering
-        text: Bread and pastry platters for 10 to 200 guests.
-        image: /assets/images/catering-table.svg
-        imageAlt: Bread platters on a long dark wooden table
-        link: /services/catering
-  - id: n2w6
+      - text: Licensed & insured
+      - text: 2-year workmanship warranty
+      - text: Fixed, written quotes
+      - text: Rated 4.9 by 300+ customers
+  - id: zh00
+    type: services-grid
+    eyebrow: What we do
+    title: Three services, one dependable crew
+    link:
+      label: All services
+      link: /services
+    items:
+      - title: Kitchen & bath renovation
+        text: From layout to final tile, one project lead runs the whole job.
+        icon: house
+        link: /services/kitchen-and-bath
+      - title: Repairs & maintenance
+        text: Leaks, doors, drywall and fixtures, booked within the week.
+        icon: wrench
+        link: /services/repairs
+      - title: Painting & finishing
+        text: Interior and exterior, with clean edges and a tidy site every day.
+        icon: paint-roller
+        link: /services/painting
+  - id: wi8p
+    type: split
+    eyebrow: About us
+    title: A neighborhood business, not a call center
+    body: I started Kestrel in 2009 with one van and a promise to my neighbors to do every job as if it were in my own house. We're bigger now, but every project still has one lead who answers your calls, and the price we write down is the price you pay.
+    image: /assets/images/project-lead-with-plans.jpg
+    imageAlt: Project lead in a hard hat holding plans in front of a house under construction
+    stats:
+      - value: 1,200+
+        label: Projects completed
+      - value: "17"
+        label: Years in business
+      - value: "4.9"
+        label: Average rating
+    link:
+      label: Meet the team
+      link: /about
+    variant: image-left
+    tone: surface
+  - id: tan8
+    type: testimonials
+    items:
+      - quote: Our bathroom was finished on the day they promised, for the price they quoted. The crew covered every floor and cleaned up before they left each evening.
+        name: Megan
+        role: Lakeview · Bathroom remodel
+        image: /assets/images/placeholder-customer.svg
+        imageAlt: Placeholder for a photo of Megan
+    variant: single
+    tone: dark
+  - id: cns2
     type: collection-list
-    title: Latest news
+    title: Advice from the crew
     collection: news
     limit: 3
-  - id: cov2
-    type: hours-location
-    title: Visit the shop
-    address: |-
-      Leiva 12
-      10111 Tallinn
-    hours:
-      - days: Monday to Friday
-        time: 7:00-18:00
-      - days: Saturday and Sunday
-        time: 7:00-16:00
-    note: Fresh rye is out of the oven at 7:00. Cinnamon buns come at 10:00 and 15:00.
-    mapLink:
-      label: Show the shop on OpenStreetMap
-      link: https://www.openstreetmap.org/search?query=Leiva%2012%2C%20Tallinn
+    link:
+      label: All articles
+      link: /blog
+  - id: jw0g
+    type: cta
+    title: Tell us about your project
+    text: We reply within one business day with a time for a free visit.
+    button:
+      label: Get a free estimate
+      link: /contact
+    tone: accent
 ---

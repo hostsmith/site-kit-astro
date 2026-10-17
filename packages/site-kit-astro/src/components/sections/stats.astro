@@ -1,0 +1,27 @@
+---
+// stats: title, items (value, label), two to four. Tones: plain (default),
+// dark. Figures such as "500+ projects completed".
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
+import SectionHeader from "../SectionHeader.astro";
+import Stat from "../Stat.astro";
+
+interface Props {
+  section: Extract<Section, { type: "stats" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const f = sectionFields(entry, section);
+---
+
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <SectionHeader field={f.field} title={section.title} />
+    <ul class="sk-stats__list">
+      {section.items.map((item, i) => <Stat field={f.field} at={["items", i]} value={item.value} label={item.label} />)}
+    </ul>
+  </div>
+</section>

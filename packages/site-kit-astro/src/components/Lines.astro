@@ -1,0 +1,11 @@
+---
+// Renders multi-line text, such as an address, with a <br> between lines, so
+// the lines hold without any CSS.
+interface Props {
+  text: string;
+}
+
+const lines = Astro.props.text.split("\n");
+---
+
+{lines.map((line, i) => (i === 0 ? line : <><br />{line}</>))}

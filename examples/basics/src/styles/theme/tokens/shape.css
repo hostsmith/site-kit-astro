@@ -1,0 +1,22 @@
+/*
+ * Kestrel's shapes: radii by element, so a square-button theme changes one
+ * token and leaves cards alone, and shadows. Shadows take their color from
+ * the scheme's text color, so they follow a color preset. Tailwind's default
+ * radii and shadows are reset, so rounded-md or shadow-lg render nothing.
+ */
+
+@theme static {
+  --radius-*: initial;
+  --shadow-*: initial;
+
+  --radius-tag: 0.625rem;
+  --radius-input: 0.875rem;
+  --radius-card: 1.25rem;
+  --radius-panel: 1.75rem;
+  --radius-button: 999px;
+
+  --shadow-raised:
+    0 1px 2px color-mix(in oklch, var(--color-fg) 6%, transparent),
+    0 1px 1px color-mix(in oklch, var(--color-fg) 4%, transparent);
+  --shadow-overlay: 0 12px 32px color-mix(in oklch, var(--color-fg) 12%, transparent);
+}

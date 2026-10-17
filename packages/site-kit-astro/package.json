@@ -1,7 +1,7 @@
 {
   "name": "@hostsmith/site-kit-astro",
   "version": "0.4.0",
-  "description": "An Astro kit for small-business sites migrated from Webflow: typed sections in Markdown, Webflow URLs kept, a deploy workflow for Hostsmith.",
+  "description": "A reusable kit for building websites with Astro: typed sections in Markdown, header and footer blocks, guidelines for AI agents and example designs, with a deploy workflow for Hostsmith.",
   "license": "MIT",
   "type": "module",
   "homepage": "https://github.com/hostsmith/site-kit-astro#readme",
@@ -32,8 +32,7 @@
     "./routes": "./src/lib/routes.ts",
     "./custom-page": "./src/lib/custom-page.ts",
     "./components/Sections.astro": "./src/components/Sections.astro",
-    "./layouts/Base.astro": "./src/layouts/Base.astro",
-    "./styles.css": "./styles.css"
+    "./layouts/Base.astro": "./src/layouts/Base.astro"
   },
   "bin": {
     "site-kit": "./bin/site-kit.mjs"
@@ -41,18 +40,17 @@
   "files": [
     "index.ts",
     "virtual.d.ts",
-    "styles.css",
     "src",
     "scripts",
     "bin",
     "decap",
-    "AGENTS.md"
+    "AGENTS.md",
+    "HOOKS.md"
   ],
   "dependencies": {
     "@astrojs/markdown-satteri": "0.4.3",
     "@hostsmith/sdk": "1.4.0",
-    "@tailwindcss/vite": "4.3.3",
-    "tailwindcss": "4.3.3"
+    "yaml": "2.9.1"
   },
   "peerDependencies": {
     "astro": "^7.3.8"

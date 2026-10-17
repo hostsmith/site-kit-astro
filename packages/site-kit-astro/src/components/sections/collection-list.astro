@@ -1,12 +1,15 @@
 ---
-// collection-list: title, collection, limit. Variants: cards (default), list.
-// Lists the collection's non-draft entries, newest first, each linked to its
-// detail page. A card shows the entry's title, date, description and image
-// when the collection has them.
+// collection-list: title, collection, limit, link. Variants: cards (default),
+// list, featured. Lists the collection's non-draft entries, newest first, each
+// linked to its detail page. A card shows the entry's image, category, title,
+// date and description when the entry has them. `featured` marks the first
+// card, which a theme shows larger.
 import type { Section } from "../../kit-content.ts";
 import { field, sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
 import { getEntryRoutes } from "../../lib/routes.ts";
 import { getSettings, SETTINGS } from "../../lib/settings.ts";
+import SectionHeader from "../SectionHeader.astro";
 
 interface Props {
   section: Extract<Section, { type: "collection-list" }>;
@@ -17,6 +20,7 @@ interface Props {
 interface CardData {
   title: string;
   date?: string;
+  category?: string;
   description?: string;
   image?: string;
   imageAlt?: string;
@@ -29,41 +33,43 @@ const collection = section.collection.name;
 const routes = await getEntryRoutes(collection);
 const items = section.limit === undefined ? routes : routes.slice(0, section.limit);
 const dateFormat = new Intl.DateTimeFormat(settings.language, { dateStyle: "long", timeZone: "UTC" });
-const cards = section.variant === "cards";
+const featured = section.variant === "featured";
 ---
 
-<section {...f.root} class="px-6 py-12">
-  <div class="mx-auto max-w-6xl">
-    {section.title && <h2 class="mb-8 font-heading text-3xl font-bold" {...f.field("title")}>{section.title}</h2>}
-    <ul class:list={[cards ? "grid gap-8 sm:grid-cols-2 lg:grid-cols-3" : "divide-y divide-border"]}>
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <SectionHeader field={f.field} title={section.title} link={section.link} />
+    <ul class="sk-collection-list__list">
       {
-        items.map(({ path, entry: item }) => {
+        items.map(({ path, entry: item }, i) => {
           const data = item.data as CardData;
           const ref = `${collection}/${item.id}`;
           const titleId = `${section.id}-${item.id.replaceAll("/", "-")}`;
           return (
-            <li class:list={[cards ? "flex flex-col overflow-hidden rounded-lg border border-border" : "py-6"]}>
-              {cards && data.image && (
-                <img src={data.image} alt={data.imageAlt} class="aspect-video w-full object-cover" {...field(ref, "image")} />
-              )}
-              <div class:list={["flex flex-1 flex-col gap-2", cards && "p-5"]}>
-                <h3 id={titleId} class="font-heading text-xl font-semibold">
-                  <a href={path} class="hover:underline" {...field(ref, "title")}>
+            <li class:list={["sk-card", "sk-card--linked", featured && i === 0 && "sk-card--featured"]}>
+              {data.image && <img src={data.image} alt={data.imageAlt} class="sk-card__media" {...field(ref, "image")} />}
+              <div class="sk-card__body">
+                {data.category && (
+                  <p class="sk-card__category" {...field(ref, "category")}>
+                    {data.category}
+                  </p>
+                )}
+                <h3 id={titleId} class="sk-card__title">
+                  <a href={path} {...field(ref, "title")}>
                     {data.title}
                   </a>
                 </h3>
                 {data.date && (
-                  <time datetime={data.date} class="text-sm text-muted" {...field(ref, "date")}>
+                  <time datetime={data.date} class="sk-card__meta" {...field(ref, "date")}>
                     {dateFormat.format(new Date(data.date))}
                   </time>
                 )}
-                {data.description && <p {...field(ref, "description")}>{data.description}</p>}
-                <a
-                  href={path}
-                  aria-describedby={titleId}
-                  class="mt-auto font-semibold text-primary underline"
-                  {...field(SETTINGS, "ui", "readMore")}
-                >
+                {data.description && (
+                  <p class="sk-card__text" {...field(ref, "description")}>
+                    {data.description}
+                  </p>
+                )}
+                <a href={path} aria-describedby={titleId} class="sk-card__more" {...field(SETTINGS, "ui", "readMore")}>
                   {settings.ui.readMore}
                 </a>
               </div>

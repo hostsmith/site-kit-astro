@@ -1,0 +1,49 @@
+---
+// split: eyebrow, title, body (markdown), image + imageAlt, stats, link.
+// Variants: image-left (default), image-right. Tones: plain (default),
+// surface. The image comes first in reading order; the variant tells the
+// theme which side to show it on.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
+import { renderMarkdown } from "../../lib/markdown.ts";
+import SectionHeader from "../SectionHeader.astro";
+import Stat from "../Stat.astro";
+
+interface Props {
+  section: Extract<Section, { type: "split" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { eyebrow, title, body, image, imageAlt, stats, link } = section;
+const f = sectionFields(entry, section);
+const html = body === undefined ? undefined : await renderMarkdown(body, `${entry} section "${section.id}" (split) body`);
+---
+
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <img src={image} alt={imageAlt} class="sk-split__media" {...f.field("image")} />
+    <div class="sk-split__content">
+      <SectionHeader field={f.field} eyebrow={eyebrow} title={title} />
+      {html && <div class="sk-split__body sk-prose" {...f.field("body")} set:html={html} />}
+      {
+        stats && (
+          <ul class="sk-split__stats">
+            {stats.map((stat, i) => (
+              <Stat field={f.field} at={["stats", i]} value={stat.value} label={stat.label} />
+            ))}
+          </ul>
+        )
+      }
+      {
+        link && (
+          <a href={link.link} class="sk-split__link" {...f.field("link", "label")}>
+            {link.label}
+          </a>
+        )
+      }
+    </div>
+  </div>
+</section>

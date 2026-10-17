@@ -4,6 +4,7 @@
 //
 //   site-kit section-id <page file>       npm run section-id -- <page file>
 //   site-kit check-urls [--live <url>]    npm run check:urls
+//   site-kit check-styles                 npm run check:styles
 //   site-kit decap-config [--check]       npm run decap-config
 //   site-kit deploy check|deploy          the deploy workflow
 //
@@ -11,6 +12,7 @@
 const COMMANDS = {
   "section-id": "../scripts/section-id.mjs",
   "check-urls": "../scripts/check-urls.mjs",
+  "check-styles": "../scripts/check-styles.mjs",
   "decap-config": "../scripts/decap-config.mjs",
   deploy: "../scripts/hostsmith-deploy.mjs",
 };

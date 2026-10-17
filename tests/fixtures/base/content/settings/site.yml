@@ -9,18 +9,59 @@ nav:
     link: /services/plumbing
   - label: News
     link: /news
-footer:
-  text: A test site.
-  links:
-    - label: News
+header:
+  actions:
+    - type: phone
+      number: "+1 555 0100"
+      callLabel: Call
+    - type: button
+      label: Get an estimate
+      link: /about
+    - type: link
+      label: Latest news
       link: /news
-contact:
-  email: test@example.com
-  phone: "+1 555 0100"
-  address: 1 Test Street
-social:
-  - label: Example
-    url: https://social.example.com/test
+footer:
+  blocks:
+    - type: brand
+      text: A test site.
+    - type: contact
+      withPrevious: true
+      address: 1 Test Street
+      phone: "+1 555 0100"
+      email: test@example.com
+    - type: links
+      title: Services
+      links:
+        - label: Plumbing
+          link: /services/plumbing
+    - type: links
+      title: Company
+      links:
+        - label: About
+          link: /about
+        - label: News
+          link: /news
+    - type: hours
+      title: Hours
+      rows:
+        - days: Mon–Fri
+          time: 7:00 AM–6:00 PM
+        - days: Saturday
+          time: 8:00 AM–4:00 PM
+        - days: Sunday
+          time: Closed
+    - type: text
+      title: Since 1998
+      text: Baked in the shop every morning.
+  bottom:
+    - type: copyright
+      text: Test Bakery LLC · License 12345
+    - type: links
+      links:
+        - label: News
+          link: /news
+        - label: Example
+          link: https://social.example.com/test
 seo:
   description: Default description
   ogImage: /assets/test/share.svg
@@ -28,3 +69,7 @@ ui:
   skipLink: Skip to content
   menu: Menu
   readMore: Read more
+  mainNav: Main
+  footerNav: Footer
+  breadcrumb: Breadcrumb
+  home: Home

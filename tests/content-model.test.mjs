@@ -103,6 +103,33 @@ describe("invalid pages fail the build", () => {
 });
 
 describe("settings", () => {
+  const UI = "ui: { skipLink: S, menu: M, readMore: R, mainNav: N, footerNav: F, breadcrumb: B, home: H }\n";
+
   it("fail without a name", () =>
-    expectFailure({ "src/content/settings/site.yml": "language: en\nnav: []\nfooter: {}\nseo: { description: D }\nui: { skipLink: S, menu: M, readMore: R }\n" }, "site.yml", "name"));
+    expectFailure({ "src/content/settings/site.yml": `language: en\nnav: []\nseo: { description: D }\n${UI}` }, "site.yml", "name"));
+
+  it("fail without a ui string, naming it", () =>
+    expectFailure(
+      { "src/content/settings/site.yml": `name: Test\nlanguage: en\nnav: []\nseo: { description: D }\n${UI.replace("breadcrumb: B, ", "")}` },
+      "site.yml",
+      "breadcrumb",
+    ));
+
+  it("fail on a business fact outside a block, such as the old contact setting", () =>
+    expectFailure(
+      { "src/content/settings/site.yml": `name: Test\nlanguage: en\nnav: []\ncontact: { phone: "+1 555 0100" }\nseo: { description: D }\n${UI}` },
+      "site.yml",
+      "contact",
+    ));
+
+  it("build without header actions and footer blocks", async () => {
+    const build = await buildFixture("base", {
+      files: { "src/content/settings/site.yml": `name: Test\nlanguage: en\nnav: []\nseo: { description: D }\n${UI}` },
+    });
+    try {
+      assert.ok(build.ok, build.output);
+    } finally {
+      await build.cleanup();
+    }
+  });
 });

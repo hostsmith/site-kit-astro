@@ -37,19 +37,15 @@ collections:
           - { name: description, label: Description, widget: text, required: false }
           - { name: ogImage, label: Social image, widget: image, required: false }
           - { name: template, label: Template, widget: hidden, default: custom }
+          - { name: eyebrow, label: Eyebrow, widget: string }
           - { name: heading, label: Heading, widget: string }
-          - { name: intro, label: Intro, widget: text }
-          - name: values
-            label: Values
-            widget: list
-            fields:
-              - { name: title, label: Title, widget: string }
-              - { name: text, label: Text, widget: text }
+          - { name: image, label: Image, widget: image }
+          - { name: imageAlt, label: Image alt text, widget: string }
           - *sections
 
   - name: news
-    label: News
-    label_singular: News entry
+    label: Blog
+    label_singular: Blog post
     folder: src/content/news
     extension: md
     format: frontmatter
@@ -58,6 +54,7 @@ collections:
     fields:
       - { name: title, label: Title, widget: string }
       - { name: date, label: Date, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false }
+      - { name: category, label: Category, widget: select, options: [Planning, Renovation, Maintenance, News], required: false }
       - { name: description, label: Description, widget: text, required: false }
       - { name: image, label: Image, widget: image, required: false }
       - { name: imageAlt, label: Image alt text, widget: string, required: false }

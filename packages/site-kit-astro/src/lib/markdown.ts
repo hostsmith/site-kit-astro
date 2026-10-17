@@ -2,22 +2,40 @@
 //
 // Entry bodies are rendered by Astro's markdown processor. Markdown props use
 // the same processor (Sätteri, Astro's default) with the same options, so the
-// same markdown renders the same HTML in both places. astro.config.mjs passes
-// `markdownOptions` to Astro; don't set markdown options anywhere else.
+// same markdown renders the same HTML in both places. The kit's integration
+// passes `markdownOptions` and `markdownProcessor` to Astro; don't set
+// markdown options anywhere else.
 import { satteri } from "@astrojs/markdown-satteri";
 import type { MarkdownRenderer } from "astro/markdown";
+import { factsPlugin } from "./facts.ts";
 
 // Syntax highlighting is off: Shiki writes raw colors into inline styles,
 // which bypasses the design tokens.
 export const markdownOptions = { syntaxHighlight: false as const };
 
+// Fills `{name}` facts in a body's text (design D35). Markdown props arrive
+// filled already, with the rest of the frontmatter.
+export const markdownProcessor = satteri({ mdastPlugins: [factsPlugin as never] });
+
 let renderer: Promise<MarkdownRenderer> | undefined;
 
 export async function renderMarkdown(source: string, where: string): Promise<string> {
-  renderer ??= satteri().createRenderer(markdownOptions);
-  const { code, metadata } = await (await renderer).render(source);
+  renderer ??= markdownProcessor.createRenderer(markdownOptions);
+  const { code, metadata } = await (await renderer)
+    .render(source)
+    .catch((error: Error) => Promise.reject(new Error(`${where}: ${error.message}`)));
   assertNoH1(metadata.headings, where);
   return code;
+}
+
+// Astro's content loader logs an entry body that fails to render, such as
+// one with an unknown fact, and builds the page without it. The kit fails
+// instead: it renders the body again, so the error names the file.
+export async function assertBodyRendered(entry: { body?: string; rendered?: unknown; filePath?: string }, where: string): Promise<void> {
+  if (entry.rendered !== undefined || !entry.body?.trim()) return;
+  const file = entry.filePath ?? where;
+  await renderMarkdown(entry.body, file);
+  throw new Error(`${file}: the Markdown body didn't render. See the error above.`);
 }
 
 // A page has exactly one h1: the first hero's title, the page title or the

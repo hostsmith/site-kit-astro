@@ -66,10 +66,15 @@ describe("the site contract", () => {
 describe("published files", () => {
   const files = JSON.parse(execFileSync("npm", ["pack", "--dry-run", "--json"], { cwd: PACKAGE, encoding: "utf8" }))[0].files.map((f) => f.path);
 
-  it("include the integration, the source, the tool, the Decap part and the rules", () => {
-    for (const path of ["index.ts", "styles.css", "src/content.ts", "src/routes/page.astro", "bin/site-kit.mjs", "decap/config.kit.yml", "AGENTS.md", "LICENSE", "README.md", "package.json"]) {
+  it("include the integration, the source, the tool, the Decap part, the rules and the hooks", () => {
+    for (const path of ["index.ts", "src/content.ts", "src/routes/page.astro", "bin/site-kit.mjs", "decap/config.kit.yml", "AGENTS.md", "HOOKS.md", "LICENSE", "README.md", "package.json"]) {
       assert.ok(files.includes(path), `${path} is not published`);
     }
+  });
+
+  // site-kit-sections, "The kit ships no styles".
+  it("include no stylesheet", () => {
+    for (const path of files) assert.doesNotMatch(path, /\.(css|scss|sass|less)$/, path);
   });
 
   it("include no tests, fixtures or example files", () => {

@@ -6,6 +6,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "astro/zod";
+import { CONTENT_ICONS } from "./icons.ts";
 
 // Media lives under public/assets/ and is referenced by its public path.
 export const mediaPath = z
@@ -35,6 +36,10 @@ export const link = z.string().superRefine((value, ctx) => {
     ctx.addIssue({ code: "custom", message: `link "${value}" ends with "/". Internal links have no trailing slash.` });
   }
 });
+
+// An icon from the kit's icon set, by name (site-kit-design-system design
+// D37). An unknown name fails with the allowed names.
+export const icon = z.enum(CONTENT_ICONS);
 
 // Every image prop is paired with alt text.
 export function requireAlt(imageKey: string, altKey: string) {

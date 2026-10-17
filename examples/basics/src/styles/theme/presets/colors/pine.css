@@ -1,0 +1,24 @@
+/*
+ * basics/pine: deep pine greens on cool neutrals, with an amber accent. To
+ * use it, import it in tokens/colors.css instead of navy.css.
+ *
+ * Every preset in this folder defines the same color roles (README.md), and
+ * passes the contrast pairs listed there (npm run check:styles). Tailwind's
+ * default palette is reset, so bg-red-500 renders nothing.
+ */
+
+@theme static {
+  --color-*: initial;
+
+  --color-bg: #f1f4f1;
+  --color-fg: #14271f;
+  --color-surface: #ffffff;
+  --color-tint: #dbe6de;
+  --color-muted: #475a50;
+  --color-border: #c3d0c7;
+  --color-brand: #2c6147;
+  --color-accent: #e3a24a;
+  --color-accent-fg: #14271f;
+  --color-on-dark: #bcd0c3;
+  --color-error: #b42318;
+}

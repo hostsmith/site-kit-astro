@@ -2,12 +2,23 @@
 // The base layout of every page: SEO head, skip link, header with nav,
 // main and footer. All visible text comes from content or settings.
 //
-// The stylesheet is the site's src/styles/global.css, which imports the kit's
-// styles and the site's tokens (site-kit-updates design D20).
+// The kit ships no CSS: elements carry the `sk-` hooks listed in HOOKS.md,
+// and the site's theme styles them. The stylesheet is the site's
+// src/styles/global.css (site-kit-updates design D20).
+//
+// The layout owns the frame: skip link, landmarks, brand link, main nav,
+// menu and breadcrumb. The header's actions and the footer's blocks come
+// from settings, so it knows no business facts (site-kit-design-system
+// design D35).
 import "/src/styles/global.css";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import FooterBlock from "../components/FooterBlock.astro";
+import Icon from "../components/Icon.astro";
+import type { FooterBlock as Block } from "../kit-content.ts";
 import { field } from "../lib/field.ts";
 import { absoluteUrl, isNoindexBuild } from "../lib/seo.ts";
 import { getSettings, SETTINGS } from "../lib/settings.ts";
+import { telHref } from "../lib/tel.ts";
 
 interface Props {
   // Used verbatim as the document title.
@@ -26,8 +37,19 @@ const metaDescription = description ?? settings.seo.description;
 const ogImage = image ?? settings.seo.ogImage;
 const canonical = path === undefined ? undefined : absoluteUrl(path, Astro.site);
 const robots = isNoindexBuild() ? "noindex, nofollow" : path === undefined ? "noindex" : undefined;
-const year = new Date().getFullYear();
-const { contact, footer, logo, nav, social, ui } = settings;
+const { logo, nav, ui } = settings;
+const actions = settings.header?.actions ?? [];
+// The icon-only call button comes from the phone action that sets callLabel.
+const call = actions.find((action) => action.type === "phone" && action.callLabel !== undefined);
+const hasMenu = nav.length > 0 || actions.length > 0;
+
+// footer.blocks in groups: each block starts one unless it sets withPrevious.
+const groups: { block: Block; index: number }[][] = [];
+(settings.footer?.blocks ?? []).forEach((block, index) => {
+  if (block.withPrevious && groups.length > 0) groups.at(-1)!.push({ block, index });
+  else groups.push([{ block, index }]);
+});
+const bottom = settings.footer?.bottom ?? [];
 ---
 
 <!doctype html>
@@ -45,65 +67,95 @@ const { contact, footer, logo, nav, social, ui } = settings;
     {canonical && <meta property="og:url" content={canonical} />}
     {ogImage && <meta property="og:image" content={absoluteUrl(ogImage, Astro.site)} />}
   </head>
-  <body class="flex min-h-screen flex-col bg-bg font-body text-fg">
-    <a
-      href="#main"
-      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-fg"
-      {...field(SETTINGS, "ui", "skipLink")}>{ui.skipLink}</a
-    >
+  <body>
+    <a href="#main" class="sk-skip-link" {...field(SETTINGS, "ui", "skipLink")}>{ui.skipLink}</a>
 
-    <header class="border-b border-border">
-      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <a href="/" class="font-heading text-xl font-bold">
+    <header class="sk-header">
+      <div class="sk-container">
+        <a href="/" class="sk-header__brand">
           {
             logo ? (
-              <img src={logo.image} alt={logo.alt} class="h-10 w-auto" {...field(SETTINGS, "logo", "image")} />
+              <img src={logo.image} alt={logo.alt} class="sk-header__logo" {...field(SETTINGS, "logo", "image")} />
             ) : (
-              <span {...field(SETTINGS, "name")}>{settings.name}</span>
+              <span class="sk-header__name" {...field(SETTINGS, "name")}>
+                {settings.name}
+              </span>
             )
           }
         </a>
         {
-          nav.length > 0 && (
+          call?.type === "phone" && (
+            <a href={telHref(call.number)} class="sk-header__call" aria-label={`${call.callLabel} ${call.number}`}>
+              <Icon name="phone" />
+            </a>
+          )
+        }
+        {
+          hasMenu && (
             <>
-              <button
-                type="button"
-                hidden
-                aria-expanded="true"
-                aria-controls="site-nav"
-                class="rounded-md border border-border px-3 py-2 font-semibold md:hidden"
-                data-menu-button
-                {...field(SETTINGS, "ui", "menu")}
-              >
-                {ui.menu}
+              <button type="button" hidden aria-expanded="false" aria-controls="sk-menu" class="sk-header__menu-button">
+                <Icon name="menu" />
+                <Icon name="x" />
+                <span class="sk-header__menu-label" {...field(SETTINGS, "ui", "menu")}>
+                  {ui.menu}
+                </span>
               </button>
-              <nav id="site-nav" class="w-full md:w-auto" data-menu>
-                <ul class="flex flex-col gap-1 md:flex-row md:gap-6">
-                  {nav.map((item, i) => (
-                    <li>
-                      <a
-                        href={item.link}
-                        aria-current={item.link === path ? "page" : undefined}
-                        class="block py-2 hover:underline aria-[current=page]:font-semibold"
-                        {...field(SETTINGS, "nav", i, "label")}
-                      >
-                        {item.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-              {/* Runs during parsing, so the mobile menu never flashes open. Without JavaScript the menu stays open. */}
+              {/* The menu is rendered once: the theme lays it out as a row on wide screens and as a panel on narrow ones. */}
+              <div id="sk-menu" class="sk-menu">
+                {nav.length > 0 && (
+                  <nav class="sk-nav" aria-label={ui.mainNav}>
+                    <ul class="sk-nav__list">
+                      {nav.map((item, i) => (
+                        <li>
+                          <a
+                            href={item.link}
+                            aria-current={item.link === path ? "page" : undefined}
+                            class="sk-nav__link"
+                            {...field(SETTINGS, "nav", i, "label")}
+                          >
+                            {item.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
+                )}
+                {actions.length > 0 && (
+                  <div class="sk-header__actions">
+                    {actions.map((action, i) =>
+                      action.type === "phone" ? (
+                        <a href={telHref(action.number)} class="sk-header__phone" {...field(SETTINGS, "header", "actions", i, "number")}>
+                          {action.number}
+                        </a>
+                      ) : action.type === "button" ? (
+                        <a href={action.link} class={`sk-button sk-button--${action.style}`} {...field(SETTINGS, "header", "actions", i, "label")}>
+                          {action.label}
+                        </a>
+                      ) : (
+                        <a href={action.link} class="sk-header__link" {...field(SETTINGS, "header", "actions", i, "label")}>
+                          {action.label}
+                        </a>
+                      ),
+                    )}
+                  </div>
+                )}
+              </div>
+              {/*
+                Runs during parsing, so a theme's closed menu never flashes open. It
+                reveals the menu button and marks the menu `data-ready`; `data-open`
+                marks it open. A theme hides the menu only while it is
+                `[data-ready]:not([data-open])`, so without JavaScript it stays usable.
+              */}
               <script is:inline>
                 (() => {
-                  const button = document.querySelector("[data-menu-button]");
-                  const menu = document.querySelector("[data-menu]");
+                  const button = document.querySelector(".sk-header__menu-button");
+                  const menu = document.getElementById("sk-menu");
                   const setOpen = (open) => {
                     button.setAttribute("aria-expanded", String(open));
-                    menu.toggleAttribute("data-closed", !open);
+                    menu.toggleAttribute("data-open", open);
                   };
                   button.hidden = false;
-                  setOpen(false);
+                  menu.setAttribute("data-ready", "");
                   button.addEventListener("click", () => setOpen(button.getAttribute("aria-expanded") !== "true"));
                   document.addEventListener("keydown", (event) => {
                     if (event.key === "Escape" && button.getAttribute("aria-expanded") === "true") {
@@ -119,60 +171,32 @@ const { contact, footer, logo, nav, social, ui } = settings;
       </div>
     </header>
 
-    <main id="main" tabindex="-1" class="flex-1 focus:outline-none">
+    <main id="main" tabindex="-1" class="sk-main">
+      {path && <Breadcrumb path={path} />}
       <slot />
     </main>
 
-    <footer class="mt-16 border-t border-border">
-      <div class="mx-auto grid max-w-6xl gap-8 px-6 py-10 text-sm md:grid-cols-3">
-        <div class="flex flex-col gap-2">
-          {footer.text && <p {...field(SETTINGS, "footer", "text")}>{footer.text}</p>}
-          <p>
-            © {year} <span {...field(SETTINGS, "name")}>{settings.name}</span>
-          </p>
-        </div>
-        {
-          contact && (
-            <address class="flex flex-col gap-1 not-italic">
-              {contact.address && (
-                <span class="whitespace-pre-line" {...field(SETTINGS, "contact", "address")}>
-                  {contact.address}
-                </span>
-              )}
-              {contact.phone && (
-                <a href={`tel:${contact.phone.replace(/[^+\d]/g, "")}`} class="underline" {...field(SETTINGS, "contact", "phone")}>
-                  {contact.phone}
-                </a>
-              )}
-              {contact.email && (
-                <a href={`mailto:${contact.email}`} class="underline" {...field(SETTINGS, "contact", "email")}>
-                  {contact.email}
-                </a>
-              )}
-            </address>
-          )
-        }
-        {
-          (footer.links?.length ?? 0) + (social?.length ?? 0) > 0 && (
-            <ul class="flex flex-col gap-1">
-              {footer.links?.map((item, i) => (
-                <li>
-                  <a href={item.link} class="underline" {...field(SETTINGS, "footer", "links", i, "label")}>
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-              {social?.map((item, i) => (
-                <li>
-                  <a href={item.url} rel="me noopener" class="underline" {...field(SETTINGS, "social", i, "label")}>
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      </div>
-    </footer>
+    {
+      (groups.length > 0 || bottom.length > 0) && (
+        <footer class="sk-footer">
+          <div class="sk-container">
+            {groups.map((group) => (
+              <div class="sk-footer__group">
+                {group.map(({ block, index }) => (
+                  <FooterBlock block={block} path={["footer", "blocks", index]} id={`sk-footer-block-${index}`} />
+                ))}
+              </div>
+            ))}
+            {bottom.length > 0 && (
+              <div class="sk-footer__bottom">
+                {bottom.map((block, index) => (
+                  <FooterBlock block={block} path={["footer", "bottom", index]} id={`sk-footer-bottom-${index}`} />
+                ))}
+              </div>
+            )}
+          </div>
+        </footer>
+      )
+    }
   </body>
 </html>

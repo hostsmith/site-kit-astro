@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ASSEMBLED, assembleFiles } from "../packages/site-kit-astro/scripts/decap-config.mjs";
+import { readHooks } from "../packages/site-kit-astro/scripts/hooks-reference.mjs";
 
 // The kit repository, the package and the examples.
 export const REPO = fileURLToPath(new URL("..", import.meta.url));
@@ -121,6 +122,18 @@ export function innerHtml(html, tag, marker) {
 
 export function count(text, pattern) {
   return [...text.matchAll(pattern)].length;
+}
+
+// The hooks HOOKS.md lists, deprecated ones included: the `sk-` classes or,
+// with `states`, the state attributes. deprecatedHooks() has the deprecated
+// ones with their replacements.
+export async function documentedHooks({ states = false } = {}) {
+  const reference = readHooks(join(PACKAGE, "HOOKS.md"));
+  return states ? reference.states : reference.classes;
+}
+
+export async function deprecatedHooks() {
+  return readHooks(join(PACKAGE, "HOOKS.md")).deprecated;
 }
 
 // Fails with the build output when a build that should pass doesn't.

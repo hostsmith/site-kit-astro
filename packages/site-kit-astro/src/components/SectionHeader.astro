@@ -1,0 +1,46 @@
+---
+// A section's heading group: eyebrow, title, intro, and a link after them,
+// such as "All services". Each part renders when it is set, and the group
+// only when one is.
+import type { FieldAttrs, PathPart } from "../lib/field.ts";
+
+interface Props {
+  // The section's field-attribute helper, sectionFields(...).field.
+  field: (...path: PathPart[]) => FieldAttrs;
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  link?: { label: string; link: string };
+  // The intro's prop name, when it isn't `intro`.
+  introProp?: string;
+}
+
+const { field, eyebrow, title, intro, link, introProp = "intro" } = Astro.props;
+---
+
+{
+  (eyebrow || title || intro || link) && (
+    <div class="sk-section__header">
+      {eyebrow && (
+        <p class="sk-eyebrow" {...field("eyebrow")}>
+          {eyebrow}
+        </p>
+      )}
+      {title && (
+        <h2 class="sk-section__title" {...field("title")}>
+          {title}
+        </h2>
+      )}
+      {intro && (
+        <p class="sk-section__intro" {...field(introProp)}>
+          {intro}
+        </p>
+      )}
+      {link && (
+        <a href={link.link} class="sk-section__link" {...field("link", "label")}>
+          {link.label}
+        </a>
+      )}
+    </div>
+  )
+}
