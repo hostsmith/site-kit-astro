@@ -89,11 +89,11 @@ To take kit release `<version>`:
 2. `npm install --save-exact @hostsmith/site-kit-astro@<version>`. If npm reports a conflict on `astro`, install the `astro` version the release notes name in the same command.
 3. `npm run decap-config` and `npm run check:styles`. For each deprecated-hook warning, rename the selector in `src/styles/theme/` and `src/styles/site.css` to the replacement it names. Don't keep a selector list with both names: once the old class is gone, that half matches nothing.
 4. `npm run build` and `npm run check:urls`. For each build warning about deprecated content, change the content to the replacement it names.
-5. `npm run check:styles -- --built`, and style every hook it reports as unstyled, in the theme or in `site.css`.
-6. For a major release, apply the steps in its release notes. Before taking a release with a "Removed" section, clear every deprecation warning. If the site skipped the release that deprecated a hook, the "Removed" notes and the errors from `npm run check:styles` list what to change.
+5. `npm run check:styles -- --built`. Style every hook it reports as unstyled, in the theme or in `site.css`, and replace every class it reports without a rule with the theme's tokens, such as `text-h1` for `text-4xl`.
+6. For a major release, apply the steps in its release notes, and the kit README's checklist for that release, such as "From 0.4 to 0.5". Before taking a release with a "Removed" section, clear every deprecation warning. If the site skipped the release that deprecated a hook, the "Removed" notes and the errors from `npm run check:styles` list what to change.
 7. Commit, push the branch, check the preview site, then merge it to `main`.
 
-Never copy files from the kit's repository or merge its history.
+Never merge the kit repository's history, and never copy the package's code into the site. Copy an example's files, such as its theme, only when a release's notes say to.
 
 ## Dependencies
 

@@ -312,7 +312,23 @@ export function checkStyles(root, { hooks = readHooks() } = {}) {
   return { files, errors, warnings };
 }
 
-// The output check: `sk-` classes in root/dist that no theme or site.css rule styles.
+// The class names in CSS selectors, unescaped: `.md\:grid-cols-3` gives
+// "md:grid-cols-3". Numbers such as `.5rem` add names that match no class.
+export function cssClasses(css) {
+  const names = new Set();
+  for (const [, raw] of css.matchAll(/\.((?:\\[0-9a-fA-F]{1,6} ?|\\[^0-9a-fA-F\s]|[\w-])+)/g)) {
+    names.add(raw.replace(/\\([0-9a-fA-F]{1,6}) ?|\\(.)/g, (_, hex, char) => (hex ? String.fromCodePoint(Number.parseInt(hex, 16)) : char)));
+  }
+  return names;
+}
+
+// Classes that need no rule of their own: Tailwind's group and peer markers,
+// and the language hints Markdown puts on code.
+const RULELESS = /^(group|peer)(\/.*)?$|^language-/;
+
+// The output check: `sk-` classes in root/dist that no theme or site.css rule
+// styles, and other classes that no rule in the built CSS matches, such as a
+// Tailwind default the theme resets (site-kit-design-system design D34).
 export function checkBuilt(root) {
   const dist = join(root, "dist");
   if (!existsSync(dist)) return { pages: 0, errors: [{ file: "dist", kind: "no build", value: "dist/", detail: "run npm run build first" }], warnings: [] };
@@ -321,18 +337,34 @@ export function checkBuilt(root) {
     if (!stylesHooks(relativeTo(root, path))) continue;
     for (const { name, kind } of styledHooks(readFileSync(path, "utf8"))) if (kind === "class") styled.add(name);
   }
+  const built = new Set();
+  for (const path of filesUnder(dist, /\.css$/)) for (const name of cssClasses(readFileSync(path, "utf8"))) built.add(name);
   const unstyled = new Map();
+  const ruleless = new Map();
   let pages = 0;
   for (const path of filesUnder(dist, /\.html$/)) {
     pages++;
     const page = relativeTo(dist, path);
     for (const [, list] of readFileSync(path, "utf8").matchAll(/\sclass="([^"]*)"/g)) {
       for (const name of list.split(/\s+/)) {
-        if (name.startsWith("sk-") && !styled.has(name) && !unstyled.has(name)) unstyled.set(name, page);
+        if (!name) continue;
+        if (name.startsWith("sk-")) {
+          if (!styled.has(name) && !unstyled.has(name)) unstyled.set(name, page);
+        } else if (!built.has(name) && !RULELESS.test(name) && !ruleless.has(name)) {
+          ruleless.set(name, page);
+        }
       }
     }
   }
-  const warnings = [...unstyled].map(([name, page]) => ({ file: `dist/${page}`, kind: "unstyled hook", value: name, detail: "no rule in src/styles/theme/ or site.css styles it" }));
+  const warnings = [
+    ...[...unstyled].map(([name, page]) => ({ file: `dist/${page}`, kind: "unstyled hook", value: name, detail: "no rule in src/styles/theme/ or site.css styles it" })),
+    ...[...ruleless].map(([name, page]) => ({
+      file: `dist/${page}`,
+      kind: "class without a rule",
+      value: name,
+      detail: "the built CSS has no rule for it: a Tailwind default the theme resets, a plugin's class or a typo. Use the theme's tokens",
+    })),
+  ];
   return { pages, errors: [], warnings };
 }
 
@@ -351,5 +383,5 @@ export function cli(args = []) {
     for (const error of result.errors) console.error(format(error));
     process.exit(1);
   }
-  console.log(built ? `Checked the hooks in ${result.pages} built pages.` : `No problems in ${result.files} style files.`);
+  console.log(built ? `Checked the classes in ${result.pages} built pages.` : `No problems in ${result.files} style files.`);
 }

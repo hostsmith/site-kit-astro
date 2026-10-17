@@ -21,10 +21,10 @@ Each example is a complete site, and each release deploys it from this repositor
 
 ## Start a site
 
-1. Create the site from an example of a kit release. `basics` names the example, and `v0.4.0` the release: use the latest one from the [releases](https://github.com/hostsmith/site-kit-astro/releases). `--no-ai` keeps the example's `AGENTS.md`, which points agents to the kit's rules. Without it, create-astro replaces the file with its own.
+1. Create the site from an example of a kit release. `basics` names the example, and `v0.5.1` the release: use the latest one from the [releases](https://github.com/hostsmith/site-kit-astro/releases). `--no-ai` keeps the example's `AGENTS.md`, which points agents to the kit's rules. Without it, create-astro replaces the file with its own.
 
    ```bash
-   npm create astro@latest my-site -- --template hostsmith/site-kit-astro/examples/basics#v0.4.0 --no-ai
+   npm create astro@latest my-site -- --template hostsmith/site-kit-astro/examples/basics#v0.5.1 --no-ai
    cd my-site
    npm run build   # writes the static site to dist/
    npm run dev     # local preview with live reload
@@ -267,11 +267,11 @@ Anything else in the package can change in any release, and the package doesn't 
 
 ## Kit updates
 
-A site takes kit release `0.5.0` on a branch, which the deploy workflow deploys to the preview site:
+A site takes kit release `0.5.1` on a branch, which the deploy workflow deploys to the preview site:
 
 ```bash
-git switch -c kit-update/v0.5.0
-npm install --save-exact @hostsmith/site-kit-astro@0.5.0
+git switch -c kit-update/v0.5.1
+npm install --save-exact @hostsmith/site-kit-astro@0.5.1
 npm run decap-config
 npm run check:styles
 npm run build
@@ -281,7 +281,18 @@ npm run check:styles -- --built
 
 Then commit, push, check the preview site and merge the branch to `main`. If npm reports a conflict on `astro`, the release notes name the `astro` version to install with the kit. A major release's notes give the steps for the site's files.
 
-`check:styles` checks the site's theme against the new release's hooks. It fails on a hook the release no longer has, and warns about one it deprecates, naming the replacement. After the build, `--built` warns about hooks the site's pages carry and its theme doesn't style yet, such as a new variant. A hook is deprecated in a minor release before a major one removes it, so a site that clears the warnings at each update takes the major release without surprises (`HOOKS.md`, "Deprecated").
+`check:styles` checks the site's theme against the new release's hooks. It fails on a hook the release no longer has, and warns about one it deprecates, naming the replacement. After the build, `--built` warns about hooks the site's pages carry and its theme doesn't style yet, such as a new variant, and about any class that no rule in the built CSS matches, such as a Tailwind default the theme resets. A hook is deprecated in a minor release before a major one removes it, so a site that clears the warnings at each update takes the major release without surprises (`HOOKS.md`, "Deprecated").
+
+### From 0.4 to 0.5
+
+0.5 makes the kit designless: a site's look moves into its own theme. Follow the v0.5.0 release notes, and also:
+
+1. Install Tailwind at the versions the `basics` example pins, `4.3.3` for 0.5: `npm install --save-exact tailwindcss@4.3.3 @tailwindcss/vite@4.3.3`.
+2. Add the script `"check:styles": "site-kit check-styles"` to `package.json`. The commands above need it.
+3. Add the example's two style-check steps to `.github/workflows/hostsmith.yml`: "Check styles" before the build and "Check built styles" after it.
+4. Delete `src/styles/tokens.css` once its colors are a preset, or once the site takes the example's color scheme, and the font files the new theme doesn't load.
+5. Put `footer.links` and the `social` links in one untitled `links` block in `footer.bottom`. Two untitled `links` blocks fail the build, because their navs would share a name.
+6. Move the site's own markup (custom pages, collection templates and site sections) to the theme's tokens. The theme resets Tailwind's default sizes, radii, shadows and containers, so classes like `text-4xl`, `max-w-6xl` or `rounded-lg` render nothing: use `text-h1`, `max-w-site` or `rounded-card`, and `sk-prose` in place of `prose`. `npm run check:styles -- --built` names every class left without a rule.
 
 ## Commands
 
