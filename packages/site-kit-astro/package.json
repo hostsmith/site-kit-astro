@@ -35,7 +35,7 @@
     "./layouts/Base.astro": "./src/layouts/Base.astro"
   },
   "bin": {
-    "site-kit": "./bin/site-kit.mjs"
+    "site-kit": "bin/site-kit.mjs"
   },
   "files": [
     "index.ts",

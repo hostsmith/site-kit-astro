@@ -113,7 +113,8 @@ jobs:
   # Publishes @hostsmith/site-kit-astro from the release tag, with provenance.
   # npm authenticates the job by GitHub OIDC through the package's trusted
   # publisher (this repository, release.yml), so there is no npm token. A
-  # failed publish can be re-run: the tag and the GitHub release stay.
+  # failed job can be re-run: the tag and the GitHub release stay, and a
+  # version npm already accepted isn't published again.
   publish:
     needs: [release]
     if: needs.release.outputs.released == 'true'
@@ -136,22 +137,44 @@ jobs:
 
       - run: npm test
 
-      - run: npm publish --workspace packages/site-kit-astro --provenance --access public
-
-      # The package as a site gets it: installed from the registry into a copy
-      # of the basics example outside the workspace, which pins the released
-      # version, then built (site-kit-updates design D26). The registry can
-      # take a moment to serve a new version.
-      - name: Check the published package
+      # On a re-run, npm refuses the version it already accepted; the job then
+      # goes on to the check.
+      - name: Publish
         env:
           TAG: ${{ needs.release.outputs.tag }}
         run: |
+          if npm publish --workspace packages/site-kit-astro --provenance --access public 2> "$RUNNER_TEMP/publish.log"; then
+            cat "$RUNNER_TEMP/publish.log" >&2
+            exit 0
+          fi
+          cat "$RUNNER_TEMP/publish.log" >&2
+          if grep -q "cannot publish over the previously published versions" "$RUNNER_TEMP/publish.log"; then
+            echo "npm already has ${TAG#v}: this is a re-run. Going on to the check."
+            exit 0
+          fi
+          exit 1
+
+      # The package as a site gets it: installed from the registry into a copy
+      # of the basics example outside the workspace, which pins the released
+      # version, then built (site-kit-updates design D26). npm processes a
+      # publish before serving it, which took six and a half minutes for
+      # v0.5.0, so the check first waits up to 30 minutes for the version.
+      - name: Check the published package
+        timeout-minutes: 40
+        env:
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          version="${TAG#v}"
+          for attempt in $(seq 60); do
+            if [ "$(npm view "@hostsmith/site-kit-astro@$version" version 2>/dev/null)" = "$version" ]; then break; fi
+            if [ "$attempt" = 60 ]; then
+              echo "::error::npm doesn't serve $version after 30 minutes. Check the package on npmjs.com, then re-run this job."
+              exit 1
+            fi
+            echo "npm doesn't serve $version yet. Checking again in 30 seconds."
+            sleep 30
+          done
           cp -R examples/basics "$RUNNER_TEMP/site"
           cd "$RUNNER_TEMP/site"
-          for attempt in 1 2 3 4 5 6; do
-            if npm install --no-audit --no-fund; then break; fi
-            if [ "$attempt" = 6 ]; then exit 1; fi
-            echo "The registry doesn't serve ${TAG#v} yet. Retrying in 20 seconds."
-            sleep 20
-          done
+          npm install --no-audit --no-fund
           npm run build

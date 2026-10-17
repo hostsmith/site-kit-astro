@@ -14,6 +14,7 @@ From [Pixabay](https://pixabay.com), under the [Pixabay Content License](https:/
 | `public/assets/images/cat-in-bathtub.jpg` | [Cat Bathroom Shower](https://pixabay.com/photos/cat-bathroom-shower-head-1052060/) | anlyu0 |
 | `public/assets/images/screwdriver-and-bits.jpg` | [Bit Carpentry Tool](https://pixabay.com/photos/bit-carpentry-tool-equipment-5789362/) | Sergei-Grin |
 | `public/assets/images/kitchen-with-cream-cabinets.jpg` | [Kitchen Apartment House](https://pixabay.com/photos/kitchen-apartment-house-home-8442907/) | Pixabay user 23555986 |
+| `public/assets/images/paint-tray-and-bucket.jpg` | [White paint with roller for interior renovation](https://pixabay.com/photos/paint-interior-paint-paint-bucket-4191399/) | bidvine |
 
 The `placeholder-*.svg` images were made for this example and are covered by the MIT license. Each stands in for a photo a real site would take itself.
 

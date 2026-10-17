@@ -111,6 +111,18 @@ describe("workflows", () => {
     assert.match(check, /npm run build/);
   });
 
+  // site-kit-updates design D26: npm processes a publish before serving it.
+  it("wait for npm to serve the version, and survive a re-run of the publish", () => {
+    const release = readFileSync(join(kitDir, "release.yml"), "utf8");
+    const check = release.slice(release.indexOf("- name: Check the published package"));
+    const wait = check.indexOf('npm view "@hostsmith/site-kit-astro@$version" version');
+    assert.ok(wait > -1 && wait < check.indexOf("npm install"), "the check waits for the version before installing it");
+    assert.match(check, /for attempt in \$\(seq 60\)[\s\S]*sleep 30/, "for up to 30 minutes");
+    assert.match(check, /timeout-minutes: 40/);
+    const publish = release.slice(release.indexOf("- name: Publish"), release.indexOf("- name: Check the published package"));
+    assert.match(publish, /grep -q "cannot publish over the previously published versions"[\s\S]*exit 0/, "a re-run goes on past an accepted version");
+  });
+
   it("checks the configuration before the build and deploys after it", () => {
     const order = ["npm ci", "npx site-kit deploy check", "$BUILD_COMMAND", "npx site-kit deploy deploy"].map((step) => deploy.indexOf(step));
     assert.ok(order.every((i) => i > -1), "a step is missing");
