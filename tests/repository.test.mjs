@@ -147,6 +147,30 @@ describe("kit repository layout", () => {
     assert.ok(commands.length > 0, "README.md has no npm create astro command");
     for (const command of commands) assert.match(command, / --no-ai\b/, `no --no-ai in: ${command.trim()}`);
   });
+
+  // The bump hook (scripts/set-kit-version.mjs) keeps the README's example
+  // commands at the released version, so they name a release that exists.
+  it("name the package's version in the README's example commands", async () => {
+    const { withReleaseVersion } = await import(pathToFileURL(join(REPO, "scripts", "readme-versions.mjs")).href);
+    const readme = readFileSync(join(REPO, "README.md"), "utf8");
+    const { version } = JSON.parse(readFileSync(join(PACKAGE, "package.json"), "utf8"));
+    assert.equal(withReleaseVersion(readme, version), readme, `the README's example commands don't all name ${version}`);
+    const bumped = withReleaseVersion(readme, "9.8.7");
+    for (const text of ["examples/basics#v9.8.7", "`v9.8.7` the release", "kit release `9.8.7`", "kit-update/v9.8.7", "@hostsmith/site-kit-astro@9.8.7"]) {
+      assert.ok(bumped.includes(text), `a bump doesn't write ${text}`);
+    }
+    assert.ok(!bumped.includes(version.replace(/^/, "@hostsmith/site-kit-astro@")), "a bump leaves an old version");
+    assert.ok(bumped.includes("tailwindcss@4.3.3"), "a bump changes other packages' versions");
+  });
+
+  it("give the steps from 0.4 to 0.5 in the README", () => {
+    const readme = readFileSync(join(REPO, "README.md"), "utf8");
+    const checklist = readme.slice(readme.indexOf("### From 0.4 to 0.5"));
+    assert.ok(readme.includes("### From 0.4 to 0.5"), "no checklist");
+    for (const step of ["tailwindcss@4.3.3", '"check:styles": "site-kit check-styles"', "Check built styles", "src/styles/tokens.css", "one untitled `links` block", "sk-prose"]) {
+      assert.ok(checklist.includes(step), `the checklist misses ${step}`);
+    }
+  });
 });
 
 describe("kit docs", () => {

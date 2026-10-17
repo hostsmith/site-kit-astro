@@ -193,7 +193,23 @@ describe("check:styles --built", () => {
     assert.equal(result.code, 0, result.output);
     assert.match(result.output, /dist\/(about\/)?index\.html: unstyled hook "sk-tone-dark"/);
     assert.equal(result.output.match(/unstyled hook/g).length, 1, result.output);
-    assert.match(result.output, /Checked the hooks in 2 built pages\./);
+    assert.match(result.output, /Checked the classes in 2 built pages\./);
+  });
+
+  // Scenario "Utility the theme resets".
+  it("warns about a class that no rule in the built CSS matches", async () => {
+    const result = await checkStyles(
+      {
+        "src/styles/theme/sections.css": ".sk-section {\n  margin: 0;\n}\n",
+        "dist/_astro/site.css": ".sk-section{margin:0}.text-h1{font-size:3rem}.md\\:grid-cols-3{grid-template-columns:repeat(3,1fr)}.mt-6{margin-top:1.5rem}",
+        "dist/about/index.html":
+          '<div class="group"><h1 class="text-h1 text-4xl">About</h1><ul class="md:grid-cols-3 mt-6"></ul><pre><code class="language-js">x</code></pre><section class="sk-section"></section></div>',
+      },
+      ["--built"],
+    );
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /dist\/about\/index\.html: class without a rule "text-4xl" \(the built CSS has no rule for it: a Tailwind default the theme resets/);
+    assert.equal(result.output.match(/class without a rule/g).length, 1, `only text-4xl: ${result.output}`);
   });
 
   it("asks for the build first", async () => {

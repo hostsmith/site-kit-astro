@@ -1,11 +1,12 @@
 // Sets the kit's version for a release: the package's version, every
-// example's dependency on the package, and both in the workspace's
-// package-lock.json. The release workflow runs it through cog's pre-bump hook,
-// so the bump commit records the released version (site-kit-updates design
-// D26).
+// example's dependency on the package, both in the workspace's
+// package-lock.json, and the README's example commands. The release workflow
+// runs it through cog's pre-bump hook, so the bump commit records the released
+// version (site-kit-updates design D26).
 //
 //   node scripts/set-kit-version.mjs 0.4.0
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { withReleaseVersion } from "./readme-versions.mjs";
 
 const PACKAGE = "packages/site-kit-astro";
 const NAME = "@hostsmith/site-kit-astro";
@@ -38,4 +39,6 @@ update("package-lock.json", (lock) => {
   lock.packages[PACKAGE].version = version;
   for (const example of EXAMPLES) lock.packages[example].dependencies[NAME] = version;
 });
+// A pre-release, such as a staging test, leaves the README at the last release.
+if (!version.includes("-")) writeFileSync("README.md", withReleaseVersion(readFileSync("README.md", "utf8"), version));
 console.log(`${NAME} = ${version}, in ${EXAMPLES.join(", ")}`);
