@@ -10,7 +10,8 @@
 export const siteConfig = {
   url: "https://www.example.com",
   collections: {
-    news: { basePath: "/news" },
+    // The news collection is the blog: its entries are served at /blog/<slug>.
+    news: { basePath: "/blog" },
   },
 } as const;
 

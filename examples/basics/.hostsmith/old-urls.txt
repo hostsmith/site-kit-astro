@@ -2,8 +2,12 @@
 # `npm run check:urls` fails when one of them has no page in the build output.
 # These are the template's example pages; a migration replaces the list.
 /
+/services
+/services/kitchen-and-bath
+/services/repairs
+/services/painting
 /about
-/news
-/news/fresh-rye
-/news/new-opening-hours
-/services/catering
+/contact
+/blog
+/blog/what-a-fixed-quote-should-include
+/blog/small-repairs-worth-doing-before-winter

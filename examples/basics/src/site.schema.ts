@@ -17,6 +17,10 @@ import { z } from "astro/zod";
 //   "menu-board": section("menu-board", { title: z.string().min(1) }),
 export const siteSectionSchemas = {};
 
+// The blog's categories. Collection-list cards and the post template show an
+// entry's category; an unknown one fails the build with these names.
+export const NEWS_CATEGORIES = ["Planning", "Renovation", "Maintenance", "News"] as const;
+
 // The site's collections. Each one also needs a base path in
 // src/site.config.ts, a detail template in src/components/collections/ and a
 // Decap folder collection in config.site.yml.
@@ -27,6 +31,7 @@ export const siteCollections = {
       .strictObject({
         title: z.string().min(1),
         date: isoDate,
+        category: z.enum(NEWS_CATEGORIES).optional(),
         description: z.string().min(1).optional(),
         image: mediaPath.optional(),
         imageAlt: z.string().min(1).optional(),

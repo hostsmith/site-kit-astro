@@ -1,9 +1,11 @@
 ---
 // testimonials: title, items (quote, name, role, image + imageAlt). Variants:
-// grid (default), single. Single shows each quote large in one column, for one
-// featured testimonial or a short stack. No carousel.
+// grid (default), single. Tones: surface (default), dark. Single is for one
+// featured testimonial or a short stack, each quote shown large. No carousel.
+// An item without a photo gets a placeholder part in its place.
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
 
 interface Props {
   section: Extract<Section, { type: "testimonials" }>;
@@ -12,41 +14,43 @@ interface Props {
 }
 
 const { section, entry } = Astro.props;
-const { title, items, variant } = section;
+const { title, items } = section;
 const f = sectionFields(entry, section);
-const single = variant === "single";
 ---
 
-<section {...f.root} class="px-6 py-12">
-  <div class:list={["mx-auto", single ? "max-w-3xl text-center" : "max-w-6xl"]}>
-    {title && <h2 class="mb-8 font-heading text-3xl font-bold" {...f.field("title")}>{title}</h2>}
-    <ul class:list={[single ? "flex flex-col gap-12" : "grid gap-8 md:grid-cols-2 lg:grid-cols-3"]}>
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    {
+      title && (
+        <div class="sk-section__header">
+          <h2 class="sk-section__title" {...f.field("title")}>
+            {title}
+          </h2>
+        </div>
+      )
+    }
+    <ul class="sk-testimonials__list">
       {
         items.map((item, i) => (
           <li>
-            <figure class:list={["flex h-full flex-col gap-6", single ? "items-center" : "rounded-lg border border-border p-6"]}>
-              <blockquote class:list={[single ? "text-2xl leading-snug" : "text-lg"]}>
+            <figure class="sk-testimonials__item">
+              <blockquote class="sk-testimonials__quote">
                 <p {...f.field("items", i, "quote")}>{item.quote}</p>
               </blockquote>
-              <figcaption class="mt-auto flex items-center gap-3 text-left">
-                {item.image && (
-                  <img
-                    src={item.image}
-                    alt={item.imageAlt}
-                    class="h-12 w-12 rounded-full object-cover"
-                    {...f.field("items", i, "image")}
-                  />
+              <figcaption class="sk-testimonials__author">
+                {item.image ? (
+                  <img src={item.image} alt={item.imageAlt} class="sk-testimonials__avatar" {...f.field("items", i, "image")} />
+                ) : (
+                  <span class="sk-testimonials__placeholder" aria-hidden="true" />
                 )}
-                <span class="flex flex-col">
-                  <span class="font-semibold" {...f.field("items", i, "name")}>
-                    {item.name}
-                  </span>
-                  {item.role && (
-                    <span class="text-sm text-muted" {...f.field("items", i, "role")}>
-                      {item.role}
-                    </span>
-                  )}
-                </span>
+                <div class="sk-testimonials__name" {...f.field("items", i, "name")}>
+                  {item.name}
+                </div>
+                {item.role && (
+                  <div class="sk-testimonials__role" {...f.field("items", i, "role")}>
+                    {item.role}
+                  </div>
+                )}
               </figcaption>
             </figure>
           </li>

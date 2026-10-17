@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import { parseFrontmatter } from "astro/markdown";
 import { ASSEMBLED, assemble, SITE_PART, staleness } from "../packages/site-kit-astro/scripts/decap-config.mjs";
 import { defineKitContent } from "../packages/site-kit-astro/src/kit-content.ts";
+import { CONTENT_ICONS } from "../packages/site-kit-astro/src/lib/icons.ts";
 import { siteConfig } from "../examples/basics/src/site.config.ts";
 import * as siteSchema from "../examples/basics/src/site.schema.ts";
 import { BASICS, buildFixture, EXAMPLES, PACKAGE, REPO } from "./helpers.mjs";
@@ -68,6 +69,16 @@ describe("public/admin/config.yml", () => {
     for (const type of sections.types) {
       assert.ok(type.fields.some((f) => f.name === "id"), `${type.name} has no id field`);
       assertSameFields(type.fields, sectionSchemas[type.name].shape, type.name);
+    }
+  });
+
+  // site-kit-section-library, "Kit icon set".
+  it("offers the kit's icon names in every icon select", () => {
+    const selects = [...walk(sections.types)].filter((field) => field.name === "icon");
+    assert.ok(selects.length > 0, "no section type has an icon field");
+    for (const select of selects) {
+      assert.equal(select.widget, "select");
+      assert.deepEqual(select.options, [...CONTENT_ICONS]);
     }
   });
 

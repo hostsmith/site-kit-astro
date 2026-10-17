@@ -1,0 +1,446 @@
+/*
+ * Kestrel: the page frame. The skip link, the header and its menu, the
+ * breadcrumb and the footer, styled through the kit's hooks
+ * (node_modules/@hostsmith/site-kit-astro/HOOKS.md) with the theme's
+ * variables. Plain CSS, no @apply. global.css imports this file into
+ * Tailwind's `components` layer, so utilities in the site's own markup can
+ * override it.
+ *
+ * Below `md` (tokens/space.css) the header collapses to the logo, a call
+ * button and a menu button, and the menu becomes a panel. The panel is
+ * hidden only while the menu is `[data-ready]:not([data-open])`, so without
+ * JavaScript it stays visible and usable.
+ */
+
+.sk-container {
+  max-width: var(--container-site);
+  margin-inline: auto;
+  padding-inline: var(--spacing-gutter);
+}
+
+.sk-main {
+  display: block;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+/* Skip link: off screen until it has focus. */
+.sk-skip-link {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 50;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-button);
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.sk-skip-link:focus,
+.sk-skip-link:focus-visible {
+  transform: none;
+}
+
+/* Header */
+.sk-header {
+  position: relative;
+  z-index: 20;
+
+  & > .sk-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 0.875rem;
+  }
+}
+
+.sk-header__brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin-right: auto;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sk-header__logo {
+  display: block;
+  width: auto;
+  height: 2rem;
+}
+
+.sk-header__name {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* The wordmark's dot, as on the boards. Screen readers skip it. */
+.sk-header__name::after {
+  content: "." / "";
+  color: var(--color-brand);
+}
+
+.sk-header__call,
+.sk-header__menu-button:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-button);
+}
+
+.sk-header__call {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+
+  & .sk-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+.sk-header__menu-button {
+  border: 1.5px solid currentColor;
+  background: transparent;
+  color: var(--color-fg);
+  cursor: pointer;
+
+  & .sk-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  &[aria-expanded="true"] [data-icon="menu"],
+  &:not([aria-expanded="true"]) [data-icon="x"] {
+    display: none;
+  }
+}
+
+/* The label stays for screen readers; the icons show the state. */
+.sk-header__menu-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The menu: a panel under the header row on narrow screens. */
+.sk-menu {
+  flex-basis: calc(100% + 2 * var(--spacing-gutter));
+  margin-inline: calc(var(--spacing-gutter) * -1);
+  padding: 0.5rem var(--spacing-gutter) 1.5rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-overlay);
+}
+
+.sk-menu[data-ready]:not([data-open]) {
+  @variant max-md {
+    display: none;
+  }
+}
+
+.sk-nav {
+  width: 100%;
+
+  @variant md {
+    width: auto;
+    flex: 0 1 auto;
+  }
+}
+
+.sk-nav__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sk-nav__link {
+  display: block;
+  padding-block: 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-decoration: none;
+
+  &[aria-current="page"] {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+}
+
+.sk-header__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.25rem;
+
+  & .sk-button {
+    width: 100%;
+  }
+}
+
+.sk-header__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* On the narrow panel the call button stands in for the number. */
+.sk-header__phone {
+  display: none;
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Wide screens: one row of logo, nav and actions. */
+.sk-header {
+  @variant md {
+    & > .sk-container {
+      flex-wrap: nowrap;
+      gap: 2rem;
+      padding-block: 1.375rem;
+    }
+
+    & .sk-header__call,
+    & .sk-header__menu-button:not([hidden]) {
+      display: none;
+    }
+
+    & .sk-header__name {
+      font-size: 1.625rem;
+    }
+  }
+}
+
+.sk-menu {
+  @variant md {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    margin: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+
+    & .sk-nav__list {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.75rem;
+    }
+
+    & .sk-nav__link {
+      padding-block: 0.5rem;
+      border: 0;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    & .sk-header__actions {
+      flex-direction: row;
+      align-items: center;
+      margin: 0;
+
+      & .sk-button {
+        width: auto;
+        padding: 0.75rem 1.375rem;
+        font-size: 1rem;
+      }
+
+      /* The header's primary button is dark, as on the boards. */
+      & .sk-button--primary {
+        background: var(--color-fg);
+        color: var(--color-bg);
+      }
+    }
+
+    & .sk-header__phone {
+      display: inline;
+    }
+  }
+}
+
+/* Breadcrumb, at the top of main on nested pages. */
+.sk-breadcrumb {
+  padding-top: 2rem;
+  color: var(--color-muted);
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+  letter-spacing: var(--text-small--letter-spacing);
+  font-weight: var(--text-small--font-weight);
+}
+
+.sk-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+
+.sk-breadcrumb__item + .sk-breadcrumb__item::before {
+  content: "/" / "";
+  margin-right: 0.5rem;
+  color: var(--color-border);
+}
+
+.sk-breadcrumb__link {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--color-fg);
+    text-decoration: underline;
+  }
+}
+
+.sk-breadcrumb__current[aria-current="page"] {
+  color: var(--color-fg);
+  font-weight: 600;
+}
+
+/* Footer */
+.sk-footer {
+  margin-top: var(--spacing-section);
+  padding-block: 4rem 2rem;
+  background: var(--color-fg);
+  color: var(--color-bg);
+  font-size: 1rem;
+
+  & > .sk-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(12.5rem, 100%), 1fr));
+    gap: 2rem;
+  }
+}
+
+/* Each group of blocks is a column; its blocks stack. */
+.sk-footer__group,
+.sk-footer__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.sk-footer__logo {
+  display: block;
+  width: auto;
+  height: 2rem;
+}
+
+.sk-footer__name {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.sk-footer__name::after {
+  content: "." / "";
+}
+
+.sk-footer__text,
+.sk-footer__address,
+.sk-footer__hours-list {
+  color: var(--color-on-dark);
+}
+
+.sk-footer__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-style: normal;
+}
+
+/* The brand's name and text, and a text block, read as one unit. */
+.sk-footer__block--brand,
+.sk-footer__block--text {
+  gap: 0.375rem;
+}
+
+/* Contact details under a title get a little more air. */
+.sk-footer__block--contact:has(.sk-footer__title),
+.sk-footer__block--hours,
+.sk-footer__block--links {
+  gap: 0.75rem;
+}
+
+.sk-footer__title {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sk-footer__links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.sk-footer__link {
+  color: var(--color-on-dark);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--color-bg);
+    text-decoration: underline;
+  }
+}
+
+.sk-footer__hours-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 1rem;
+
+  & dt {
+    font-weight: 500;
+  }
+}
+
+.sk-footer__bottom {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-on-dark) 25%, var(--color-fg));
+  font-size: 0.875rem;
+}
+
+.sk-footer__block--copyright {
+  display: block;
+  color: var(--color-on-dark);
+}
+
+/* In the bottom row, blocks sit side by side, and links run in a line. */
+.sk-footer__bottom .sk-footer__links {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.sk-footer :focus-visible {
+  outline-color: var(--color-accent);
+}

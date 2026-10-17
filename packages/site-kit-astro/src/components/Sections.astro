@@ -6,6 +6,7 @@
 // hero gets its title as a visually hidden h1.
 import type { Section } from "../kit-content.ts";
 import { field } from "../lib/field.ts";
+import { VISUALLY_HIDDEN } from "../lib/hooks.ts";
 import { sectionComponent } from "./sections/registry.ts";
 
 interface Props {
@@ -20,7 +21,13 @@ const { entry, title, sections, hasH1 = false } = Astro.props;
 const firstHero = hasH1 ? undefined : sections.find((s) => s.type === "hero")?.id;
 ---
 
-{!hasH1 && firstHero === undefined && <h1 class="sr-only" {...field(entry, "title")}>{title}</h1>}
+{
+  !hasH1 && firstHero === undefined && (
+    <h1 style={VISUALLY_HIDDEN} {...field(entry, "title")}>
+      {title}
+    </h1>
+  )
+}
 {
   sections.map((section) => {
     const Component = sectionComponent(section.type);

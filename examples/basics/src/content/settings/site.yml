@@ -1,38 +1,87 @@
 # Site-wide content that is not specific to one page. Fictional example
-# content: the migration replaces all of it.
-name: Rye & Rise Bakery
-language: en
+# content in American style: Fenwick Falls isn't a real town, 555-0100 to
+# 555-0199 numbers are reserved for fiction, and the license number is made
+# up. The migration replaces all of it.
+name: Kestrel
+language: en-US
 # logo:
 #   image: /assets/images/logo.svg
-#   alt: Rye & Rise Bakery
+#   alt: Kestrel
 nav:
-  - label: Home
-    link: /
+  - label: Services
+    link: /services
   - label: About
     link: /about
-  - label: Catering
-    link: /services/catering
-  - label: News
-    link: /news
+  - label: Blog
+    link: /blog
+  - label: Contact
+    link: /contact
+# Facts appear in several places, so each is written once here, and any text
+# in the content uses it as {name}, such as {phone}. Quote a YAML value that
+# starts with a brace.
+facts:
+  - name: phone
+    value: (218) 555-0142
+  - name: email
+    value: hello@example.com
+  - name: address
+    value: |-
+      1420 Mill Street
+      Fenwick Falls, MN 56645
+  - name: license
+    value: BC555142
+# The header's actions and the footer's blocks: the kit's components, composed
+# here like a page's sections.
+header:
+  actions:
+    - type: phone
+      number: "{phone}"
+      callLabel: Call
+    - type: button
+      label: Get an estimate
+      link: /contact
 footer:
-  text: Sourdough rye, baked every morning since 1998.
-  links:
-    - label: Catering
-      link: /services/catering
-    - label: News
-      link: /news
-contact:
-  email: hello@example.com
-  phone: "+372 555 0100"
-  address: |-
-    Leiva 12
-    10111 Tallinn
-social:
-  - label: Instagram
-    url: https://www.instagram.com/example
+  blocks:
+    - type: brand
+    - type: contact
+      withPrevious: true
+      address: "{address}"
+    - type: links
+      title: Services
+      links:
+        - label: Renovation
+          link: /services/kitchen-and-bath
+        - label: Repairs
+          link: /services/repairs
+        - label: Painting
+          link: /services/painting
+    - type: links
+      title: Company
+      links:
+        - label: About
+          link: /about
+        - label: Blog
+          link: /blog
+        - label: Contact
+          link: /contact
+    - type: hours
+      title: Hours
+      rows:
+        - days: Mon-Fri
+          time: 7:30 AM - 5:00 PM
+        - days: Sat
+          time: 8:00 AM - 12:00 PM
+  bottom:
+    - type: copyright
+      text: Kestrel Home Services LLC · MN License {license}
 seo:
-  description: A neighborhood bakery in Tallinn with fresh rye bread every morning.
+  description: Kitchen and bath renovation, home repairs and painting in Fenwick Falls, Minnesota. Free on-site estimates and fixed, written quotes.
+  ogImage: /assets/images/roofer-on-tiled-roof.jpg
 ui:
   skipLink: Skip to content
   menu: Menu
   readMore: Read more
+  mainNav: Main
+  footerNav: Footer
+  breadcrumb: Breadcrumb
+  home: Home

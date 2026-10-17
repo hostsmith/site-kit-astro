@@ -1,0 +1,23 @@
+{#- Release notes for `cog changelog`, set in cog.toml. Like cog's default
+    template, plus the BREAKING CHANGE footer of each breaking commit, which
+    the default leaves out: it holds a site's update steps. A commit's footers
+    are `footer` in cog 6, and `footers` in cog 7, which wraps each one in
+    another `footer`. -#}
+## {{ version.tag }} - {{ date | date(format="%Y-%m-%d") }}
+{% for commit in commits | filter(attribute="breaking_change", value=true) -%}
+{% set footers = commit.footers | default(value=commit.footer) -%}
+{% for entry in footers -%}
+{% set footer = entry.footer | default(value=entry) -%}
+{% if footer.token == "BREAKING CHANGE" or footer.token == "BREAKING-CHANGE" %}
+#### Breaking changes: {{ commit.summary }}
+
+{{ footer.content }}
+{% endif -%}
+{% endfor -%}
+{% endfor -%}
+{% for type, typed_commits in commits | sort(attribute="type") | group_by(attribute="type") %}
+#### {{ type | upper_first }}
+{% for commit in typed_commits -%}
+- {% if commit.breaking_change %}**BREAKING** {% endif %}{% if commit.scope %}(**{{ commit.scope }}**) {% endif %}{{ commit.summary }} - ({{ commit.id | truncate(length=7, end="") }})
+{% endfor -%}
+{% endfor -%}

@@ -1,0 +1,122 @@
+---
+// One footer block from settings (site-kit-design-system design D35): brand,
+// contact, links, hours, text or copyright. Every block's root carries
+// sk-footer__block and its type's modifier. A title renders as an h2, and a
+// links block is a nav, named by its title, or by ui.footerNav without one.
+import type { FooterBlock } from "../kit-content.ts";
+import { field, type PathPart } from "../lib/field.ts";
+import { getSettings, SETTINGS } from "../lib/settings.ts";
+import { telHref } from "../lib/tel.ts";
+import Lines from "./Lines.astro";
+
+interface Props {
+  block: FooterBlock;
+  // The block's path in the settings, such as ["footer", "blocks", 2].
+  path: PathPart[];
+  // A unique id for the block's title.
+  id: string;
+}
+
+const { block, path, id } = Astro.props;
+const settings = await getSettings();
+const f = (...rest: PathPart[]) => field(SETTINGS, ...path, ...rest);
+const rootClass = `sk-footer__block sk-footer__block--${block.type}`;
+const title = "title" in block ? block.title : undefined;
+const year = new Date().getFullYear();
+---
+
+{
+  block.type === "brand" && (
+    <div class={rootClass}>
+      {settings.logo ? (
+        <img src={settings.logo.image} alt={settings.logo.alt} class="sk-footer__logo" {...field(SETTINGS, "logo", "image")} />
+      ) : (
+        <span class="sk-footer__name" {...field(SETTINGS, "name")}>
+          {settings.name}
+        </span>
+      )}
+      {block.text && (
+        <p class="sk-footer__text" {...f("text")}>
+          {block.text}
+        </p>
+      )}
+    </div>
+  )
+}
+{
+  block.type === "links" && (
+    <nav class={rootClass} aria-labelledby={title ? id : undefined} aria-label={title ? undefined : settings.ui.footerNav}>
+      {title && (
+        <h2 id={id} class="sk-footer__title" {...f("title")}>
+          {title}
+        </h2>
+      )}
+      <ul class="sk-footer__links">
+        {block.links.map((item, i) => (
+          <li>
+            <a href={item.link} class="sk-footer__link" {...f("links", i, "label")}>
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+{
+  block.type === "copyright" && (
+    <p class={rootClass}>
+      © {year}{" "}
+      {block.text ? (
+        <span {...f("text")}>{block.text}</span>
+      ) : (
+        <span {...field(SETTINGS, "name")}>{settings.name}</span>
+      )}
+    </p>
+  )
+}
+{
+  (block.type === "contact" || block.type === "hours" || block.type === "text") && (
+    <div class={rootClass}>
+      {title && (
+        <h2 id={id} class="sk-footer__title" {...f("title")}>
+          {title}
+        </h2>
+      )}
+      {block.type === "contact" && (
+        <address class="sk-footer__contact">
+          {block.address && (
+            <span class="sk-footer__address" {...f("address")}>
+              <Lines text={block.address} />
+            </span>
+          )}
+          {block.phone && (
+            <a href={telHref(block.phone)} class="sk-footer__link" {...f("phone")}>
+              {block.phone}
+            </a>
+          )}
+          {block.email && (
+            <a href={`mailto:${block.email}`} class="sk-footer__link" {...f("email")}>
+              {block.email}
+            </a>
+          )}
+        </address>
+      )}
+      {block.type === "hours" && (
+        <dl class="sk-footer__hours-list">
+          {block.rows.map((row, i) => (
+            <div class="sk-footer__hours-row">
+              <dt {...f("rows", i, "days")}>{row.days}</dt>
+              <dd {...f("rows", i, "time")}>{row.time}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {block.type === "text" && (
+        <p class="sk-footer__text" {...f("text")}>
+          {block.text}
+        </p>
+      )}
+    </div>
+  )
+}

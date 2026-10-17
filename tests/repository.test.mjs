@@ -28,7 +28,18 @@ const SITE_LAYOUT = [
   "src/components/sections/site",
   "src/components/collections",
   "src/styles/global.css",
-  "src/styles/tokens.css",
+  "src/styles/site.css",
+  "src/styles/theme/README.md",
+  "src/styles/theme/tokens/colors.css",
+  "src/styles/theme/tokens/type.css",
+  "src/styles/theme/tokens/shape.css",
+  "src/styles/theme/tokens/space.css",
+  "src/styles/theme/presets/colors/navy.css",
+  "src/styles/theme/fonts.css",
+  "src/styles/theme/base.css",
+  "src/styles/theme/layout.css",
+  "src/styles/theme/sections.css",
+  "src/styles/theme/prose.css",
   ".github/workflows/hostsmith.yml",
 ];
 
@@ -48,7 +59,7 @@ const KIT_REPO_LAYOUT = [
   "packages/site-kit-astro/LICENSE",
 ];
 
-const SITE_ALLOWLIST = ["@hostsmith/site-kit-astro", "astro", "@astrojs/react", "react", "react-dom"];
+const SITE_ALLOWLIST = ["@hostsmith/site-kit-astro", "astro", "tailwindcss", "@tailwindcss/vite", "@astrojs/react", "react", "react-dom"];
 
 const kitPackage = JSON.parse(readFileSync(join(PACKAGE, "package.json"), "utf8"));
 const kitAgents = readFileSync(join(PACKAGE, "AGENTS.md"), "utf8");
@@ -138,6 +149,47 @@ describe("kit repository layout", () => {
   });
 });
 
+describe("kit docs", () => {
+  const readme = readFileSync(join(REPO, "README.md"), "utf8");
+  const agents = readFileSync(join(PACKAGE, "AGENTS.md"), "utf8");
+  const hooks = readFileSync(join(PACKAGE, "HOOKS.md"), "utf8");
+  const libraryTypes = readdirSync(join(PACKAGE, "src", "components", "sections"))
+    .filter((file) => file.endsWith(".astro"))
+    .map((file) => file.slice(0, -".astro".length));
+
+  it("name every library section type in the README and AGENTS.md", () => {
+    for (const type of libraryTypes) {
+      assert.ok(readme.includes(`| \`${type}\` |`), `README.md's section types miss ${type}`);
+      assert.ok(agents.includes(`\`${type}\``), `AGENTS.md misses ${type}`);
+    }
+  });
+
+  // site-kit-themes, "A theme is one folder": the README's tree is the example's.
+  it("show the example's style files in the README's theme tree", () => {
+    // Each line is a file or a folder/, indented two spaces per level.
+    const tree = readme.slice(readme.indexOf("## Themes")).match(/```\n(src\/styles\/[\s\S]*?)```/)[1];
+    const folders = [];
+    const named = [];
+    for (const [, indent, name] of tree.matchAll(/^( *)(\S+)/gm)) {
+      folders.length = indent.length / 2;
+      if (name.endsWith("/")) folders.push(name);
+      else named.push(folders.join("") + name);
+    }
+    const files = readdirSync(join(BASICS, "src", "styles"), { recursive: true })
+      .filter((file) => /\.(css|md)$/.test(file))
+      .map((file) => `src/styles/${file.split("\\").join("/")}`);
+    assert.deepEqual(named.sort(), files.sort());
+  });
+
+  it("name every section type HOOKS.md describes in the README", () => {
+    for (const [, block] of hooks.matchAll(/^### ([a-z-]+)$/gm)) {
+      assert.ok(libraryTypes.includes(block), `HOOKS.md describes ${block}, which is no library type`);
+      assert.ok(readme.includes(`\`${block}\``), `README.md misses ${block}`);
+    }
+    for (const type of libraryTypes) assert.match(hooks, new RegExp(`^### ${type}$`, "m"), `HOOKS.md has no table for ${type}`);
+  });
+});
+
 describe("package dependencies", () => {
   it("are pinned to exact versions, apart from the astro peer", () => {
     for (const [name, version] of Object.entries(kitPackage.dependencies)) {
@@ -145,6 +197,11 @@ describe("package dependencies", () => {
     }
     assert.deepEqual(Object.keys(kitPackage.peerDependencies), ["astro"]);
     assert.ok(!kitPackage.dependencies.astro, "astro is a peer dependency, not a dependency");
+  });
+
+  // site-kit-sections, "The kit ships no styles": Tailwind is each site's.
+  it("include no CSS framework", () => {
+    for (const name of Object.keys(kitPackage.dependencies)) assert.doesNotMatch(name, /tailwind|postcss|sass|less|styl/, name);
   });
 });
 

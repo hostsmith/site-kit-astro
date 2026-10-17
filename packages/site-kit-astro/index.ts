@@ -13,10 +13,9 @@ import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import tailwindcss from "@tailwindcss/vite";
 import type { AstroIntegration } from "astro";
 import { staleness } from "./scripts/decap-config.mjs";
-import { markdownOptions } from "./src/lib/markdown.ts";
+import { markdownOptions, markdownProcessor } from "./src/lib/markdown.ts";
 
 export type SiteConfig = {
   // The production site URL, such as "https://www.example.com".
@@ -57,10 +56,9 @@ export default function siteKit(siteConfig: SiteConfig): AstroIntegration {
           // from about/index.html with status 200 and no redirect (design Q3).
           trailingSlash: "never",
           build: { format: "directory" },
-          markdown: markdownOptions,
+          markdown: { ...markdownOptions, processor: markdownProcessor },
           vite: {
             plugins: [
-              tailwindcss(),
               {
                 name: "site-kit:virtual-modules",
                 resolveId(id: string) {

@@ -9,3 +9,5 @@ npm run build   # writes the static site to dist/
 ```
 
 The kit's README explains how content works, what this repository holds, and how to take kit updates. Agents start with `AGENTS.md`.
+
+The photos and fonts are under their own licenses, listed in `CREDITS.md`, not the MIT license.

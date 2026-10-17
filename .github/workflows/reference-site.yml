@@ -110,11 +110,20 @@ jobs:
           HOSTSMITH_PARTITION: ${{ vars.HOSTSMITH_PARTITION }}
         run: npx site-kit deploy check
 
+      # Raw colors, font names and arbitrary values belong in the theme's tokens,
+      # and the theme styles only hooks the installed kit lists.
+      - name: Check styles
+        run: npx site-kit check-styles
+
       - name: Build
         env:
           SITE_NOINDEX: ${{ env.HOSTSMITH_TARGET == 'preview' && 'true' || vars.SITE_NOINDEX }}
           BUILD_COMMAND: ${{ steps.manifest.outputs.command }}
         run: $BUILD_COMMAND
+
+      # Warns about hooks the built pages carry and the theme doesn't style.
+      - name: Check built styles
+        run: npx site-kit check-styles --built
 
       - name: Deploy
         id: deploy

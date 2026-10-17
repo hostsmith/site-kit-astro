@@ -4,6 +4,7 @@
 // Enter or Space and needs no script. Answers are markdown.
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
 import { renderMarkdown } from "../../lib/markdown.ts";
 
 interface Props {
@@ -20,17 +21,25 @@ const answers = await Promise.all(
 );
 ---
 
-<section {...f.root} class="px-6 py-12">
-  <div class="mx-auto max-w-3xl">
-    {title && <h2 class="mb-8 font-heading text-3xl font-bold" {...f.field("title")}>{title}</h2>}
-    <div class="divide-y divide-border border-y border-border">
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    {
+      title && (
+        <div class="sk-section__header">
+          <h2 class="sk-section__title" {...f.field("title")}>
+            {title}
+          </h2>
+        </div>
+      )
+    }
+    <div class="sk-faq__list">
       {
         items.map((item, i) => (
-          <details>
-            <summary class="cursor-pointer py-4 text-lg font-semibold" {...f.field("items", i, "question")}>
+          <details class="sk-faq__item">
+            <summary class="sk-faq__question" {...f.field("items", i, "question")}>
               {item.question}
             </summary>
-            <div class="prose pb-6" {...f.field("items", i, "answer")} set:html={answers[i]} />
+            <div class="sk-faq__answer sk-prose" {...f.field("items", i, "answer")} set:html={answers[i]} />
           </details>
         ))
       }

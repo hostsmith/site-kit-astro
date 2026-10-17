@@ -1,0 +1,47 @@
+---
+// The breadcrumb of a page whose path has more than one segment
+// (site-kit-design-system design D38): the home link, each ancestor that has a
+// page, then the current page, not linked. The base layout renders it at the
+// start of `main`. Unstyled it reads as a numbered list; a theme draws the
+// separators.
+import { field } from "../lib/field.ts";
+import { breadcrumbTrail } from "../lib/routes.ts";
+import { getSettings, SETTINGS } from "../lib/settings.ts";
+
+interface Props {
+  path: string;
+}
+
+const trail = await breadcrumbTrail(Astro.props.path);
+const { ui } = await getSettings();
+const ancestors = trail?.slice(0, -1) ?? [];
+const current = trail?.at(-1);
+---
+
+{
+  current && (
+    <nav class="sk-breadcrumb" aria-label={ui.breadcrumb}>
+      <div class="sk-container">
+        <ol class="sk-breadcrumb__list">
+          <li class="sk-breadcrumb__item">
+            <a href="/" class="sk-breadcrumb__link" {...field(SETTINGS, "ui", "home")}>
+              {ui.home}
+            </a>
+          </li>
+          {ancestors.map((crumb) => (
+            <li class="sk-breadcrumb__item">
+              <a href={crumb.path} class="sk-breadcrumb__link" {...field(crumb.ref, "title")}>
+                {crumb.title}
+              </a>
+            </li>
+          ))}
+          <li class="sk-breadcrumb__item">
+            <span aria-current="page" class="sk-breadcrumb__current" {...field(current.ref, "title")}>
+              {current.title}
+            </span>
+          </li>
+        </ol>
+      </div>
+    </nav>
+  )
+}

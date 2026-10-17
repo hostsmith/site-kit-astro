@@ -34,7 +34,9 @@ collections:
             label: Hero
             widget: object
             fields:
-              - &section_id { name: id, label: Section id, widget: string, pattern: ["^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$", "A lowercase letter, then 3 lowercase letters or digits, with at least one digit"] }
+              - &section_id { name: id, label: Section id, widget: string, pattern: ["^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$", "A lowercase letter, then 3 lowercase letters or digits, with at least one digit"], hint: "A random label that keeps pointing at this section when sections move. For a new section, run npm run section-id -- <page file> for an id this page has never used, such as k3m9. Never change it or copy it from another section." }
+              - { name: eyebrow, label: Eyebrow, widget: string, required: false }
+              - { name: badge, label: Badge, widget: string, required: false }
               - { name: title, label: Title, widget: string }
               - { name: subtitle, label: Subtitle, widget: string, required: false }
               - { name: image, label: Image, widget: image, required: false }
@@ -46,7 +48,9 @@ collections:
                 fields: &labeled_link
                   - { name: label, label: Label, widget: string }
                   - { name: link, label: Link, widget: string }
-              - { name: variant, label: Variant, widget: select, options: [centered, image-left, image-right, background], default: centered }
+              - { name: secondaryCta, label: Second button, widget: object, required: false, fields: *labeled_link }
+              - { name: note, label: Note under the buttons, widget: string, required: false }
+              - { name: variant, label: Variant, widget: select, options: [centered, image-left, image-right, background, page], default: centered }
           - name: rich-text
             label: Rich text
             widget: object
@@ -54,7 +58,7 @@ collections:
               - *section_id
               - { name: title, label: Title, widget: string, required: false }
               - { name: body, label: Body, widget: markdown }
-              - { name: variant, label: Variant, widget: select, options: [narrow, wide], default: narrow }
+              - { name: variant, label: Variant, widget: select, options: [narrow, wide, title-aside], default: narrow }
           - name: collection-list
             label: Collection list
             widget: object
@@ -66,14 +70,17 @@ collections:
                 widget: select
                 # site: collection options
               - { name: limit, label: Limit, widget: number, value_type: int, min: 1, required: false }
-              - { name: variant, label: Variant, widget: select, options: [cards, list], default: cards }
+              - { name: link, label: Link beside the title, widget: object, required: false, fields: *labeled_link }
+              - { name: variant, label: Variant, widget: select, options: [cards, list, featured], default: cards }
           - name: services-grid
             label: Services grid
             widget: object
             fields:
               - *section_id
+              - &eyebrow_field { name: eyebrow, label: Eyebrow, widget: string, required: false }
               - { name: title, label: Title, widget: string, required: false }
               - { name: intro, label: Intro, widget: text, required: false }
+              - { name: link, label: Link beside the title, widget: object, required: false, fields: *labeled_link }
               - name: items
                 label: Services
                 label_singular: Service
@@ -82,10 +89,19 @@ collections:
                 fields:
                   - { name: title, label: Title, widget: string }
                   - { name: text, label: Text, widget: text, required: false }
+                  # The kit's icon set: src/lib/icons.ts lists the same names.
+                  - &icon_field
+                    name: icon
+                    label: Icon
+                    widget: select
+                    required: false
+                    options:
+                      [calendar, check, clock, file-text, hammer, house, mail, map-pin, paint-roller, phone, ruler, shield-check, sparkles, star, users, wrench]
                   - { name: image, label: Image, widget: image, required: false }
                   - { name: imageAlt, label: Image alt text, widget: string, required: false }
                   - { name: link, label: Link, widget: string, required: false }
               - { name: variant, label: Variant, widget: select, options: [cards, list], default: cards }
+              - { name: tone, label: Tone, widget: select, options: [plain, surface], default: plain }
           - name: gallery
             label: Gallery
             widget: object
@@ -120,6 +136,7 @@ collections:
                   - { name: image, label: Photo, widget: image, required: false }
                   - { name: imageAlt, label: Photo alt text, widget: string, required: false }
               - { name: variant, label: Variant, widget: select, options: [grid, single], default: grid }
+              - { name: tone, label: Tone, widget: select, options: [surface, dark], default: surface }
           - name: faq
             label: FAQ
             widget: object
@@ -144,13 +161,14 @@ collections:
               - { name: button, label: Button, widget: object, fields: *labeled_link }
               - { name: secondaryButton, label: Second button, widget: object, required: false, fields: *labeled_link }
               - { name: variant, label: Variant, widget: select, options: [banner, card], default: banner }
+              - { name: tone, label: Tone, widget: select, options: [accent, dark, surface], default: accent }
           - name: hours-location
             label: Hours and location
             widget: object
             fields:
               - *section_id
               - { name: title, label: Title, widget: string, required: false }
-              - { name: address, label: Address, widget: text, required: false }
+              - { name: address, label: Address, widget: text, required: false, hint: "Type {address} to use the address from Facts." }
               - name: hours
                 label: Opening hours
                 label_singular: Opening hours row
@@ -159,8 +177,102 @@ collections:
                 fields:
                   - { name: days, label: Days, widget: string }
                   - { name: time, label: Time, widget: string }
+              - { name: phone, label: Phone, widget: string, required: false, hint: "Type {phone} to use the phone number from Facts." }
+              - { name: email, label: Email, widget: string, required: false, hint: "Type {email} to use the email address from Facts." }
               - { name: note, label: Note, widget: text, required: false }
               - { name: mapLink, label: Map link, widget: object, required: false, fields: *labeled_link }
+          - name: trust-bar
+            label: Trust bar
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - name: items
+                label: Items
+                label_singular: Item
+                widget: list
+                min: 1
+                fields:
+                  - { name: text, label: Text, widget: string }
+              - { name: variant, label: Variant, widget: select, options: [line, chips], default: line }
+          - name: stats
+            label: Stats
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - name: items
+                label: Figures
+                label_singular: Figure
+                widget: list
+                min: 2
+                max: 4
+                fields: &stat_fields
+                  - { name: value, label: Value, widget: string }
+                  - { name: label, label: Label, widget: string }
+              - { name: tone, label: Tone, widget: select, options: [plain, dark], default: plain }
+          - name: steps
+            label: Steps
+            widget: object
+            fields:
+              - *section_id
+              - *eyebrow_field
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: intro, label: Intro, widget: text, required: false }
+              - name: items
+                label: Steps
+                label_singular: Step
+                widget: list
+                min: 1
+                fields:
+                  - { name: title, label: Title, widget: string }
+                  - { name: text, label: Text, widget: text, required: false }
+          - name: split
+            label: Image and text
+            widget: object
+            fields:
+              - *section_id
+              - *eyebrow_field
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: body, label: Body, widget: markdown, required: false }
+              - { name: image, label: Image, widget: image }
+              - { name: imageAlt, label: Image alt text, widget: string, required: false }
+              - { name: stats, label: Figures, label_singular: Figure, widget: list, required: false, max: 4, fields: *stat_fields }
+              - { name: link, label: Link, widget: object, required: false, fields: *labeled_link }
+              - { name: variant, label: Variant, widget: select, options: [image-left, image-right], default: image-left }
+              - { name: tone, label: Tone, widget: select, options: [plain, surface], default: plain }
+          - name: team
+            label: Team
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: intro, label: Intro, widget: text, required: false }
+              - name: items
+                label: People
+                label_singular: Person
+                widget: list
+                min: 1
+                fields:
+                  - { name: name, label: Name, widget: string }
+                  - { name: role, label: Role, widget: string, required: false }
+                  - { name: image, label: Photo, widget: image, required: false }
+                  - { name: imageAlt, label: Photo alt text, widget: string, required: false }
+          - name: pricing-list
+            label: Pricing list
+            widget: object
+            fields:
+              - *section_id
+              - { name: title, label: Title, widget: string, required: false }
+              - name: items
+                label: Prices
+                label_singular: Price
+                widget: list
+                min: 1
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: price, label: Price as shown, widget: string }
+              - { name: note, label: Note, widget: text, required: false }
           # site: section types
 
   - name: settings
@@ -185,33 +297,120 @@ collections:
             fields: &link_fields
               - { name: label, label: Label, widget: string }
               - { name: link, label: Link, widget: string }
+          # The header's actions and the footer's blocks (site-kit-design-system
+          # design D35). Business facts, such as a phone number or opening
+          # hours, are props of the block that shows them.
+          - name: header
+            label: Header
+            widget: object
+            required: false
+            fields:
+              - name: actions
+                label: Actions
+                label_singular: Action
+                widget: list
+                required: false
+                typeKey: type
+                types:
+                  - name: phone
+                    label: Phone number
+                    widget: object
+                    fields:
+                      - { name: number, label: Number, widget: string, hint: "Type {phone} to use the phone number from Facts." }
+                      - { name: callLabel, label: Call button label (adds an icon-only call button), widget: string, required: false }
+                  - name: button
+                    label: Button
+                    widget: object
+                    fields:
+                      - { name: label, label: Label, widget: string }
+                      - { name: link, label: Link, widget: string }
+                      - { name: style, label: Style, widget: select, options: [primary, secondary], default: primary }
+                  - name: link
+                    label: Link
+                    widget: object
+                    fields: *link_fields
           - name: footer
             label: Footer
             widget: object
-            fields:
-              - { name: text, label: Text, widget: text, required: false }
-              - { name: links, label: Links, widget: list, required: false, fields: *link_fields }
-          - name: contact
-            label: Contact
-            widget: object
             required: false
             fields:
-              - { name: email, label: Email, widget: string, required: false }
-              - { name: phone, label: Phone, widget: string, required: false }
-              - { name: address, label: Address, widget: text, required: false }
-          - name: social
-            label: Social links
-            widget: list
-            required: false
-            fields:
-              - { name: label, label: Label, widget: string }
-              - { name: url, label: URL, widget: string }
+              - name: blocks
+                label: Blocks
+                label_singular: Block
+                widget: list
+                required: false
+                typeKey: type
+                types: &footer_block_types
+                  - name: brand
+                    label: Name or logo
+                    widget: object
+                    fields:
+                      - { name: text, label: Text, widget: text, required: false }
+                      - &with_previous { name: withPrevious, label: Same group as the block before, widget: boolean, default: false, required: false }
+                  - name: contact
+                    label: Contact details
+                    widget: object
+                    fields:
+                      - { name: title, label: Title, widget: string, required: false }
+                      - { name: address, label: Address, widget: text, required: false, hint: "Type {address} to use the address from Facts." }
+                      - { name: phone, label: Phone, widget: string, required: false, hint: "Type {phone} to use the phone number from Facts." }
+                      - { name: email, label: Email, widget: string, required: false, hint: "Type {email} to use the email address from Facts." }
+                      - *with_previous
+                  - name: links
+                    label: Links
+                    widget: object
+                    fields:
+                      - { name: title, label: Title, widget: string, required: false }
+                      - { name: links, label: Links, widget: list, fields: *link_fields }
+                      - *with_previous
+                  - name: hours
+                    label: Hours
+                    widget: object
+                    fields:
+                      - { name: title, label: Title, widget: string, required: false }
+                      - name: rows
+                        label: Rows
+                        label_singular: Row
+                        widget: list
+                        fields:
+                          - { name: days, label: Days, widget: string }
+                          - { name: time, label: Time, widget: string }
+                      - *with_previous
+                  - name: text
+                    label: Text
+                    widget: object
+                    fields:
+                      - { name: title, label: Title, widget: string, required: false }
+                      - { name: text, label: Text, widget: text }
+                      - *with_previous
+                  - name: copyright
+                    label: Copyright line
+                    widget: object
+                    fields:
+                      - { name: text, label: Text after the year (the site name if empty), widget: string, required: false }
+                      - *with_previous
+              - name: bottom
+                label: Bottom row
+                label_singular: Block
+                widget: list
+                required: false
+                typeKey: type
+                types: *footer_block_types
           - name: seo
             label: Search and sharing defaults
             widget: object
             fields:
               - { name: description, label: Description, widget: text }
               - { name: ogImage, label: Social image, widget: image, required: false }
+          - name: facts
+            label: Facts
+            label_singular: Fact
+            widget: list
+            required: false
+            hint: "Facts that appear in several places, such as the phone number. Any text on the site can use one as {name}, such as {phone}, and shows its value."
+            fields:
+              - { name: name, label: Name, widget: string, pattern: ["^[a-z][a-zA-Z0-9]*$", "A lowercase letter, then letters or digits, such as phone or licenseNo"] }
+              - { name: value, label: Value, widget: text }
           - name: ui
             label: Interface text
             widget: object
@@ -219,5 +418,9 @@ collections:
               - { name: skipLink, label: Skip link, widget: string }
               - { name: menu, label: Menu button, widget: string }
               - { name: readMore, label: Read more link, widget: string }
+              - { name: mainNav, label: Main navigation name, widget: string }
+              - { name: footerNav, label: Name of the footer links without a title, widget: string }
+              - { name: breadcrumb, label: Breadcrumb name, widget: string }
+              - { name: home, label: Breadcrumb home link, widget: string }
 
   # site: collections

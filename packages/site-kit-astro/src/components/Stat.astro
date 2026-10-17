@@ -1,0 +1,20 @@
+---
+// One figure with its label, as `stats` and `split` show them: the value,
+// then the label, each on its own line without CSS.
+import type { FieldAttrs, PathPart } from "../lib/field.ts";
+
+interface Props {
+  field: (...path: PathPart[]) => FieldAttrs;
+  // The figure's path, such as ["items", 0] or ["stats", 2].
+  at: PathPart[];
+  value: string;
+  label: string;
+}
+
+const { field, at, value, label } = Astro.props;
+---
+
+<li class="sk-stat">
+  <p class="sk-stat__value" {...field(...at, "value")}>{value}</p>
+  <p class="sk-stat__label" {...field(...at, "label")}>{label}</p>
+</li>

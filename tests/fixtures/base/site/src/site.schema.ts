@@ -28,6 +28,7 @@ export const siteCollections = {
         title: z.string().min(1),
         date: isoDate,
         description: z.string().min(1).optional(),
+        category: z.enum(["Baking", "Shop news"]).optional(),
         image: mediaPath.optional(),
         imageAlt: z.string().min(1).optional(),
         draft: z.boolean().optional(),

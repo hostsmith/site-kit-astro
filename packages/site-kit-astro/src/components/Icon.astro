@@ -1,0 +1,33 @@
+---
+// One of the kit's icons (site-kit-design-system design D37): an inline SVG in
+// the current text color, 24 by 24 unless a theme resizes `.sk-icon`, so it
+// shows correctly without CSS. Icons are decorative, so they are hidden from
+// assistive technology. `data-icon` names the icon, for a theme that tells
+// icons apart, such as the menu button's menu and close icons.
+import { ICONS } from "../lib/icons.ts";
+
+interface Props {
+  name: string;
+}
+
+const { name } = Astro.props;
+const body = ICONS[name];
+if (body === undefined) throw new Error(`Unknown icon "${name}".`);
+---
+
+<svg
+  class="sk-icon"
+  data-icon={name}
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+  set:html={body}
+/>

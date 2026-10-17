@@ -1,0 +1,24 @@
+/*
+ * basics/navy: Kestrel's colors, from the design's token sheet. The default
+ * scheme (tokens/colors.css).
+ *
+ * Every preset in this folder defines the same color roles (README.md), and
+ * passes the contrast pairs listed there (npm run check:styles). Tailwind's
+ * default palette is reset, so bg-red-500 renders nothing.
+ */
+
+@theme static {
+  --color-*: initial;
+
+  --color-bg: #f3f4f7;
+  --color-fg: #14233c;
+  --color-surface: #ffffff;
+  --color-tint: #dee4ee;
+  --color-muted: #45526a;
+  --color-border: #c8d0dd;
+  --color-brand: #3a5a8c;
+  --color-accent: #f2b544;
+  --color-accent-fg: #14233c;
+  --color-on-dark: #c3ccdb;
+  --color-error: #b42318;
+}

@@ -31,10 +31,14 @@ sections:
     title: Latest news
     collection: news
     limit: 3
+    link: { label: All news, link: /news }
   - id: v3p8
     type: services-grid
+    eyebrow: What we do
     title: What we bake
     intro: Bread for every day and every party.
+    link: { label: All services, link: /services/plumbing }
+    tone: surface
     items:
       - title: Daily bread
         text: Rye and spelt from 7:00.
@@ -42,6 +46,7 @@ sections:
         imageAlt: A loaf of rye bread
       - title: Catering
         text: Platters for 10 to 200 guests.
+        icon: users
         link: /catering
   - id: q1m9
     type: faq

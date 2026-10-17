@@ -1,9 +1,15 @@
 ---
-// hero: title, subtitle, image + imageAlt, cta. Variants: centered (default),
-// image-left, image-right, background. The first hero on a page renders its
-// title as h1 (`primary`), later ones as h2.
+// hero: eyebrow, badge, title, subtitle, image + imageAlt, cta,
+// secondaryCta, note. Variants: centered (default), image-left, image-right,
+// background, page. The first hero on a page renders its title as h1
+// (`primary`), later ones as h2.
+//
+// The text comes first in reading order in every variant. The variant's
+// modifier class tells the theme where the image goes: beside the text, behind
+// it, or below it at full width (`page`, a page header).
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
 
 interface Props {
   section: Extract<Section, { type: "hero" }>;
@@ -12,57 +18,60 @@ interface Props {
 }
 
 const { section, entry, primary } = Astro.props;
-const { title, subtitle, image, imageAlt, cta, variant } = section;
+const { eyebrow, badge, title, subtitle, image, imageAlt, cta, secondaryCta, note } = section;
 const f = sectionFields(entry, section);
 const Heading = primary ? "h1" : "h2";
-const split = variant === "image-left" || variant === "image-right";
 ---
 
-<section
-  {...f.root}
-  class:list={[
-    "relative px-6",
-    variant === "background" ? "overflow-hidden py-28 text-bg" : "py-16 md:py-24",
-  ]}
->
-  {
-    variant === "background" && image && (
-      <>
-        <img src={image} alt={imageAlt} class="absolute inset-0 h-full w-full object-cover" {...f.field("image")} />
-        <div class="absolute inset-0 bg-fg/70" />
-      </>
-    )
-  }
-  <div
-    class:list={[
-      "relative mx-auto max-w-6xl",
-      split ? "grid items-center gap-10 md:grid-cols-2" : "max-w-3xl text-center",
-    ]}
-  >
-    <div class:list={[variant === "image-left" && "md:order-2"]}>
-      <Heading class="font-heading text-4xl font-bold leading-tight md:text-5xl" {...f.field("title")}>{title}</Heading>
-      {subtitle && <p class="mt-4 text-lg" {...f.field("subtitle")}>{subtitle}</p>}
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <div class="sk-hero__content">
       {
-        cta && (
-          <a
-            href={cta.link}
-            class="mt-8 inline-block rounded-md bg-primary px-6 py-3 font-semibold text-primary-fg hover:bg-primary/90"
-            {...f.field("cta", "label")}
-          >
-            {cta.label}
-          </a>
+        badge && (
+          <p class="sk-hero__badge" {...f.field("badge")}>
+            {badge}
+          </p>
+        )
+      }
+      {
+        eyebrow && (
+          <p class="sk-eyebrow" {...f.field("eyebrow")}>
+            {eyebrow}
+          </p>
+        )
+      }
+      <Heading class="sk-hero__title" {...f.field("title")}>{title}</Heading>
+      {
+        subtitle && (
+          <p class="sk-hero__subtitle" {...f.field("subtitle")}>
+            {subtitle}
+          </p>
+        )
+      }
+      {
+        (cta || secondaryCta) && (
+          <div class="sk-buttons">
+            {cta && (
+              <a href={cta.link} class="sk-button sk-button--primary" {...f.field("cta", "label")}>
+                {cta.label}
+              </a>
+            )}
+            {secondaryCta && (
+              <a href={secondaryCta.link} class="sk-button sk-button--secondary" {...f.field("secondaryCta", "label")}>
+                {secondaryCta.label}
+              </a>
+            )}
+          </div>
+        )
+      }
+      {
+        note && (
+          <p class="sk-hero__note" {...f.field("note")}>
+            {note}
+          </p>
         )
       }
     </div>
-    {
-      variant !== "background" && image && (
-        <img
-          src={image}
-          alt={imageAlt}
-          class:list={["w-full rounded-lg object-cover", !split && "mt-10"]}
-          {...f.field("image")}
-        />
-      )
-    }
+    {image && <img src={image} alt={imageAlt} class="sk-hero__media" {...f.field("image")} />}
   </div>
 </section>

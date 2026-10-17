@@ -45,6 +45,7 @@ sections:
       - quote: Worth the early start.
         name: Liis Sepp
     variant: single
+    tone: dark
   - id: c1b6
     type: cta
     title: Planning an event?
@@ -62,6 +63,7 @@ sections:
       label: Order now
       link: /order
     variant: card
+    tone: dark
   - id: k7h2
     type: hours-location
     title: Visit us
@@ -77,4 +79,17 @@ sections:
     mapLink:
       label: Show on map
       link: https://www.openstreetmap.org/search?query=1%20Test%20Street
+    phone: "+1 555 0100"
+    email: test@example.com
+  - id: s4a8
+    type: rich-text
+    title: Our story
+    body: The bakery opened in 1998.
+    variant: title-aside
+  - id: n9f3
+    type: collection-list
+    title: From the blog
+    collection: news
+    limit: 2
+    variant: featured
 ---

@@ -1,0 +1,40 @@
+---
+// steps: eyebrow, title, intro, items (title, text). No variants. An ordered
+// list; the theme draws the numbers, such as `01` with a CSS counter in
+// `decimal-leading-zero`, so unstyled pages show each number once.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
+import SectionHeader from "../SectionHeader.astro";
+
+interface Props {
+  section: Extract<Section, { type: "steps" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const f = sectionFields(entry, section);
+---
+
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={section.title} intro={section.intro} />
+    <ol class="sk-steps__list">
+      {
+        section.items.map((item, i) => (
+          <li class="sk-steps__item">
+            <h3 class="sk-steps__title" {...f.field("items", i, "title")}>
+              {item.title}
+            </h3>
+            {item.text && (
+              <p class="sk-steps__text" {...f.field("items", i, "text")}>
+                {item.text}
+              </p>
+            )}
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>

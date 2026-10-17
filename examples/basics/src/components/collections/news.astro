@@ -1,8 +1,12 @@
 ---
-// Detail template of the news collection: one entry at <base path>/<slug>.
+// Detail template of the news collection, the blog: one post at
+// <base path>/<slug>. The layout puts the breadcrumb before it. This is the
+// site's own markup, so it's styled with utilities on the theme's tokens; the
+// post body uses the theme's sk-prose.
 import { field } from "@hostsmith/site-kit-astro/field";
 import { assertNoH1 } from "@hostsmith/site-kit-astro/markdown";
-import { getSettings } from "@hostsmith/site-kit-astro/settings";
+import { getEntryRoutes } from "@hostsmith/site-kit-astro/routes";
+import { getSettings, SETTINGS } from "@hostsmith/site-kit-astro/settings";
 import { render, type CollectionEntry } from "astro:content";
 
 interface Props {
@@ -10,19 +14,103 @@ interface Props {
 }
 
 const { entry } = Astro.props;
-const { title, date, image, imageAlt } = entry.data;
+const { title, date, category, description, image, imageAlt } = entry.data;
 const ref = `news/${entry.id}`;
 const settings = await getSettings();
 const { Content, headings } = await render(entry);
 assertNoH1(headings, entry.filePath ?? ref);
 const dateFormat = new Intl.DateTimeFormat(settings.language, { dateStyle: "long", timeZone: "UTC" });
+
+// Reading time at 200 words a minute.
+const minutes = Math.max(1, Math.round((entry.body ?? "").split(/\s+/).filter(Boolean).length / 200));
+
+// Up to three other posts, the same category first, then the newest.
+const others = (await getEntryRoutes("news")).filter((route) => route.entry.id !== entry.id);
+const related = [
+  ...others.filter((route) => category !== undefined && route.entry.data.category === category),
+  ...others.filter((route) => category === undefined || route.entry.data.category !== category),
+].slice(0, 3);
+
+const cta = settings.header?.cta;
 ---
 
-<article class="mx-auto max-w-prose px-6 py-12">
-  <h1 class="font-heading text-4xl font-bold leading-tight" {...field(ref, "title")}>{title}</h1>
-  <time datetime={date} class="mt-3 block text-muted" {...field(ref, "date")}>{dateFormat.format(new Date(date))}</time>
-  {image && <img src={image} alt={imageAlt} class="mt-8 w-full rounded-lg" {...field(ref, "image")} />}
-  <div class="prose mt-8" {...field(ref, "body")}>
+<article class="mx-auto max-w-site px-gutter pt-8 pb-section">
+  <header class="mx-auto max-w-prose">
+    {
+      category && (
+        <p class="text-eyebrow text-brand uppercase" {...field(ref, "category")}>
+          {category}
+        </p>
+      )
+    }
+    <h1 class="mt-3 font-heading text-h1" {...field(ref, "title")}>{title}</h1>
+    {
+      description && (
+        <p class="mt-4 text-lead text-muted" {...field(ref, "description")}>
+          {description}
+        </p>
+      )
+    }
+    <p class="mt-4 text-small text-muted">
+      <time datetime={date} {...field(ref, "date")}>{dateFormat.format(new Date(date))}</time> · {minutes} min read
+    </p>
+  </header>
+  {image && <img src={image} alt={imageAlt} class="mt-10 h-72 w-full rounded-panel bg-tint object-cover md:h-120" {...field(ref, "image")} />}
+  <div class="sk-prose mx-auto mt-10 max-w-prose" {...field(ref, "body")}>
     <Content />
   </div>
 </article>
+{
+  related.length > 0 && (
+    <section aria-labelledby="keep-reading" class="bg-surface py-section">
+      <div class="mx-auto max-w-site px-gutter">
+        <h2 id="keep-reading" class="font-heading text-h2">
+          Keep reading
+        </h2>
+        <ul class="mt-8 grid gap-5 md:grid-cols-3">
+          {related.map(({ path, entry: post }) => {
+            const postRef = `news/${post.id}`;
+            return (
+              <li class="flex flex-col overflow-hidden rounded-card bg-bg">
+                {post.data.image && (
+                  <img src={post.data.image} alt={post.data.imageAlt} class="h-48 w-full bg-tint object-cover" {...field(postRef, "image")} />
+                )}
+                <div class="flex flex-col gap-2 p-6">
+                  {post.data.category && (
+                    <p class="text-eyebrow text-brand uppercase" {...field(postRef, "category")}>
+                      {post.data.category}
+                    </p>
+                  )}
+                  <h3 class="font-heading text-h3">
+                    <a href={path} class="underline-offset-4 hover:underline" {...field(postRef, "title")}>
+                      {post.data.title}
+                    </a>
+                  </h3>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  )
+}
+{
+  cta && (
+    <section class="mx-auto max-w-site px-gutter py-section">
+      <div class="flex flex-wrap items-center justify-between gap-6 rounded-panel bg-accent p-8 text-accent-fg md:p-14">
+        <div class="max-w-prose">
+          <h2 class="font-heading text-h2">Want a quote that ticks every box?</h2>
+          <p class="mt-2 text-lead">Book a free visit. Our quotes are fixed and fully itemized.</p>
+        </div>
+        <a
+          href={cta.link}
+          class="inline-flex min-h-12 items-center justify-center rounded-button bg-fg px-7 font-semibold text-bg hover:bg-brand"
+          {...field(SETTINGS, "header", "cta", "label")}
+        >
+          {cta.label}
+        </a>
+      </div>
+    </section>
+  )
+}

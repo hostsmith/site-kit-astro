@@ -13,6 +13,10 @@ pre_bump_hooks = [
 ]
 
 [changelog]
+# The release workflow's `cog changelog` writes the GitHub release notes with
+# this template, which adds each breaking commit's BREAKING CHANGE footer: a
+# site's update steps. Works with cog 6 and 7.
+template = ".github/release-notes.tera"
 remote = "github.com"
 owner = "hostsmith"
 repository = "site-kit-astro"

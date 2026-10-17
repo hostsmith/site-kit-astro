@@ -1,0 +1,45 @@
+---
+// pricing-list: title, items (label, price), note. No variants. A description
+// list: each label a term, each price its description, written as the site
+// wants it shown, such as "from $4,800".
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../lib/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
+import SectionHeader from "../SectionHeader.astro";
+
+interface Props {
+  section: Extract<Section, { type: "pricing-list" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const f = sectionFields(entry, section);
+---
+
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <SectionHeader field={f.field} title={section.title} />
+    <dl class="sk-pricing-list__list">
+      {
+        section.items.map((item, i) => (
+          <div class="sk-pricing-list__row">
+            <dt class="sk-pricing-list__label" {...f.field("items", i, "label")}>
+              {item.label}
+            </dt>
+            <dd class="sk-pricing-list__price" {...f.field("items", i, "price")}>
+              {item.price}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+    {
+      section.note && (
+        <p class="sk-pricing-list__note" {...f.field("note")}>
+          {section.note}
+        </p>
+      )
+    }
+  </div>
+</section>

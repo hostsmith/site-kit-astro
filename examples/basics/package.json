@@ -12,10 +12,13 @@
     "preview": "astro preview",
     "section-id": "site-kit section-id",
     "check:urls": "site-kit check-urls",
+    "check:styles": "site-kit check-styles",
     "decap-config": "site-kit decap-config"
   },
   "dependencies": {
     "@hostsmith/site-kit-astro": "0.4.0",
-    "astro": "7.3.8"
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.3.8",
+    "tailwindcss": "4.3.3"
   }
 }
