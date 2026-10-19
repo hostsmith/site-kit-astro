@@ -14,13 +14,16 @@ concurrency:
 
 jobs:
   # cog computes the next version from Conventional Commits. Its pre-bump hook
-  # sets the package's version and every example's dependency on it, and the
-  # bump commit "chore(version): X.Y.Z" goes to main with the tag vX.Y.Z. The
-  # publish job below then publishes the package to npm.
+  # sets the package's version and every example's dependency on it, and cog
+  # makes the bump commit "chore(version): X.Y.Z" with the tag vX.Y.Z. The
+  # tests run on that commit, with its tag, and only then do both go to main.
+  # The publish job below then publishes the package to npm. v0.6.0 was pushed
+  # before its tests ran, failed them in the publish job, and never reached npm.
   #
   # main only takes pull requests. The release GitHub App is a bypass actor on
   # main's ruleset, so the bump commit is pushed with the App's token (secrets
-  # RELEASE_APP_CLIENT_ID and RELEASE_APP_PRIVATE_KEY, as in mcp-server).
+  # RELEASE_APP_CLIENT_ID and RELEASE_APP_PRIVATE_KEY, as in mcp-server). The
+  # token is made after the tests, so no test code runs with it.
   release:
     # Kit-only, and skipped on the bot's own version commit.
     if: >-
@@ -31,19 +34,12 @@ jobs:
       released: ${{ steps.tag.outputs.released }}
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - name: Get the release App token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-          permission-contents: write
-
-      # The checkout keeps the App token, so `git push` below runs as the App.
+      # Without credentials: the tests run in this job. The push below passes
+      # the App's token itself.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -87,10 +83,33 @@ jobs:
             echo "No releasable commits since '$BEFORE'"
           fi
 
+      # The release as it will be pushed: the version commit, with its tag. A
+      # failure here leaves main, the tags and npm as they were.
+      - name: Install
+        if: steps.tag.outputs.released == 'true'
+        run: npm ci
+
+      - name: Test the release
+        if: steps.tag.outputs.released == 'true'
+        run: npm test
+
+      - name: Get the release App token
+        if: steps.tag.outputs.released == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
       # Atomic: the version commit and the tag land together or not at all.
+      # As the App, whose token the action masks in the log.
       - name: Push the version commit and tag
         if: steps.tag.outputs.released == 'true'
-        run: git push --atomic origin "HEAD:${{ github.ref_name }}" "${{ steps.tag.outputs.tag }}"
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: git push --atomic "https://x-access-token:${TOKEN}@github.com/${REPOSITORY}.git" "HEAD:${{ github.ref_name }}" "${{ steps.tag.outputs.tag }}"
 
       - name: Generate release notes
         if: steps.tag.outputs.released == 'true'
@@ -111,10 +130,11 @@ jobs:
           gh release create "$TAG" --title "$TAG" --notes-file release-notes.md
 
   # Publishes @hostsmith/site-kit-astro from the release tag, with provenance.
-  # npm authenticates the job by GitHub OIDC through the package's trusted
-  # publisher (this repository, release.yml), so there is no npm token. A
-  # failed job can be re-run: the tag and the GitHub release stay, and a
-  # version npm already accepted isn't published again.
+  # The release job tested the tag's commit. npm authenticates the job by
+  # GitHub OIDC through the package's trusted publisher (this repository,
+  # release.yml), so there is no npm token. A failed job can be re-run: the
+  # tag and the GitHub release stay, and a version npm already accepted isn't
+  # published again.
   publish:
     needs: [release]
     if: needs.release.outputs.released == 'true'
@@ -134,8 +154,6 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - run: npm ci
-
-      - run: npm test
 
       # On a re-run, npm refuses the version it already accepted; the job then
       # goes on to the check.

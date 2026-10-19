@@ -1,7 +1,7 @@
 // site-kit-locales design D58: a single-locale site renders the same on this
-// package as on the last release. The last release's `basics` example is
+// package as on 0.5. The `basics` example of v0.5.2, the last 0.5 release, is
 // built twice: with that release's published package, and with the package
-// in this workspace, after the kit update's steps and `npm run decap-config`.
+// in this workspace, after the 0.6 update's steps and `npm run decap-config`.
 // Every page, the sitemap and robots.txt must match, apart from the hashed
 // names of built assets and field attributes, which name the locale.
 import assert from "node:assert/strict";
@@ -12,7 +12,9 @@ import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { BASICS, REPO, run } from "./helpers.mjs";
 
-const TAG = execFileSync("git", ["describe", "--tags", "--abbrev=0", "--match", "v*"], { cwd: REPO, encoding: "utf8" }).trim();
+// A fixed tag, not the latest: the steps below are 0.5's, and a release's own
+// tag would compare the release with itself before npm serves it.
+const TAG = "v0.5.2";
 
 // The release's basics example, from its tag, in a folder of its own.
 async function exampleAt(tag, dir) {

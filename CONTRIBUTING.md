@@ -91,7 +91,7 @@ A site's theme styles the kit through the hooks in `packages/site-kit-astro/HOOK
 
 ## Releases
 
-Releases are automated from `main`. The release workflow pushes the version commit `chore(version): vX.Y.Z` and the tag `vX.Y.Z` to `main`, which otherwise only takes pull requests. The version commit sets the package's version and pins every example to it. It pushes as the release GitHub App, which needs:
+Releases are automated from `main`. The release workflow makes the version commit `chore(version): vX.Y.Z` and the tag `vX.Y.Z`, runs the tests on them, and only then pushes both to `main`, which otherwise only takes pull requests. A failing test leaves `main`, the tags and npm as they were: fix it in a pull request, whose merge starts the release again. The version commit sets the package's version and pins every example to it. It pushes as the release GitHub App, which needs:
 
 - the App installed on this repository, with contents write access;
 - the App in the bypass list of `main`'s ruleset;
