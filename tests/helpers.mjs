@@ -11,7 +11,7 @@
 // the failure message.
 import { spawn } from "node:child_process";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,6 +23,11 @@ import { readHooks } from "../packages/site-kit-astro/scripts/hooks-reference.mj
 export const REPO = fileURLToPath(new URL("..", import.meta.url));
 export const PACKAGE = join(REPO, "packages", "site-kit-astro");
 export const EXAMPLES = join(REPO, "examples");
+// Each example's folder name. The examples' LICENSE sits beside them.
+export const EXAMPLE_NAMES = readdirSync(EXAMPLES, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(join(EXAMPLES, entry.name, "package.json")))
+  .map((entry) => entry.name)
+  .sort();
 // The example the fixtures build on.
 export const BASICS = join(EXAMPLES, "basics");
 

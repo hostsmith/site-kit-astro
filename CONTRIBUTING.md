@@ -22,7 +22,7 @@ The repository is an npm workspace:
 | `packages/site-kit-astro/` | the package, published to npm as TypeScript and `.astro` source, with no build step |
 | `examples/<name>/` | the example sites. Each depends on the package's released version, which npm links to the workspace, and each is also a reference site (see below) |
 | `tests/` | the kit's tests. They build every example, and copies of `basics` with the fixtures in `tests/fixtures/` |
-| `scripts/` | the release's version hook, and the list of examples for the reference-site workflow |
+| `scripts/` | the release's version hook, the license policy, and the list of examples for the reference-site workflow |
 
 The package's `exports` are part of its public API (see below). A module that sites may import needs an entry there, and a new one needs the same care as any other API change.
 
@@ -39,6 +39,27 @@ git config core.hooksPath .githooks
 npm run build   # build the basics example with the package from the workspace
 npm test        # run the kit's tests, including a build from the packed package
 ```
+
+## Dependencies and licenses
+
+Everything the package, with its peer `astro`, and the examples install must comply with the kit's license policy in `scripts/licenses.mjs`. `npm test` reads `package-lock.json`, with every platform's optional packages, and fails on a package that breaks it. The failure names the package, its license and the path that reaches it, so a dependency update can't bring a license in unnoticed. The release runs the same tests before it pushes.
+
+The allowed licenses are `MIT`, `MIT-0`, `ISC`, `BSD-2-Clause`, `BSD-3-Clause`, `Apache-2.0`, `0BSD`, `BlueOak-1.0.0` and `CC0-1.0`. GPL, AGPL, SSPL and packages that declare no license are never allowed.
+
+Two copyleft build tools are allowed as exceptions, each only through the packages that use it. npm installs them unmodified from their publishers, and none of their code reaches the package, an example or a built site:
+
+| Packages | License | Only through | Why |
+| --- | --- | --- | --- |
+| `@img/sharp-libvips-*`, `@img/sharp-win32-*`, `@img/sharp-wasm32` | `LGPL-3.0-or-later`, alone or as `Apache-2.0 AND LGPL-3.0-or-later` or `Apache-2.0 AND LGPL-3.0-or-later AND MIT` | sharp and its bindings | sharp's prebuilt `libvips`, which npm installs for the platform |
+| `sharp` | `Apache-2.0` | astro | Astro installs it as an optional dependency, which npm can't skip. The kit sets Astro's passthrough image service, so no build loads it |
+| `lightningcss` | `MPL-2.0` | vite or @tailwindcss/node | Vite's and Tailwind's CSS transformer. The CSS it writes isn't its code |
+| `lightningcss-*` | `MPL-2.0` | lightningcss | its prebuilt binaries |
+
+To add a dependency, add it and run `npm test`.
+
+- **A new permissive license** goes into `ALLOWED` and the list above in the same pull request, after someone has read it.
+- **A new exception, or a new path to one,** needs an issue first. It changes `EXCEPTIONS` and the table above together.
+- **No dependency's files are copied into the repository.** Third-party code, fonts and images in an example are listed in its `CREDITS.md` with their source and license.
 
 ## Commit messages
 

@@ -1,6 +1,6 @@
 // site-kit-content-model, "Decap config is the schema source".
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,7 +12,7 @@ import { defineKitContent } from "../packages/site-kit-astro/src/kit-content.ts"
 import { CONTENT_ICONS } from "../packages/site-kit-astro/src/lib/icons.ts";
 import { siteConfig } from "../examples/basics/src/site.config.ts";
 import * as siteSchema from "../examples/basics/src/site.schema.ts";
-import { BASICS, buildFixture, EXAMPLES, PACKAGE, REPO } from "./helpers.mjs";
+import { BASICS, buildFixture, EXAMPLE_NAMES, EXAMPLES, PACKAGE, REPO } from "./helpers.mjs";
 
 const { sectionSchemas } = defineKitContent(siteConfig, siteSchema);
 const parse = (yaml) => parseFrontmatter(`---\n${yaml}\n---\n`).frontmatter;
@@ -155,7 +155,7 @@ describe("npm run decap-config", () => {
   const blog = ["  - name: blog", "    label: Blog", "    folder: src/content/blog", "    fields:", "      - { name: title, label: Title, widget: string }"].join("\n");
 
   it("left every example's config.yml matching its two parts", async () => {
-    for (const example of readdirSync(EXAMPLES)) {
+    for (const example of EXAMPLE_NAMES) {
       const problem = staleness(join(EXAMPLES, example), await localeCodes(join(EXAMPLES, example)));
       assert.ok(!problem, `${example}: ${problem}`);
     }

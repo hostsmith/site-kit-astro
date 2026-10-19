@@ -6,7 +6,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { after, before, describe, it } from "node:test";
-import { BASICS, buildFixture, EXAMPLES, PACKAGE, REPO } from "./helpers.mjs";
+import { BASICS, buildFixture, EXAMPLE_NAMES, EXAMPLES, PACKAGE, REPO } from "./helpers.mjs";
 
 // Paths every site has, from its example.
 const SITE_LAYOUT = [
@@ -58,6 +58,7 @@ const KIT_REPO_LAYOUT = [
   ".github/ISSUE_TEMPLATE",
   "packages/site-kit-astro/package.json",
   "packages/site-kit-astro/LICENSE",
+  "examples/LICENSE",
 ];
 
 const SITE_ALLOWLIST = ["@hostsmith/site-kit-astro", "astro", "tailwindcss", "@tailwindcss/vite", "@astrojs/react", "react", "react-dom"];
@@ -65,7 +66,7 @@ const SITE_ALLOWLIST = ["@hostsmith/site-kit-astro", "astro", "tailwindcss", "@t
 const kitPackage = JSON.parse(readFileSync(join(PACKAGE, "package.json"), "utf8"));
 const kitAgents = readFileSync(join(PACKAGE, "AGENTS.md"), "utf8");
 
-for (const example of readdirSync(EXAMPLES)) {
+for (const example of EXAMPLE_NAMES) {
   const dir = join(EXAMPLES, example);
   const manifest = JSON.parse(readFileSync(join(dir, "hostsmith.json"), "utf8"));
   const sitePackage = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
@@ -81,6 +82,12 @@ for (const example of readdirSync(EXAMPLES)) {
         for (const name of Object.keys(siteConfig.collections)) {
           assert.ok(existsSync(join(dir, `src/components/collections/${name}.astro`)), `no detail template for ${name}`);
         }
+      });
+
+      // site-kit-licenses design D67: examples/LICENSE covers the example's
+      // code, and a site made from it is under the license its owner picks.
+      it("has no LICENSE of its own", () => {
+        assert.ok(!existsSync(join(dir, "LICENSE")), "a site made from the example would take its LICENSE");
       });
 
       it("has no copy of the kit's code", async () => {
@@ -139,6 +146,10 @@ describe("kit repository layout", () => {
 
   it("has the same LICENSE in the package", () => {
     assert.equal(readFileSync(join(PACKAGE, "LICENSE"), "utf8"), readFileSync(join(REPO, "LICENSE"), "utf8"));
+  });
+
+  it("puts the examples' code under MIT-0", () => {
+    assert.match(readFileSync(join(EXAMPLES, "LICENSE"), "utf8"), /^MIT No Attribution\n\nCopyright \(c\) 2026 ops42 OU\n/);
   });
 
   // create-astro writes its own AGENTS.md over the example's unless it gets

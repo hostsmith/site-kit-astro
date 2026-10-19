@@ -37,7 +37,7 @@ Each example is a complete site, and each release deploys it from this repositor
 
 | Path | What it is |
 | --- | --- |
-| `src/content/` | pages, collection entries and settings, in a folder per [locale](#locales), such as `pages/en/` |
+| `src/content/` | pages, collection entries and settings, with the [locale](#locales) in each file's name, such as `pages/about.en.md` |
 | `src/site.config.ts` | the production site URL, the [locales](#locales) and each collection's base path |
 | `src/site.schema.ts` | the site's own section types, collections and [interface strings](#interface-strings) |
 | `src/components/sections/site/` | the site's own section types |
@@ -47,7 +47,7 @@ Each example is a complete site, and each release deploys it from this repositor
 | `src/styles/theme/` | the site's look, taken from its example: tokens, fonts and the styles of the kit's parts (see [Themes](#themes)) |
 | `src/styles/site.css` | the site's own CSS, outside the theme |
 | `src/styles/global.css` | the site's stylesheet: imports Tailwind, the theme and `site.css` |
-| `public/assets/` | media |
+| `public/assets/` | media, served as the files are: the build doesn't resize or convert images |
 | `public/admin/config.site.yml` | the site's part of the Decap config |
 | `public/admin/config.yml` | the Decap config, assembled by `npm run decap-config` |
 | `astro.config.mjs`, `src/content.config.ts` | wire the kit and Tailwind in. They rarely change |
@@ -551,4 +551,13 @@ Every example is also a reference site: each release deploys it to its productio
 
 ## License
 
-[MIT](./LICENSE). The examples' photos and fonts aren't covered: they're under their own licenses, listed in each example's `CREDITS.md`.
+- **The package and this repository** are under [MIT](./LICENSE). The package's `LICENSE` also carries the notices for its icons, from Lucide (ISC) and Feather (MIT).
+- **The examples' code** is under [MIT-0](./examples/LICENSE), MIT without the notice condition. A site made from an example owes no notice for it, and its owner picks the site's license.
+- **The examples' photos and fonts** are under their own licenses, listed in each example's `CREDITS.md`. A site keeps a font's license text next to the font, and replaces the photos with its own.
+
+A site installs everything it builds with from npm, from each package's publisher. Every package is under a permissive license, apart from two build tools under a copyleft one:
+
+- `sharp`'s prebuilt `libvips`, under LGPL-3.0. Astro installs it as an optional dependency, but the kit never loads it: the build serves images as their files are.
+- `lightningcss`, under MPL-2.0, which Vite and Tailwind use to transform CSS.
+
+Neither one's code reaches the built site. Building and deploying a site owes nothing under their licenses. Only redistributing a site's installed `node_modules`, such as in a container image, does: the artifact then ships the LGPL-3.0, GPL-3.0 and MPL-2.0 texts, and points to the source of `libvips` and `lightningcss`. The kit's tests check every license in its dependency tree on every change (see [CONTRIBUTING.md](./CONTRIBUTING.md#dependencies-and-licenses)).
