@@ -482,7 +482,7 @@ Then commit, push, check the preview site and merge the branch to `main`. If npm
 
 ### From 0.5 to 0.6
 
-0.6 names the [locale](#locales) in every content file's name, loads the site's collections itself, adds [interface strings](#interface-strings), and fixes what Decap and Sveltia couldn't save. A site's pages and URLs stay as they were, but its content files are renamed once. Follow the v0.6.0 release notes, and before the commands above:
+0.6 names the [locale](#locales) in every content file's name, loads the site's collections itself, adds [interface strings](#interface-strings), and fixes what Decap and Sveltia couldn't save. A site's pages and URLs stay as they were, but its content files are renamed once. Follow the [v0.6.1 release notes](https://github.com/hostsmith/site-kit-astro/releases/tag/v0.6.1), and before the commands above:
 
 1. Rename every content file with the default locale's code before its extension, with its history, so `pages/about.md` becomes `pages/about.en.md` and `settings/site.yml` becomes `settings/site.en.yml`:
 
