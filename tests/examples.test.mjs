@@ -2,7 +2,7 @@
 // as is. site-kit-repository, "Example content covers the whole kit": the
 // `basics` example's content.
 import assert from "node:assert/strict";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -10,7 +10,7 @@ import { checkBuilt } from "../packages/site-kit-astro/scripts/check-styles.mjs"
 import { defineKitContent } from "../packages/site-kit-astro/src/kit-content.ts";
 import { siteConfig } from "../examples/basics/src/site.config.ts";
 import * as siteSchema from "../examples/basics/src/site.schema.ts";
-import { BASICS, buildFixture, deprecatedHooks, EXAMPLES, htmlFiles } from "./helpers.mjs";
+import { BASICS, buildFixture, deprecatedHooks, EXAMPLE_NAMES, EXAMPLES, htmlFiles } from "./helpers.mjs";
 
 // The nine library section types (site-kit-section-library).
 const LIBRARY_TYPES = [
@@ -53,7 +53,7 @@ function hookRuleLayers(css) {
 }
 
 describe("examples", () => {
-  for (const example of readdirSync(EXAMPLES)) {
+  for (const example of EXAMPLE_NAMES) {
     it(`${example} builds as is`, async () => {
       const build = await buildFixture(null, { example });
       try {

@@ -95,6 +95,12 @@ Every site lists its locales in `src/site.config.ts`, the default first, and nam
 
 In every site, a custom page has no props of its own: its content goes in sections, and its page template may show a section in its own markup.
 
+## Images and third-party files
+
+Images go under `public/assets/`, and the build serves them as their files are. It never resizes or converts an image, not even one passed to Astro's `Image` component. Save each image at the size the page shows it, in a web format such as JPEG, WebP or AVIF.
+
+Add third-party code, fonts or images to the site only under a license that allows that use, such as a font under the SIL Open Font License. Keep any license text the license asks for next to the file, such as a font's `OFL.txt`, and list each file in `CREDITS.md` with its source and its license. When you can't establish a file's license, such as a font taken from the old site, list it in `CREDITS.md` as awaiting the owner's confirmation, and tell the developer before the site goes to production. Never add it silently.
+
 ## Styling
 
 The kit ships no CSS. Its markup carries the `sk-` classes and state attributes in `HOOKS.md`, and the site's stylesheet styles them. To change how a kit part looks, edit the site's styles, never the kit. Style a kit part through its hook, such as `.sk-hero__title`. Don't depend on the nesting of its elements, which can change in a minor release. A hook is renamed or removed only in a major release, after a minor one has deprecated it (`HOOKS.md`, "Deprecated").

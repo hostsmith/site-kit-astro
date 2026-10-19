@@ -10,4 +10,4 @@ npm run build   # writes the static site to dist/
 
 The kit's README explains how content works, what this repository holds, and how to take kit updates. Agents start with `AGENTS.md`.
 
-The photos and fonts are under their own licenses, listed in `CREDITS.md`, not the MIT license.
+The code from the kit's `basics` example is under [MIT-0](https://github.com/hostsmith/site-kit-astro/blob/main/examples/LICENSE), so the site owes no notice for it. The photos and fonts are under their own licenses, listed in `CREDITS.md`.

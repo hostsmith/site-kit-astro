@@ -14,6 +14,7 @@ import { rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AstroIntegration } from "astro";
+import { passthroughImageService } from "astro/config";
 import { staleness } from "./scripts/decap-config.mjs";
 import { type LocaleConfig, resolveLocales } from "./src/lib/locales.ts";
 import { markdownOptions, markdownProcessor } from "./src/lib/markdown.ts";
@@ -63,6 +64,9 @@ export default function siteKit(siteConfig: SiteConfig): AstroIntegration {
           // from about/index.html with status 200 and no redirect (design Q3).
           trailingSlash: "never",
           build: { format: "directory" },
+          // Images are served as their files are. Astro's default service
+          // loads sharp, whose prebuilt libvips is LGPL (site-kit-licenses D66).
+          image: { service: passthroughImageService() },
           markdown: { ...markdownOptions, processor: markdownProcessor },
           vite: {
             plugins: [

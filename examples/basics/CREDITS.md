@@ -1,6 +1,6 @@
 # Credits
 
-The photos and fonts in this site come from third parties, under their own licenses. The repository's MIT license doesn't cover them. A site built from this example replaces the photos with its own.
+The photos and fonts in this site come from third parties, under their own licenses. The license of the site's code doesn't cover them. A site built from this example replaces the photos with its own.
 
 ## Photos
 
@@ -16,7 +16,7 @@ From [Pixabay](https://pixabay.com), under the [Pixabay Content License](https:/
 | `public/assets/images/kitchen-with-cream-cabinets.jpg` | [Kitchen Apartment House](https://pixabay.com/photos/kitchen-apartment-house-home-8442907/) | Pixabay user 23555986 |
 | `public/assets/images/paint-tray-and-bucket.jpg` | [White paint with roller for interior renovation](https://pixabay.com/photos/paint-interior-paint-paint-bucket-4191399/) | bidvine |
 
-The `placeholder-*.svg` images were made for this example and are covered by the MIT license. Each stands in for a photo a real site would take itself.
+The `placeholder-*.svg` images were made for the kit's example, under MIT-0 like its code. Each stands in for a photo a real site would take itself.
 
 ## Fonts
 

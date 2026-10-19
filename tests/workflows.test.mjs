@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { BASICS, EXAMPLES, REPO } from "./helpers.mjs";
+import { BASICS, EXAMPLE_NAMES, EXAMPLES, REPO } from "./helpers.mjs";
 
 // The kit repository's own workflows, and the examples' deploy workflow.
 const kitDir = join(REPO, ".github", "workflows");
 const deployFile = join(BASICS, ".github", "workflows", "hostsmith.yml");
-const exampleDeployFiles = readdirSync(EXAMPLES).map((example) => join(EXAMPLES, example, ".github", "workflows", "hostsmith.yml"));
+const exampleDeployFiles = EXAMPLE_NAMES.map((example) => join(EXAMPLES, example, ".github", "workflows", "hostsmith.yml"));
 const workflows = [...readdirSync(kitDir).filter((f) => f.endsWith(".yml")).map((f) => join(kitDir, f)), ...exampleDeployFiles];
 const deploy = readFileSync(deployFile, "utf8");
 
@@ -85,7 +85,7 @@ describe("workflows", () => {
 
     it("name each example's site variable after its folder", async () => {
       const { listExamples } = await import("../scripts/list-examples.mjs");
-      assert.deepEqual(listExamples(EXAMPLES), readdirSync(EXAMPLES).sort().map((name) => ({ name, key: name.toUpperCase().replaceAll("-", "_") })));
+      assert.deepEqual(listExamples(EXAMPLES), EXAMPLE_NAMES.map((name) => ({ name, key: name.toUpperCase().replaceAll("-", "_") })));
       assert.deepEqual(listExamples(EXAMPLES).find((e) => e.name === "basics"), { name: "basics", key: "BASICS" });
     });
   });
