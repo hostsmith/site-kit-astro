@@ -13,7 +13,7 @@ function sectionHtml(html, entry, id) {
 }
 
 async function expectFailure(sections, ...expected) {
-  const build = await buildFixture("base", { files: { "src/content/pages/test.md": page(sections) } });
+  const build = await buildFixture("base", { files: { "src/content/pages/test.en.md": page(sections) } });
   await build.cleanup();
   assert.equal(build.ok, false, "the build should fail");
   for (const text of expected) assert.ok(build.output.includes(text), `output doesn't mention ${JSON.stringify(text)}:\n${build.output}`);
@@ -40,20 +40,20 @@ describe("library sections", () => {
     it("renders only the first hero title as h1", async () => {
       const html = await build.read("heroes/index.html");
       assert.equal(count(html, /<h1\b/g), 1);
-      assert.match(html, /<h1[^>]*data-field="pages\/heroes#sections\[h1a1\]\.title"[^>]*>Centered hero<\/h1>/);
-      assert.match(html, /<h2[^>]*data-field="pages\/heroes#sections\[h2b2\]\.title"[^>]*>Left hero<\/h2>/);
+      assert.match(html, /<h1[^>]*data-field="pages\/heroes\.en#sections\[h1a1\]\.title"[^>]*>Centered hero<\/h1>/);
+      assert.match(html, /<h2[^>]*data-field="pages\/heroes\.en#sections\[h2b2\]\.title"[^>]*>Left hero<\/h2>/);
     });
 
     it("renders the call to action", async () => {
       const html = await build.read("index.html");
-      assert.match(html, /<a href="\/order"[^>]*data-field="pages\/home#sections\[s7k2\]\.cta\.label"[^>]*>Order now<\/a>/);
+      assert.match(html, /<a href="\/order"[^>]*data-field="pages\/home\.en#sections\[s7k2\]\.cta\.label"[^>]*>Order now<\/a>/);
       assert.match(html, /<section data-section="hero"/);
-      assert.match(html, /<img src="\/assets\/test\/photo\.svg" alt="Loaves of rye bread on a wooden counter"[^>]*data-field="pages\/home#sections\[s7k2\]\.image"/);
+      assert.match(html, /<img src="\/assets\/test\/photo\.svg" alt="Loaves of rye bread on a wooden counter"[^>]*data-field="pages\/home\.en#sections\[s7k2\]\.image"/);
     });
 
     it("renders the badge, two buttons in order and the note", async () => {
-      const hero = sectionHtml(await build.read("heroes/index.html"), "pages/heroes", "h3c3");
-      const at = (path) => `data-field="pages/heroes#sections\\[h3c3\\]\\.${path}"`;
+      const hero = sectionHtml(await build.read("heroes/index.html"), "pages/heroes.en", "h3c3");
+      const at = (path) => `data-field="pages/heroes.en#sections\\[h3c3\\]\\.${path}"`;
       assert.match(hero, new RegExp(`<p class="sk-hero__badge" ${at("badge")}>\\s*Serving Testville since 1998\\s*</p>\\s*<h2`), "the badge comes before the title");
       assert.match(
         hero,
@@ -65,14 +65,14 @@ describe("library sections", () => {
     });
 
     it("renders the page variant's eyebrow before the title and the image after the text", async () => {
-      const hero = sectionHtml(await build.read("heroes/index.html"), "pages/heroes", "h5e5");
+      const hero = sectionHtml(await build.read("heroes/index.html"), "pages/heroes.en", "h5e5");
       assert.match(hero, /^<section data-section="hero" class="sk-section sk-hero sk-hero--page">/);
-      assert.match(hero, /<p class="sk-eyebrow" data-field="pages\/heroes#sections\[h5e5\]\.eyebrow">\s*About us\s*<\/p>\s*<h2 class="sk-hero__title"/);
+      assert.match(hero, /<p class="sk-eyebrow" data-field="pages\/heroes\.en#sections\[h5e5\]\.eyebrow">\s*About us\s*<\/p>\s*<h2 class="sk-hero__title"/);
       assert.match(hero, /A page header with a wide photo\.\s*<\/p>\s*<\/div>\s*<img[^>]*class="sk-hero__media"/);
     });
 
     it("builds a page hero without an image", async () => {
-      const build = await buildFixture("base", { files: { "src/content/pages/test.md": page("  - { id: s7k2, type: hero, title: Our story, variant: page }\n") } });
+      const build = await buildFixture("base", { files: { "src/content/pages/test.en.md": page("  - { id: s7k2, type: hero, title: Our story, variant: page }\n") } });
       try {
         assert.ok(build.ok, build.output);
       } finally {
@@ -89,7 +89,7 @@ describe("library sections", () => {
     });
 
     it("keeps the title before the body, each its own part, in title-aside", async () => {
-      const section = sectionHtml(await build.read("library/index.html"), "pages/library", "s4a8");
+      const section = sectionHtml(await build.read("library/index.html"), "pages/library.en", "s4a8");
       assert.match(
         section,
         /<div class="sk-section__header">\s*<h2 class="sk-section__title"[^>]*>\s*Our story\s*<\/h2>\s*<\/div>\s*<div class="sk-rich-text__body sk-prose"[^>]*>\s*<p>The bakery opened in 1998\.<\/p>/,
@@ -98,8 +98,8 @@ describe("library sections", () => {
 
     it("renders title and body with field attributes", async () => {
       const html = await build.read("index.html");
-      assert.match(html, /<h2[^>]*data-field="pages\/home#sections\[r4t8\]\.title"[^>]*>About the bread<\/h2>/);
-      assert.match(innerHtml(html, "div", 'data-field="pages/home#sections[r4t8].body"'), /<em>spelt<\/em>/);
+      assert.match(html, /<h2[^>]*data-field="pages\/home\.en#sections\[r4t8\]\.title"[^>]*>About the bread<\/h2>/);
+      assert.match(innerHtml(html, "div", 'data-field="pages/home.en#sections[r4t8].body"'), /<em>spelt<\/em>/);
     });
   });
 
@@ -109,15 +109,15 @@ describe("library sections", () => {
       const section = html.slice(html.indexOf('data-section="collection-list"'));
       const titles = [...section.matchAll(/<a href="([^"]+)"[^>]*data-field="news\/([^"#]+)#title"[^>]*>\s*([^<]+?)\s*<\/a>/g)].map((m) => [m[1], m[2]]);
       assert.deepEqual(titles, [
-        ["/news/fresh-rye", "fresh-rye"],
-        ["/news/third", "third"],
-        ["/news/second", "second"],
+        ["/news/fresh-rye", "fresh-rye.en"],
+        ["/news/third", "third.en"],
+        ["/news/second", "second.en"],
       ]);
     });
 
     it("renders the read-more text from settings", async () => {
       const html = await build.read("index.html");
-      assert.match(html, /<a href="\/news\/fresh-rye" aria-describedby="n2w6-fresh-rye"[^>]*data-field="settings\/site#ui\.readMore"[^>]*>\s*Read more\s*<\/a>/);
+      assert.match(html, /<a href="\/news\/fresh-rye" aria-describedby="n2w6-fresh-rye"[^>]*data-field="settings\/site\.en#ui\.readMore"[^>]*>\s*Read more\s*<\/a>/);
     });
 
     it("renders the list variant with every entry", async () => {
@@ -127,27 +127,27 @@ describe("library sections", () => {
     });
 
     it("renders the link beside the title", async () => {
-      const section = sectionHtml(await build.read("index.html"), "pages/home", "n2w6");
-      assert.match(section, /<h2 class="sk-section__title"[^>]*>\s*Latest news\s*<\/h2>\s*<a href="\/news" class="sk-section__link" data-field="pages\/home#sections\[n2w6\]\.link\.label">\s*All news\s*<\/a>/);
+      const section = sectionHtml(await build.read("index.html"), "pages/home.en", "n2w6");
+      assert.match(section, /<h2 class="sk-section__title"[^>]*>\s*Latest news\s*<\/h2>\s*<a href="\/news" class="sk-section__link" data-field="pages\/home\.en#sections\[n2w6\]\.link\.label">\s*All news\s*<\/a>/);
     });
 
     it("shows an entry's image, category and date in the site's language", async () => {
-      const section = sectionHtml(await build.read("index.html"), "pages/home", "n2w6");
+      const section = sectionHtml(await build.read("index.html"), "pages/home.en", "n2w6");
       const card = section.slice(section.indexOf("<li"), section.indexOf("</li>"));
-      assert.match(card, /<img src="\/assets\/test\/photo\.svg" alt="A rye loaf" class="sk-card__media" data-field="news\/fresh-rye#image">/);
-      assert.match(card, /<p class="sk-card__category" data-field="news\/fresh-rye#category">\s*Shop news\s*<\/p>\s*<h3/, "the category comes before the title");
-      assert.match(card, /<time datetime="2026-04-01" class="sk-card__meta" data-field="news\/fresh-rye#date">\s*April 1, 2026\s*<\/time>/);
+      assert.match(card, /<img src="\/assets\/test\/photo\.svg" alt="A rye loaf" class="sk-card__media" data-field="news\/fresh-rye\.en#image">/);
+      assert.match(card, /<p class="sk-card__category" data-field="news\/fresh-rye\.en#category">\s*Shop news\s*<\/p>\s*<h3/, "the category comes before the title");
+      assert.match(card, /<time datetime="2026-04-01" class="sk-card__meta" data-field="news\/fresh-rye\.en#date">\s*April 1, 2026\s*<\/time>/);
     });
 
     it("shows only the title and date of an entry without image or category", async () => {
-      const section = sectionHtml(await build.read("index.html"), "pages/home", "n2w6");
-      const third = section.split("<li").find((card) => card.includes("news/third#title"));
+      const section = sectionHtml(await build.read("index.html"), "pages/home.en", "n2w6");
+      const third = section.split("<li").find((card) => card.includes("news/third.en#title"));
       assert.ok(!third.includes("sk-card__media") && !third.includes("sk-card__category"));
       assert.match(third, /<time datetime="2026-03-01"[^>]*>\s*March 1, 2026\s*<\/time>/);
     });
 
     it("features the first entry of the featured variant", async () => {
-      const section = sectionHtml(await build.read("library/index.html"), "pages/library", "n9f3");
+      const section = sectionHtml(await build.read("library/index.html"), "pages/library.en", "n9f3");
       assert.match(section, /^<section data-section="collection-list" class="sk-section sk-collection-list sk-collection-list--featured">/);
       const cards = [...section.matchAll(/<li class="([^"]+)">/g)].map((m) => m[1]);
       assert.deepEqual(cards, ["sk-card sk-card--linked sk-card--featured", "sk-card sk-card--linked"]);
@@ -165,8 +165,8 @@ describe("library sections", () => {
     });
 
     it("renders the eyebrow, title, intro and link in the section header", async () => {
-      const section = sectionHtml(await build.read("index.html"), "pages/home", "v3p8");
-      const at = (path) => `data-field="pages/home#sections\\[v3p8\\]\\.${path}"`;
+      const section = sectionHtml(await build.read("index.html"), "pages/home.en", "v3p8");
+      const at = (path) => `data-field="pages/home.en#sections\\[v3p8\\]\\.${path}"`;
       assert.match(
         section,
         new RegExp(
@@ -176,14 +176,14 @@ describe("library sections", () => {
     });
 
     it("marks only linked items for a whole-card link", async () => {
-      const section = sectionHtml(await build.read("index.html"), "pages/home", "v3p8");
+      const section = sectionHtml(await build.read("index.html"), "pages/home.en", "v3p8");
       assert.match(section, /<li class="sk-card">[\s\S]*?Daily bread/, "an item without a link");
       assert.match(section, /<li class="sk-card sk-card--linked">[\s\S]*?<a href="\/catering"/, "an item with a link");
     });
 
     it("renders the section and item fields", async () => {
       const html = await build.read("index.html");
-      const at = (path) => `data-field="pages/home#sections\\[v3p8\\]\\.${path}"`;
+      const at = (path) => `data-field="pages/home.en#sections\\[v3p8\\]\\.${path}"`;
       assert.match(html, new RegExp(`<h2[^>]*${at("title")}[^>]*>What we bake</h2>`));
       assert.match(html, new RegExp(`<p[^>]*${at("intro")}[^>]*>Bread for every day and every party\\.</p>`));
       assert.match(html, new RegExp(`<img src="/assets/test/photo\\.svg" alt="A loaf of rye bread"[^>]*${at("items\\[0\\]\\.image")}`));
@@ -203,44 +203,44 @@ describe("library sections", () => {
 
     it("renders a linked item title as the link", async () => {
       const html = await build.read("index.html");
-      assert.match(html, /<h3[^>]*>\s*<a href="\/catering"[^>]*data-field="pages\/home#sections\[v3p8\]\.items\[1\]\.title"[^>]*>\s*Catering\s*<\/a>/);
+      assert.match(html, /<h3[^>]*>\s*<a href="\/catering"[^>]*data-field="pages\/home\.en#sections\[v3p8\]\.items\[1\]\.title"[^>]*>\s*Catering\s*<\/a>/);
     });
   });
 
   describe("gallery", () => {
     it("renders both variants", async () => {
       const html = await build.read("library/index.html");
-      const grid = sectionHtml(html, "pages/library", "g1r4");
+      const grid = sectionHtml(html, "pages/library.en", "g1r4");
       assert.match(grid, /^<section data-section="gallery" class="sk-section sk-gallery sk-gallery--grid">/);
       assert.equal(count(grid, /class="sk-gallery__image"/g), 3);
-      const masonry = sectionHtml(html, "pages/library", "g2m5");
+      const masonry = sectionHtml(html, "pages/library.en", "g2m5");
       assert.match(masonry, /^<section data-section="gallery" class="sk-section sk-gallery sk-gallery--masonry">/);
       assert.equal(count(masonry, /<li class="sk-gallery__item">/g), 2);
     });
 
     it("renders images and captions with field attributes", async () => {
       const html = await build.read("library/index.html");
-      const at = (path) => `data-field="pages/library#sections\\[g1r4\\]\\.${path}"`;
-      assert.match(html, /<h2[^>]*data-field="pages\/library#sections\[g1r4\]\.title"[^>]*>Inside the bakery<\/h2>/);
+      const at = (path) => `data-field="pages/library.en#sections\\[g1r4\\]\\.${path}"`;
+      assert.match(html, /<h2[^>]*data-field="pages\/library\.en#sections\[g1r4\]\.title"[^>]*>Inside the bakery<\/h2>/);
       assert.match(html, new RegExp(`<img src="/assets/test/photo\\.svg" alt="The oven" loading="lazy"[^>]*${at("images\\[0\\]\\.image")}`));
       assert.match(html, new RegExp(`<img src="/assets/test/photo\\.svg" alt="The shop front"[^>]*${at("images\\[2\\]\\.image")}`));
       assert.match(html, new RegExp(`<figcaption[^>]*${at("images\\[0\\]\\.caption")}[^>]*>\\s*Lit at 3:00\\s*</figcaption>`));
-      assert.equal(count(sectionHtml(html, "pages/library", "g1r4"), /<figcaption\b/g), 1, "an image without a caption has no figcaption");
+      assert.equal(count(sectionHtml(html, "pages/library.en", "g1r4"), /<figcaption\b/g), 1, "an image without a caption has no figcaption");
     });
   });
 
   describe("testimonials", () => {
     it("renders both variants", async () => {
       const html = await build.read("library/index.html");
-      const grid = sectionHtml(html, "pages/library", "t1g3");
+      const grid = sectionHtml(html, "pages/library.en", "t1g3");
       assert.match(grid, /^<section data-section="testimonials" class="sk-section sk-testimonials sk-testimonials--grid sk-tone-surface">/);
       assert.equal(count(grid, /<blockquote\b/g), 2);
-      const single = sectionHtml(html, "pages/library", "t2s4");
+      const single = sectionHtml(html, "pages/library.en", "t2s4");
       assert.match(single, /^<section data-section="testimonials" class="sk-section sk-testimonials sk-testimonials--single sk-tone-dark">/);
     });
 
     it("puts a placeholder in the place of a missing photo", async () => {
-      const grid = sectionHtml(await build.read("library/index.html"), "pages/library", "t1g3");
+      const grid = sectionHtml(await build.read("library/index.html"), "pages/library.en", "t1g3");
       const [first, second] = grid.split('<figure class="sk-testimonials__item">').slice(1);
       assert.match(first, /<img[^>]*class="sk-testimonials__avatar"/);
       assert.ok(!first.includes("sk-testimonials__placeholder"), "an item with a photo has no placeholder");
@@ -258,29 +258,29 @@ describe("library sections", () => {
         [1, "name", "Jaan Kask"],
       ];
       for (const [i, prop, text] of fields) {
-        const at = `data-field="pages/library#sections\\[t1g3\\]\\.items\\[${i}\\]\\.${prop}"`;
+        const at = `data-field="pages/library.en#sections\\[t1g3\\]\\.items\\[${i}\\]\\.${prop}"`;
         assert.match(html, new RegExp(`<(p|div)[^>]*${at}[^>]*>\\s*${text.replace(".", "\\.")}\\s*</\\1>`), `items[${i}].${prop}`);
       }
-      assert.match(html, /<blockquote[^>]*>\s*<p data-field="pages\/library#sections\[t1g3\]\.items\[0\]\.quote">/);
-      assert.match(html, /<img src="\/assets\/test\/photo\.svg" alt="Mari Tamm"[^>]*data-field="pages\/library#sections\[t1g3\]\.items\[0\]\.image"/);
+      assert.match(html, /<blockquote[^>]*>\s*<p data-field="pages\/library\.en#sections\[t1g3\]\.items\[0\]\.quote">/);
+      assert.match(html, /<img src="\/assets\/test\/photo\.svg" alt="Mari Tamm"[^>]*data-field="pages\/library\.en#sections\[t1g3\]\.items\[0\]\.image"/);
       assert.ok(!html.includes("sections[t1g3].items[1].role"), "an item without a role renders no role");
     });
   });
 
   describe("faq", () => {
     it("renders each item as a native disclosure with the question as its summary", async () => {
-      const faq = sectionHtml(await build.read("index.html"), "pages/home", "q1m9");
+      const faq = sectionHtml(await build.read("index.html"), "pages/home.en", "q1m9");
       assert.match(faq, /^<section data-section="faq"/);
       assert.equal(count(faq, /<details class="sk-faq__item">/g), 2, "two closed <details>");
-      assert.match(faq, /<details class="sk-faq__item">\s*<summary[^>]*data-field="pages\/home#sections\[q1m9\]\.items\[0\]\.question"[^>]*>\s*When do you open\?\s*<\/summary>/);
+      assert.match(faq, /<details class="sk-faq__item">\s*<summary[^>]*data-field="pages\/home\.en#sections\[q1m9\]\.items\[0\]\.question"[^>]*>\s*When do you open\?\s*<\/summary>/);
       assert.doesNotMatch(faq, /<script|\son[a-z]+=/, "the FAQ needs no script");
     });
 
     it("renders the answer as markdown with a field attribute", async () => {
       const html = await build.read("index.html");
-      const first = innerHtml(html, "div", 'data-field="pages/home#sections[q1m9].items[0].answer"');
+      const first = innerHtml(html, "div", 'data-field="pages/home.en#sections[q1m9].items[0].answer"');
       assert.equal(first.trim(), "<p>Every day at 7:00.</p>");
-      const second = innerHtml(html, "div", 'data-field="pages/home#sections[q1m9].items[1].answer"');
+      const second = innerHtml(html, "div", 'data-field="pages/home.en#sections[q1m9].items[1].answer"');
       assert.match(second, /<a href="mailto:test@example\.com">Email us<\/a>/);
       assert.equal(count(second, /<li>/g), 2);
     });
@@ -288,8 +288,8 @@ describe("library sections", () => {
 
   describe("cta", () => {
     it("renders both buttons as links, the main one first", async () => {
-      const cta = sectionHtml(await build.read("library/index.html"), "pages/library", "c1b6");
-      const links = [...cta.matchAll(/<a href="([^"]+)"[^>]*data-field="pages\/library#sections\[c1b6\]\.(\w+)\.label"[^>]*>\s*([^<]+?)\s*<\/a>/g)];
+      const cta = sectionHtml(await build.read("library/index.html"), "pages/library.en", "c1b6");
+      const links = [...cta.matchAll(/<a href="([^"]+)"[^>]*data-field="pages\/library\.en#sections\[c1b6\]\.(\w+)\.label"[^>]*>\s*([^<]+?)\s*<\/a>/g)];
       assert.deepEqual(
         links.map((m) => m.slice(1)),
         [
@@ -297,17 +297,17 @@ describe("library sections", () => {
           ["tel:+15550100", "secondaryButton", "Call us"],
         ],
       );
-      assert.match(cta, /<h2[^>]*data-field="pages\/library#sections\[c1b6\]\.title"[^>]*>Planning an event\?<\/h2>/);
-      assert.match(cta, /<p[^>]*data-field="pages\/library#sections\[c1b6\]\.text"[^>]*>Tell us the date and the number of guests\.<\/p>/);
+      assert.match(cta, /<h2[^>]*data-field="pages\/library\.en#sections\[c1b6\]\.title"[^>]*>Planning an event\?<\/h2>/);
+      assert.match(cta, /<p[^>]*data-field="pages\/library\.en#sections\[c1b6\]\.text"[^>]*>Tell us the date and the number of guests\.<\/p>/);
     });
 
     it("renders both variants", async () => {
       const html = await build.read("library/index.html");
-      const banner = sectionHtml(html, "pages/library", "c1b6");
+      const banner = sectionHtml(html, "pages/library.en", "c1b6");
       assert.match(banner, /^<section data-section="cta" class="sk-section sk-cta sk-cta--banner sk-tone-accent">/, "accent is the default tone");
       assert.match(banner, /<a href="mailto:test@example\.com" class="sk-button sk-button--primary"/);
       assert.match(banner, /<a href="tel:\+15550100" class="sk-button sk-button--secondary"/);
-      const card = sectionHtml(html, "pages/library", "c2k7");
+      const card = sectionHtml(html, "pages/library.en", "c2k7");
       assert.match(card, /^<section data-section="cta" class="sk-section sk-cta sk-cta--card sk-tone-dark">/);
       assert.equal(count(card, /<a\b/g), 1, "a card without secondaryButton has one link");
     });
@@ -315,8 +315,8 @@ describe("library sections", () => {
 
   describe("hours-location", () => {
     it("renders the address, hours, note and map link with field attributes", async () => {
-      const section = sectionHtml(await build.read("library/index.html"), "pages/library", "k7h2");
-      const at = (path) => `data-field="pages/library#sections\\[k7h2\\]\\.${path}"`;
+      const section = sectionHtml(await build.read("library/index.html"), "pages/library.en", "k7h2");
+      const at = (path) => `data-field="pages/library.en#sections\\[k7h2\\]\\.${path}"`;
       assert.match(section, /^<section data-section="hours-location"/);
       assert.match(section, new RegExp(`<address[^>]*${at("address")}[^>]*>\\s*1 Test Street<br>12345 Testville\\s*</address>`));
       assert.match(section, new RegExp(`<dt[^>]*${at("hours\\[1\\]\\.days")}[^>]*>\\s*Saturday and Sunday\\s*</dt>\\s*<dd[^>]*${at("hours\\[1\\]\\.time")}[^>]*>8:00-16:00</dd>`));
@@ -335,17 +335,17 @@ describe("library sections", () => {
     });
 
     it("shows its phone number and email address as links", async () => {
-      const section = sectionHtml(await build.read("library/index.html"), "pages/library", "k7h2");
+      const section = sectionHtml(await build.read("library/index.html"), "pages/library.en", "k7h2");
       assert.match(
         section,
-        /<a href="tel:\+15550100" class="sk-hours-location__contact-link" data-field="pages\/library#sections\[k7h2\]\.phone">\s*<svg class="sk-icon" data-icon="phone"[^>]*>[\s\S]*?<\/svg>\s*\+1 555 0100\s*<\/a>/,
+        /<a href="tel:\+15550100" class="sk-hours-location__contact-link" data-field="pages\/library\.en#sections\[k7h2\]\.phone">\s*<svg class="sk-icon" data-icon="phone"[^>]*>[\s\S]*?<\/svg>\s*\+1 555 0100\s*<\/a>/,
       );
-      assert.match(section, /<a href="mailto:test@example\.com" class="sk-hours-location__contact-link" data-field="pages\/library#sections\[k7h2\]\.email">/);
+      assert.match(section, /<a href="mailto:test@example\.com" class="sk-hours-location__contact-link" data-field="pages\/library\.en#sections\[k7h2\]\.email">/);
     });
 
     it("shows no contact details without a phone or email", async () => {
       const build = await buildFixture("base", {
-        files: { "src/content/pages/test.md": page("  - { id: k7h2, type: hours-location, address: 1 Test Street }\n") },
+        files: { "src/content/pages/test.en.md": page("  - { id: k7h2, type: hours-location, address: 1 Test Street }\n") },
       });
       try {
         assert.ok(build.ok, build.output);
@@ -359,30 +359,30 @@ describe("library sections", () => {
   describe("trust-bar", () => {
     it("renders each item with its field path, in both variants", async () => {
       const html = await build.read("blocks/index.html");
-      const line = sectionHtml(html, "pages/blocks", "b1t1");
+      const line = sectionHtml(html, "pages/blocks.en", "b1t1");
       assert.match(line, /^<section data-section="trust-bar" class="sk-section sk-trust-bar sk-trust-bar--line">/);
       assert.equal(count(line, /<li class="sk-trust-bar__item"/g), 4);
-      assert.match(line, /<li class="sk-trust-bar__item" data-field="pages\/blocks#sections\[b1t1\]\.items\[0\]\.text">\s*Licensed &amp; insured\s*<\/li>/);
-      assert.match(sectionHtml(html, "pages/blocks", "b2t2"), /^<section data-section="trust-bar" class="sk-section sk-trust-bar sk-trust-bar--chips">/);
+      assert.match(line, /<li class="sk-trust-bar__item" data-field="pages\/blocks\.en#sections\[b1t1\]\.items\[0\]\.text">\s*Licensed &amp; insured\s*<\/li>/);
+      assert.match(sectionHtml(html, "pages/blocks.en", "b2t2"), /^<section data-section="trust-bar" class="sk-section sk-trust-bar sk-trust-bar--chips">/);
     });
   });
 
   describe("stats", () => {
     it("renders each figure's value and label with field paths", async () => {
-      const stats = sectionHtml(await build.read("blocks/index.html"), "pages/blocks", "b4s4");
+      const stats = sectionHtml(await build.read("blocks/index.html"), "pages/blocks.en", "b4s4");
       assert.match(stats, /^<section data-section="stats" class="sk-section sk-stats sk-tone-dark">/);
       assert.equal(count(stats, /<li class="sk-stat">/g), 4);
       assert.match(
         stats,
-        /<li class="sk-stat">\s*<p class="sk-stat__value" data-field="pages\/blocks#sections\[b4s4\]\.items\[3\]\.value">4\.9<\/p>\s*<p class="sk-stat__label" data-field="pages\/blocks#sections\[b4s4\]\.items\[3\]\.label">Average rating<\/p>/,
+        /<li class="sk-stat">\s*<p class="sk-stat__value" data-field="pages\/blocks\.en#sections\[b4s4\]\.items\[3\]\.value">4\.9<\/p>\s*<p class="sk-stat__label" data-field="pages\/blocks\.en#sections\[b4s4\]\.items\[3\]\.label">Average rating<\/p>/,
       );
-      assert.match(sectionHtml(await build.read("blocks/index.html"), "pages/blocks", "b3s3"), /class="sk-section sk-stats sk-tone-plain"/);
+      assert.match(sectionHtml(await build.read("blocks/index.html"), "pages/blocks.en", "b3s3"), /class="sk-section sk-stats sk-tone-plain"/);
     });
   });
 
   describe("steps", () => {
     it("renders the steps as an ordered list, in order, with no number text", async () => {
-      const steps = sectionHtml(await build.read("blocks/index.html"), "pages/blocks", "b5p5");
+      const steps = sectionHtml(await build.read("blocks/index.html"), "pages/blocks.en", "b5p5");
       const titles = [...steps.matchAll(/<h3 class="sk-steps__title"[^>]*>\s*([^<]+?)\s*<\/h3>/g)].map((m) => m[1]);
       assert.deepEqual(titles, ["Free visit", "Written quote", "The work", "Walkthrough"]);
       assert.match(steps, /<ol class="sk-steps__list">(\s*<li class="sk-steps__item">[\s\S]*?<\/li>){4}\s*<\/ol>/);
@@ -394,16 +394,16 @@ describe("library sections", () => {
 
   describe("split", () => {
     it("renders the image first, then the text, figures and link", async () => {
-      const split = sectionHtml(await build.read("blocks/index.html"), "pages/blocks", "b6l6");
+      const split = sectionHtml(await build.read("blocks/index.html"), "pages/blocks.en", "b6l6");
       assert.match(split, /^<section data-section="split" class="sk-section sk-split sk-split--image-left sk-tone-plain">\s*<div class="sk-container">\s*<img src="\/assets\/test\/photo\.svg" alt="The founders at work" class="sk-split__media"/);
       assert.match(split, /<div class="sk-split__body sk-prose"[^>]*>\s*<p>Started by <strong>two friends<\/strong> in 1998\.<\/p>/);
       assert.equal(count(split, /<li class="sk-stat">/g), 3);
-      assert.match(split, /<p class="sk-stat__value" data-field="pages\/blocks#sections\[b6l6\]\.stats\[0\]\.value">500\+<\/p>/);
-      assert.match(split, /<a href="\/about" class="sk-split__link" data-field="pages\/blocks#sections\[b6l6\]\.link\.label">\s*Meet the team\s*<\/a>/);
+      assert.match(split, /<p class="sk-stat__value" data-field="pages\/blocks\.en#sections\[b6l6\]\.stats\[0\]\.value">500\+<\/p>/);
+      assert.match(split, /<a href="\/about" class="sk-split__link" data-field="pages\/blocks\.en#sections\[b6l6\]\.link\.label">\s*Meet the team\s*<\/a>/);
     });
 
     it("keeps the image first in the image-right variant", async () => {
-      const split = sectionHtml(await build.read("blocks/index.html"), "pages/blocks", "b7r7");
+      const split = sectionHtml(await build.read("blocks/index.html"), "pages/blocks.en", "b7r7");
       assert.match(split, /^<section data-section="split" class="sk-section sk-split sk-split--image-right sk-tone-surface">\s*<div class="sk-container">\s*<img/);
       assert.ok(!split.includes("sk-split__stats") && !split.includes("sk-split__body"), "no empty parts");
     });
@@ -411,7 +411,7 @@ describe("library sections", () => {
 
   describe("team", () => {
     it("renders a placeholder for a member without a photo", async () => {
-      const team = sectionHtml(await build.read("blocks/index.html"), "pages/blocks", "b8m8");
+      const team = sectionHtml(await build.read("blocks/index.html"), "pages/blocks.en", "b8m8");
       const members = team.split('<li class="sk-team__member">').slice(1);
       assert.equal(members.length, 3);
       assert.match(members[0], /^\s*<img src="\/assets\/test\/photo\.svg" alt="Dana in the workshop" class="sk-team__photo"/);
@@ -423,10 +423,10 @@ describe("library sections", () => {
 
   describe("pricing-list", () => {
     it("renders each price as written in a description list", async () => {
-      const pricing = sectionHtml(await build.read("blocks/index.html"), "pages/blocks", "b9c9");
+      const pricing = sectionHtml(await build.read("blocks/index.html"), "pages/blocks.en", "b9c9");
       assert.match(
         pricing,
-        /<dt class="sk-pricing-list__label" data-field="pages\/blocks#sections\[b9c9\]\.items\[1\]\.label">\s*Kitchen remodel\s*<\/dt>\s*<dd class="sk-pricing-list__price" data-field="pages\/blocks#sections\[b9c9\]\.items\[1\]\.price">\s*from \$18,000\s*<\/dd>/,
+        /<dt class="sk-pricing-list__label" data-field="pages\/blocks\.en#sections\[b9c9\]\.items\[1\]\.label">\s*Kitchen remodel\s*<\/dt>\s*<dd class="sk-pricing-list__price" data-field="pages\/blocks\.en#sections\[b9c9\]\.items\[1\]\.price">\s*from \$18,000\s*<\/dd>/,
       );
       assert.match(pricing, /<p class="sk-pricing-list__note"[^>]*>\s*Your fixed quote follows the free visit\.\s*<\/p>/);
     });
@@ -445,26 +445,26 @@ describe("invalid sections fail the build", () => {
         "    items: [{ value: '1', label: A }]",
         "",
       ].join("\n"),
-      "test.md",
+      "test.en.md",
       'section "s1s1" (stats): prop "items": has at most 4 items',
       'section "s2s2" (stats): prop "items": needs at least 2 items',
     ));
 
   it("names a split without an image", () =>
-    expectFailure("  - { id: s3s3, type: split, title: About us }\n", "test.md", 'section "s3s3" (split): missing required prop "image"'));
+    expectFailure("  - { id: s3s3, type: split, title: About us }\n", "test.en.md", 'section "s3s3" (split): missing required prop "image"'));
 
   it("names an unknown hero variant", () =>
-    expectFailure("  - { id: s7k2, type: hero, title: One, variant: diagonal }\n", "test.md", 'section "s7k2" (hero): prop "variant" has the value "diagonal"'));
+    expectFailure("  - { id: s7k2, type: hero, title: One, variant: diagonal }\n", "test.en.md", 'section "s7k2" (hero): prop "variant" has the value "diagonal"'));
 
   it("names a hero image without alt text", () =>
     expectFailure(
       "  - { id: s7k2, type: hero, title: One, image: /assets/test/photo.svg, variant: image-left }\n",
-      "test.md",
+      "test.en.md",
       'section "s7k2" (hero): image "/assets/test/photo.svg" has no alt text',
     ));
 
   it("names an unknown collection", () =>
-    expectFailure("  - { id: s7k2, type: collection-list, collection: events }\n", "test.md", 'prop "collection" has the value "events"'));
+    expectFailure("  - { id: s7k2, type: collection-list, collection: events }\n", "test.en.md", 'prop "collection" has the value "events"'));
 
   it("names a services-grid item image without alt text, and an empty list", () =>
     expectFailure(
@@ -477,7 +477,7 @@ describe("invalid sections fail the build", () => {
         "  - { id: v4p9, type: services-grid, items: [] }",
         "",
       ].join("\n"),
-      "test.md",
+      "test.en.md",
       'section "v3p8" (services-grid): items[1]: image "/assets/test/photo.svg" has no alt text. Set "imageAlt".',
       'section "v4p9" (services-grid): prop "items": needs at least one item',
     ));
@@ -485,7 +485,7 @@ describe("invalid sections fail the build", () => {
   it("names an unknown icon, its item and the allowed names", () =>
     expectFailure(
       "  - id: v3p8\n    type: services-grid\n    items:\n      - { title: Bread, icon: wrench }\n      - { title: Repairs, icon: hammmer }\n",
-      "test.md",
+      "test.en.md",
       'section "v3p8" (services-grid): prop "items[1].icon" has the value "hammmer", expected one of "calendar", "check"',
       '"wrench"',
     ));
@@ -505,7 +505,7 @@ describe("invalid sections fail the build", () => {
         "      - { quote: Good bread, name: Mari, image: /assets/test/photo.svg }",
         "",
       ].join("\n"),
-      "test.md",
+      "test.en.md",
       'section "g1r4" (gallery): images[2]: image "/assets/test/photo.svg" has no alt text. Set "alt".',
       'section "t1g3" (testimonials): items[0]: image "/assets/test/photo.svg" has no alt text. Set "imageAlt".',
     ));
@@ -513,7 +513,7 @@ describe("invalid sections fail the build", () => {
   it("names a cta without a button, and hours-location without anything to show", () =>
     expectFailure(
       "  - { id: c1b6, type: cta, title: Hello }\n  - { id: k7h2, type: hours-location, title: Visit us, note: Closed }\n",
-      "test.md",
+      "test.en.md",
       'section "c1b6" (cta): missing required prop "button"',
       'section "k7h2" (hours-location): needs an "address", "hours", "phone" or "email"',
     ));

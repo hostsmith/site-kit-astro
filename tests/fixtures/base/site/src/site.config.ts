@@ -9,6 +9,7 @@
 // with "/", has no trailing slash and may have several segments.
 export const siteConfig = {
   url: "https://www.example.com",
+  locales: [{ code: "en" }],
   collections: {
     news: { basePath: "/news" },
   },

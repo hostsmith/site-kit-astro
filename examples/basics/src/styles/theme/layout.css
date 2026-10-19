@@ -203,6 +203,43 @@
   text-underline-offset: 4px;
 }
 
+/* The language switcher of a site with several locales, in the header's
+   actions or a footer block: a row of locales, the current one underlined
+   like the nav's current page. */
+.sk-locales {
+  color: inherit;
+}
+
+.sk-locales__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+.sk-locales__item {
+  display: flex;
+}
+
+.sk-locales__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+
+  &[aria-current="page"] {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+}
+
+.sk-footer__block--locales {
+  margin-top: 0.5rem;
+}
+
 /* On the narrow panel the call button stands in for the number. */
 .sk-header__phone {
   display: none;

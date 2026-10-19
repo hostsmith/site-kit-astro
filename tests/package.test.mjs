@@ -41,13 +41,13 @@ describe("the site contract", () => {
       edit: { "src/site.schema.ts": siteSchemaWith("note"), "public/admin/config.site.yml": (text) => text.replace("section_types: []", decapType) },
       files: {
         "src/components/sections/site/note.astro": component,
-        "src/content/pages/note.md": "---\ntitle: Note\nsections:\n  - { id: n0t3, type: note, title: Hello, body: 'Some **bold** text' }\n---\n",
+        "src/content/pages/note.en.md": "---\ntitle: Note\nsections:\n  - { id: n0t3, type: note, title: Hello, body: 'Some **bold** text' }\n---\n",
       },
     });
     try {
       assert.ok(build.ok, build.output);
       const html = await build.read("note/index.html");
-      assert.match(html, /<section data-section="note"><h2 data-field="pages\/note#sections\[n0t3\]\.title">Hello<\/h2>/);
+      assert.match(html, /<section data-section="note"><h2 data-field="pages\/note\.en#sections\[n0t3\]\.title">Hello<\/h2>/);
       assert.match(html, /<strong>bold<\/strong>/);
     } finally {
       await build.cleanup();

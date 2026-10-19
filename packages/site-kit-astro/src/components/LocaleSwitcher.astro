@@ -1,0 +1,44 @@
+---
+// The language switcher of a localized site (site-kit-locales design D52): a
+// `locales` header action or footer block. It links to the current page in
+// each locale, or to that locale's home page when the page has no
+// translation, and marks the current locale. Plain links: it works without
+// scripts, and a theme lays it out as a row or a menu. The links carry
+// `hreflang`, so the kit's link localization leaves them as they are. A site
+// with one locale has no language to switch to, so it renders nothing.
+import { getTranslations, routeOf } from "../lib/routes.ts";
+import { getSettings } from "../lib/settings.ts";
+import { localeOfCode, locales, localized } from "../lib/site-locales.ts";
+
+interface Props {
+  // The page's URL path, or nothing on a 404 page.
+  path?: string;
+  // The page's locale code.
+  locale?: string;
+}
+
+const current = localeOfCode(Astro.props.locale);
+const { ui } = await getSettings(current?.code);
+const route = Astro.props.path === undefined ? undefined : await routeOf(Astro.props.path);
+const translations = route ? await getTranslations(route) : [];
+const items = locales.map((locale) => ({
+  locale,
+  href: translations.find((translation) => translation.locale.code === locale.code)?.path ?? (locale.path || "/"),
+}));
+---
+
+{
+  localized && (
+    <nav class="sk-locales" aria-label={ui.locales}>
+      <ul class="sk-locales__list">
+        {items.map(({ locale, href }) => (
+          <li class="sk-locales__item">
+            <a href={href} class="sk-locales__link" lang={locale.tag} hreflang={locale.tag} aria-current={locale.code === current?.code ? "page" : undefined}>
+              {locale.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}

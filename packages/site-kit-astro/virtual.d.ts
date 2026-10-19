@@ -7,4 +7,5 @@ declare module "virtual:site-kit/config" {
 declare module "virtual:site-kit/site-schema" {
   export const siteSectionSchemas: Record<string, import("astro/zod").z.ZodObject>;
   export const siteCollections: Record<string, unknown>;
+  export const siteUi: Record<string, import("./src/lib/schema.ts").UiString> | undefined;
 }

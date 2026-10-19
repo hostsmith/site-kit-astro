@@ -108,7 +108,7 @@ describe("basics example content", () => {
     // Posts are served at /blog/<slug>, with the breadcrumb through the blog page.
     const post = await build.read("blog/what-a-fixed-quote-should-include/index.html");
     assert.match(post, /<nav[^>]*aria-label="Breadcrumb"[\s\S]*?<a href="\/blog"[^>]*>\s*Blog\s*<\/a>/);
-    assert.match(post, /data-field="news\/what-a-fixed-quote-should-include#category">\s*Planning\s*</);
+    assert.match(post, /data-field="news\/what-a-fixed-quote-should-include\.en#category">\s*Planning\s*</);
   });
 
   it("has no bracketed placeholders in its content and settings", async () => {
@@ -159,7 +159,7 @@ describe("basics example content", () => {
 
   it("fails on a post with an unknown category, naming the allowed ones", async () => {
     const bad = await buildFixture(null, {
-      files: { "src/content/news/bad-category.md": '---\ntitle: Bad category\ndate: "2026-10-01"\ncategory: Gardening\n---\n\nText.\n' },
+      files: { "src/content/news/bad-category.en.md": '---\ntitle: Bad category\ndate: "2026-10-01"\ncategory: Gardening\n---\n\nText.\n' },
     });
     try {
       assert.equal(bad.ok, false);

@@ -1,5 +1,4 @@
 name: Test Bakery
-language: en
 nav:
   - label: Home
     link: /

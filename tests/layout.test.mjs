@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 import { buildFixture, count, htmlFiles } from "./helpers.mjs";
 
-const SETTINGS_FILE = "src/content/settings/site.yml";
+const SETTINGS_FILE = "src/content/settings/site.en.yml";
 
 // The settings text without a top-level key and its indented lines.
 const withoutKey = (text, key) => text.replace(new RegExp(`^${key}:\\n(?:  .*\\n)+`, "m"), "");
@@ -31,11 +31,11 @@ describe("base layout", () => {
   });
 
   it("puts the skip link first", () => {
-    assert.match(home, /<body[^>]*>\s*<a href="#main"[^>]*data-field="settings\/site#ui\.skipLink"[^>]*>Skip to content<\/a>/);
+    assert.match(home, /<body[^>]*>\s*<a href="#main"[^>]*data-field="settings\/site\.en#ui\.skipLink"[^>]*>Skip to content<\/a>/);
   });
 
   it("renders the nav from settings in order", () => {
-    const labels = [...home.matchAll(/data-field="settings\/site#nav\[(\d)\]\.label"[^>]*>([^<]+)</g)].map((m) => [Number(m[1]), m[2]]);
+    const labels = [...home.matchAll(/data-field="settings\/site\.en#nav\[(\d)\]\.label"[^>]*>([^<]+)</g)].map((m) => [Number(m[1]), m[2]]);
     assert.deepEqual(labels, [
       [0, "Home"],
       [1, "About"],
@@ -48,7 +48,7 @@ describe("base layout", () => {
     const button = home.slice(home.indexOf("<button"), home.indexOf("</button>"));
     assert.match(button, /^<button type="button" hidden aria-expanded="false" aria-controls="sk-menu" class="sk-header__menu-button">/);
     assert.match(button, /data-icon="menu"[\s\S]*data-icon="x"/, "a menu and a close icon");
-    assert.match(button, /<span class="sk-header__menu-label" data-field="settings\/site#ui\.menu">\s*Menu\s*<\/span>/);
+    assert.match(button, /<span class="sk-header__menu-label" data-field="settings\/site\.en#ui\.menu">\s*Menu\s*<\/span>/);
     assert.match(home, /<div id="sk-menu" class="sk-menu">\s*<nav class="sk-nav" aria-label="Main">/, "the menu holds the nav, open without scripts");
   });
 
@@ -56,9 +56,9 @@ describe("base layout", () => {
     assert.match(home, /<a href="tel:\+15550100" class="sk-header__call" aria-label="Call \+1 555 0100">\s*<svg class="sk-icon" data-icon="phone"[^>]*aria-hidden="true"/);
     const menu = home.slice(home.indexOf('id="sk-menu"'), home.indexOf("</header>"));
     const actions = [
-      /<a href="tel:\+15550100" class="sk-header__phone" data-field="settings\/site#header\.actions\[0\]\.number">\s*\+1 555 0100\s*<\/a>/,
-      /<a href="\/about" class="sk-button sk-button--primary" data-field="settings\/site#header\.actions\[1\]\.label">\s*Get an estimate\s*<\/a>/,
-      /<a href="\/news" class="sk-header__link" data-field="settings\/site#header\.actions\[2\]\.label">\s*Latest news\s*<\/a>/,
+      /<a href="tel:\+15550100" class="sk-header__phone" data-field="settings\/site\.en#header\.actions\[0\]\.number">\s*\+1 555 0100\s*<\/a>/,
+      /<a href="\/about" class="sk-button sk-button--primary" data-field="settings\/site\.en#header\.actions\[1\]\.label">\s*Get an estimate\s*<\/a>/,
+      /<a href="\/news" class="sk-header__link" data-field="settings\/site\.en#header\.actions\[2\]\.label">\s*Latest news\s*<\/a>/,
     ].map((pattern) => menu.search(pattern));
     assert.ok(actions.every((at) => at > menu.indexOf('<div class="sk-header__actions">')), `actions not all in the menu: ${actions}`);
     assert.deepEqual([...actions].sort((a, b) => a - b), actions, "the actions keep their order");
@@ -90,7 +90,7 @@ describe("base layout", () => {
       assert.match(header, /class="sk-header__menu-button"/, "the nav still has its menu");
       const footer = html.slice(html.indexOf("<footer"));
       assert.ok(!footer.includes("sk-footer__group"), "a group without footer.blocks");
-      assert.match(footer, /<p class="sk-footer__block sk-footer__block--copyright">\s*© \d{4} <span data-field="settings\/site#name">Test Bakery<\/span>/, "the site name stands in for the copyright text");
+      assert.match(footer, /<p class="sk-footer__block sk-footer__block--copyright">\s*© \d{4} <span data-field="settings\/site\.en#name">Test Bakery<\/span>/, "the site name stands in for the copyright text");
 
       assert.ok(none.ok, none.output);
       assert.ok(!(await none.read("index.html")).includes("<footer"), "a footer without blocks");
@@ -114,10 +114,10 @@ describe("base layout", () => {
     assert.equal(groups.length, 5, "brand with contact, two links blocks, hours and text");
     assert.match(groups[0], /sk-footer__block--brand[\s\S]*sk-footer__block--contact/, "withPrevious keeps the contact block with the brand");
 
-    const at = (path) => `data-field="settings/site#footer.blocks${path}"`;
+    const at = (path) => `data-field="settings/site.en#footer.blocks${path}"`;
     assert.match(footer, new RegExp(`<p class="sk-footer__text" ${at("\\[0\\]\\.text")}>\\s*A test site\\.`));
     assert.match(footer, new RegExp(`<address class="sk-footer__contact">[\\s\\S]*${at("\\[1\\]\\.address")}[\\s\\S]*href="tel:\\+15550100"[^>]*${at("\\[1\\]\\.phone")}[\\s\\S]*href="mailto:test@example\\.com"[^>]*${at("\\[1\\]\\.email")}`));
-    assert.match(footer, /<nav class="sk-footer__block sk-footer__block--links" aria-labelledby="sk-footer-block-2">\s*<h2 id="sk-footer-block-2" class="sk-footer__title" data-field="settings\/site#footer\.blocks\[2\]\.title">\s*Services\s*<\/h2>/);
+    assert.match(footer, /<nav class="sk-footer__block sk-footer__block--links" aria-labelledby="sk-footer-block-2">\s*<h2 id="sk-footer-block-2" class="sk-footer__title" data-field="settings\/site\.en#footer\.blocks\[2\]\.title">\s*Services\s*<\/h2>/);
     assert.ok(footer.includes(at("[3].links[1].label")), "the second links block's links carry fields");
     assert.equal(count(footer, /<div class="sk-footer__hours-row">/g), 3);
     assert.match(footer, new RegExp(`<dt ${at("\\[4\\]\\.rows\\[2\\]\\.days")}>Sunday</dt>\\s*<dd ${at("\\[4\\]\\.rows\\[2\\]\\.time")}>Closed</dd>`));
@@ -126,13 +126,13 @@ describe("base layout", () => {
 
   it("renders the bottom row", () => {
     const bottom = home.slice(home.indexOf('<div class="sk-footer__bottom">'));
-    assert.match(bottom, /<p class="sk-footer__block sk-footer__block--copyright">\s*© \d{4} <span data-field="settings\/site#footer\.bottom\[0\]\.text">Test Bakery LLC · License 12345<\/span>/);
+    assert.match(bottom, /<p class="sk-footer__block sk-footer__block--copyright">\s*© \d{4} <span data-field="settings\/site\.en#footer\.bottom\[0\]\.text">Test Bakery LLC · License 12345<\/span>/);
     assert.match(bottom, /<nav class="sk-footer__block sk-footer__block--links" aria-label="Footer">/, "an untitled links block is named by ui.footerNav");
-    assert.match(bottom, /href="https:\/\/social\.example\.com\/test"[^>]*data-field="settings\/site#footer\.bottom\[1\]\.links\[1\]\.label"/);
+    assert.match(bottom, /href="https:\/\/social\.example\.com\/test"[^>]*data-field="settings\/site\.en#footer\.bottom\[1\]\.links\[1\]\.label"/);
   });
 
   for (const [name, edit, message] of [
-    ["an unknown block type", (text) => text.replace("    - type: text\n", "    - type: map\n"), /footer block 6: unknown type "map"\. Footer block types: brand, contact, links, hours, text, copyright\./],
+    ["an unknown block type", (text) => text.replace("    - type: text\n", "    - type: map\n"), /footer block 6: unknown type "map"\. Footer block types: brand, contact, links, hours, text, copyright, locales\./],
     ["two call buttons", (text) => text.replace("      link: /news\nfooter:", "      link: /news\n    - type: phone\n      number: \"+1 555 0199\"\n      callLabel: Call\nfooter:"), /header action 4 \(phone\): only one phone action may set "callLabel"/],
     ["two untitled footer navs", (text) => text.replace("      title: Services\n", ""), /footer bottom block 2 \(links\): a second "links" block without a title/],
     ["withPrevious in the bottom row", (text) => text.replace("    - type: copyright\n", "    - type: copyright\n      withPrevious: true\n"), /footer bottom block 1 \(copyright\): "withPrevious" groups footer\.blocks only/],
@@ -157,7 +157,7 @@ describe("base layout", () => {
   it("gives a page without a hero a visually hidden h1", async () => {
     assert.match(
       await build.read("about/index.html"),
-      /<h1 style="position:absolute;width:1px;height:1px;[^"]*clip:rect\(0 0 0 0\)[^"]*" data-field="pages\/about#title">\s*About us \| Bakery\s*<\/h1>/,
+      /<h1 style="position:absolute;width:1px;height:1px;[^"]*clip:rect\(0 0 0 0\)[^"]*" data-field="pages\/about\.en#title">\s*About us \| Bakery\s*<\/h1>/,
     );
   });
 });
@@ -167,7 +167,7 @@ describe("breadcrumb", () => {
   // test adds a /services page as the plumbing page's parent.
   let build;
   before(async () => {
-    build = await buildFixture("base", { files: { "src/content/pages/services.md": "---\ntitle: Services\nsections: []\n---\n" } });
+    build = await buildFixture("base", { files: { "src/content/pages/services.en.md": "---\ntitle: Services\nsections: []\n---\n" } });
   });
   after(() => build.cleanup());
 
@@ -185,9 +185,9 @@ describe("breadcrumb", () => {
     assert.ok(build.ok, build.output);
     const html = await build.read("services/plumbing/index.html");
     assert.deepEqual(crumbs(html), [
-      ["/", "settings/site#ui.home", "Home"],
-      ["/services", "pages/services#title", "Services"],
-      [null, "pages/services/plumbing#title", "Plumbing"],
+      ["/", "settings/site.en#ui.home", "Home"],
+      ["/services", "pages/services.en#title", "Services"],
+      [null, "pages/services/plumbing.en#title", "Plumbing"],
     ]);
     assert.match(html, /<main id="main" tabindex="-1" class="sk-main">\s*<nav class="sk-breadcrumb"/, "first in main");
     assert.match(html, /<span aria-current="page" class="sk-breadcrumb__current"/);
@@ -195,9 +195,9 @@ describe("breadcrumb", () => {
 
   it("leads a collection entry through its list page", async () => {
     assert.deepEqual(crumbs(await build.read("news/fresh-rye/index.html")), [
-      ["/", "settings/site#ui.home", "Home"],
-      ["/news", "pages/news#title", "News"],
-      [null, "news/fresh-rye#title", "Fresh rye"],
+      ["/", "settings/site.en#ui.home", "Home"],
+      ["/news", "pages/news.en#title", "News"],
+      [null, "news/fresh-rye.en#title", "Fresh rye"],
     ]);
   });
 
@@ -212,9 +212,10 @@ describe("interface strings follow the site language", () => {
   it("shows the Estonian strings", async () => {
     const build = await buildFixture("base", {
       edit: {
-        "src/content/settings/site.yml": (text) =>
+        // The locale's tag sets the language (site-kit-locales design D54).
+        "src/site.config.ts": (text) => text.replace('{ code: "en" }', '{ code: "en", tag: "et" }'),
+        [SETTINGS_FILE]: (text) =>
           text
-            .replace("language: en", "language: et")
             .replace("skipLink: Skip to content", "skipLink: Liigu sisu juurde")
             .replace("menu: Menu", "menu: Menüü")
             .replace("readMore: Read more", "readMore: Loe edasi"),

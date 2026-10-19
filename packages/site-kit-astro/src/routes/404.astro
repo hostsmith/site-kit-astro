@@ -1,13 +1,19 @@
 ---
-// The 404 page, rendered from page entry `404` as 404.html at the output root.
-import { getEntry } from "astro:content";
+// The default locale's 404 page, rendered from its page entry `404` as
+// 404.html at the output root. The generic route renders each other locale's
+// under its path (site-kit-locales design D57).
 import Sections from "../components/Sections.astro";
 import Base from "../layouts/Base.astro";
+import { getNotFoundPages } from "../lib/routes.ts";
+import { locales } from "../lib/site-locales.ts";
 
-const page = await getEntry("pages", "404");
-if (!page) throw new Error("Missing page entry src/content/pages/404.md. It renders the 404 page.");
+const [page] = await getNotFoundPages();
+if (!page || !page.locale.isDefault) {
+  throw new Error(`Missing page entry src/content/pages/404.${locales[0].code}.md. It renders the 404 page.`);
+}
+const { entry, locale } = page;
 ---
 
-<Base title={page.data.title} description={page.data.description} image={page.data.ogImage}>
-  <Sections entry="pages/404" title={page.data.title} sections={page.data.sections ?? []} />
+<Base title={entry.data.title} description={entry.data.description} image={entry.data.ogImage} locale={locale.code}>
+  <Sections entry={`pages/${entry.id}`} title={entry.data.title} sections={entry.data.sections ?? []} />
 </Base>

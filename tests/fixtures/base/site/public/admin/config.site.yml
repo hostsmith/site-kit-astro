@@ -22,31 +22,8 @@ section_types: []
 
 # The site's collections, each item starting with `- name: <name>`: one folder
 # collection per collection in src/site.config.ts, which the collection list
-# section can show, and the custom pages.
+# section can show.
 collections:
-  # Pages with `template: custom`, one file each, with the props their
-  # hand-written page declares. They also show in the pages collection.
-  - name: custom-pages
-    label: Custom pages
-    files:
-      - name: about
-        label: About
-        file: src/content/pages/about.md
-        fields:
-          - { name: title, label: Title, widget: string }
-          - { name: description, label: Description, widget: text, required: false }
-          - { name: ogImage, label: Social image, widget: image, required: false }
-          - { name: template, label: Template, widget: hidden, default: custom }
-          - { name: heading, label: Heading, widget: string }
-          - { name: intro, label: Intro, widget: text }
-          - name: values
-            label: Values
-            widget: list
-            fields:
-              - { name: title, label: Title, widget: string }
-              - { name: text, label: Text, widget: text }
-          - *sections
-
   - name: news
     label: News
     label_singular: News entry

@@ -1,0 +1,26 @@
+---
+// The localized test site's page template: the story page in each locale.
+import Sections from "@hostsmith/site-kit-astro/components/Sections.astro";
+import { customPage } from "@hostsmith/site-kit-astro/custom-page";
+import { field } from "@hostsmith/site-kit-astro/field";
+import Base from "@hostsmith/site-kit-astro/layouts/Base.astro";
+import { localizedPath } from "@hostsmith/site-kit-astro/locales";
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  entry: CollectionEntry<"pages">;
+  locale?: string;
+  path: string;
+}
+
+const { entry, locale, path } = Astro.props;
+const { ref, data } = await customPage(entry);
+// Links a script would read, which the middleware doesn't see.
+const links = { contact: await localizedPath("/contact?from=story#form", locale), careers: await localizedPath("/careers", locale) };
+---
+
+<Base title={data.title} path={path} locale={locale}>
+  <h1 id="story-title" {...field(ref, "title")}>{data.title}</h1>
+  <div id="story-links" data-contact={links.contact} data-careers={links.careers}></div>
+  {data.sections && <Sections entry={ref} title={data.title} sections={data.sections} hasH1 />}
+</Base>

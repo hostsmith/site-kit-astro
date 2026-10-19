@@ -17,6 +17,8 @@ export const mediaPath = z
   });
 
 // Dates are quoted ISO 8601 strings, so YAML never turns them into objects.
+// An unquoted date, which a CMS may write, is read back as its ISO text
+// before this checks it (lib/cms-values.ts).
 const dateError = 'must be a quoted ISO 8601 date, such as "2026-10-01"';
 export const isoDate = z
   .string({ error: dateError })
@@ -65,4 +67,28 @@ export const itemList = <T extends z.ZodType>(item: T) => z.array(item).min(1, {
 export function section<const T extends string, S extends z.core.$ZodLooseShape>(type: T, props: S) {
   // The id format and per-page uniqueness are checked on the whole list.
   return z.strictObject({ id: z.string(), type: z.literal(type), ...props });
+}
+
+// An interface string the site declares in `siteUi`, in src/site.schema.ts
+// (site-kit-locales design D46): a label its own templates show, such as
+// "Keep reading", whose text lives in the settings' `ui`.
+//
+//   keepReading: uiString(),
+//   minRead: uiString({ params: ["minutes"], plural: "minutes" }),
+//
+// `params` are the placeholders that site code fills, such as {minutes}.
+// `plural` names the parameter whose number picks a plural form: the value is
+// then an object of CLDR plural forms (one, few, other...).
+export type UiString = { params: readonly string[]; plural?: string };
+
+const UI_NAME = /^[a-z][a-zA-Z0-9]*$/;
+
+export function uiString({ params = [], plural }: { params?: readonly string[]; plural?: string } = {}): UiString {
+  for (const name of params) {
+    if (!UI_NAME.test(name)) throw new Error(`Interface string parameter "${name}" must start with a lowercase letter, then letters or digits.`);
+  }
+  if (plural !== undefined && !params.includes(plural)) {
+    throw new Error(`Interface string plural "${plural}" must be one of its params (${params.join(", ") || "none"}).`);
+  }
+  return { params, plural };
 }
