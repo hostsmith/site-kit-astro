@@ -3,7 +3,6 @@
 # 555-0199 numbers are reserved for fiction, and the license number is made
 # up. The migration replaces all of it.
 name: Kestrel
-language: en-US
 # logo:
 #   image: /assets/images/logo.svg
 #   alt: Kestrel
@@ -77,6 +76,8 @@ footer:
 seo:
   description: Kitchen and bath renovation, home repairs and painting in Fenwick Falls, Minnesota. Free on-site estimates and fixed, written quotes.
   ogImage: /assets/images/roofer-on-tiled-roof.jpg
+# Interface text: the kit's strings, then this site's own, which
+# src/site.schema.ts declares in siteUi. {minutes} is filled by the template.
 ui:
   skipLink: Skip to content
   menu: Menu
@@ -85,3 +86,7 @@ ui:
   footerNav: Footer
   breadcrumb: Breadcrumb
   home: Home
+  keepReading: Keep reading
+  minRead:
+    one: "{minutes} min read"
+    other: "{minutes} min read"

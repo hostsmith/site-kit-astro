@@ -1,29 +1,50 @@
 ---
 // The generic route (design D1): every page entry that doesn't set
-// `template: custom`, and every non-draft collection entry under its base path.
+// `template: custom`, and every non-draft collection entry under its base path,
+// each in its locale, which the layout and the detail template get as `locale`
+// (site-kit-locales design D49). It also renders each
+// locale's 404 page other than the default's at <path>/404, which the
+// integration moves to <path>/404.html after the build (design D57).
+import type { CollectionEntry } from "astro:content";
 import Sections from "../components/Sections.astro";
 import Base from "../layouts/Base.astro";
+import type { Locale } from "../lib/locales.ts";
 import { assertBodyRendered } from "../lib/markdown.ts";
-import { detailTemplate, getRoutes, type Route } from "../lib/routes.ts";
+import { detailTemplate, getNotFoundPages, getRoutes, pageTemplate, type Route } from "../lib/routes.ts";
 
 export async function getStaticPaths() {
   const routes = await getRoutes();
-  return routes
-    .filter((route) => route.kind !== "custom")
+  // A custom page with a page template is rendered here; one without is a hand-written page's.
+  const pages = routes
+    .filter((route) => route.kind !== "custom" || route.template)
     .map((route) => ({ params: { slug: route.path === "/" ? undefined : route.path.slice(1) }, props: { route } }));
+  const notFound = (await getNotFoundPages())
+    .filter(({ locale }) => !locale.isDefault)
+    .map((notFound) => ({ params: { slug: `${notFound.locale.path.slice(1)}/404` }, props: { notFound } }));
+  return [...pages, ...notFound];
 }
 
-interface Props {
-  route: Exclude<Route, { kind: "custom" }>;
-}
+type Props =
+  | { route: Route; notFound?: undefined }
+  | { route?: undefined; notFound: { entry: CollectionEntry<"pages">; locale: Locale } };
 
-const { route } = Astro.props;
-if (route.kind === "entry") await assertBodyRendered(route.entry, `${route.collection}/${route.entry.id}`);
+const { route, notFound } = Astro.props;
+if (route?.kind === "entry") await assertBodyRendered(route.entry, `${route.collection}/${route.entry.id}`);
 ---
 
 {
-  route.kind === "page" ? (
-    <Base title={route.entry.data.title} description={route.entry.data.description} image={route.entry.data.ogImage} path={route.path}>
+  notFound ? (
+    <Base title={notFound.entry.data.title} description={notFound.entry.data.description} image={notFound.entry.data.ogImage} locale={notFound.locale?.code}>
+      <Sections entry={`pages/${notFound.entry.id}`} title={notFound.entry.data.title} sections={notFound.entry.data.sections ?? []} />
+    </Base>
+  ) : route.kind === "custom" ? (
+    (() => {
+      // A page template renders its own layout, as a hand-written page does.
+      const Template = pageTemplate(route.key)!;
+      return <Template entry={route.entry} locale={route.locale?.code} path={route.path} />;
+    })()
+  ) : route.kind === "page" ? (
+    <Base title={route.entry.data.title} description={route.entry.data.description} image={route.entry.data.ogImage} path={route.path} locale={route.locale?.code}>
       <Sections entry={`pages/${route.entry.id}`} title={route.entry.data.title} sections={route.entry.data.sections ?? []} />
     </Base>
   ) : (
@@ -31,8 +52,8 @@ if (route.kind === "entry") await assertBodyRendered(route.entry, `${route.colle
       const Detail = detailTemplate(route.collection);
       const data = route.entry.data as { title: string; description?: string; image?: string };
       return (
-        <Base title={data.title} description={data.description} image={data.image} path={route.path}>
-          <Detail entry={route.entry} />
+        <Base title={data.title} description={data.description} image={data.image} path={route.path} locale={route.locale?.code}>
+          <Detail entry={route.entry} locale={route.locale?.code} />
         </Base>
       );
     })()

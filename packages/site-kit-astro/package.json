@@ -31,6 +31,8 @@
     "./settings": "./src/lib/settings.ts",
     "./routes": "./src/lib/routes.ts",
     "./custom-page": "./src/lib/custom-page.ts",
+    "./ui": "./src/lib/ui.ts",
+    "./locales": "./src/lib/localize.ts",
     "./components/Sections.astro": "./src/components/Sections.astro",
     "./layouts/Base.astro": "./src/layouts/Base.astro"
   },

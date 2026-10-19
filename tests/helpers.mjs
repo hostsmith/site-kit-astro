@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ASSEMBLED, assembleFiles } from "../packages/site-kit-astro/scripts/decap-config.mjs";
+import { localeCodes } from "../packages/site-kit-astro/scripts/site-config.mjs";
 import { readHooks } from "../packages/site-kit-astro/scripts/hooks-reference.mjs";
 
 // The kit repository, the package and the examples.
@@ -27,7 +28,7 @@ export const BASICS = join(EXAMPLES, "basics");
 
 const NOT_COPIED = new Set(["node_modules", "dist", ".astro"]);
 // Site code that a fixture build leaves out, in favor of the fixture's site/.
-const SITE_CODE_FOLDERS = ["src/components/sections/site", "src/components/collections"];
+const SITE_CODE_FOLDERS = ["src/components/sections/site", "src/components/collections", "src/components/pages"];
 
 /**
  * Builds a copy of an example, `basics` unless `example` names another.
@@ -73,7 +74,7 @@ export async function buildFixture(fixture, { example = "basics", files = {}, ed
     await writeFile(join(dir, path), content);
   }
   if (!Object.hasOwn(files, ASSEMBLED) && !Object.hasOwn(edit, ASSEMBLED)) {
-    await writeFile(join(dir, ASSEMBLED), assembleFiles(dir));
+    await writeFile(join(dir, ASSEMBLED), assembleFiles(dir, await localeCodes(dir)));
   }
   for (const path of remove) await rm(join(dir, path));
 

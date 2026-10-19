@@ -27,8 +27,8 @@ describe("page and entry URLs", () => {
 
   it("renders entries with the detail template", async () => {
     const html = await build.read("news/fresh-rye/index.html");
-    assert.match(html, /<h1[^>]*data-field="news\/fresh-rye#title"[^>]*>Fresh rye<\/h1>/);
-    assert.match(html, /<time datetime="2026-04-01"[^>]*data-field="news\/fresh-rye#date"/);
+    assert.match(html, /<h1[^>]*data-field="news\/fresh-rye\.en#title"[^>]*>Fresh rye<\/h1>/);
+    assert.match(html, /<time datetime="2026-04-01"[^>]*data-field="news\/fresh-rye\.en#date"/);
   });
 
   it("links and lists nothing with a trailing slash, except home", async () => {
@@ -74,59 +74,88 @@ describe("one source per URL", () => {
   it("fails on a page and an entry with the same URL, naming both", async () => {
     const build = await buildFixture("base", {
       edit: basePath("/post"),
-      files: { "src/content/pages/post/fresh-rye.md": "---\ntitle: Clash\nsections: []\n---\n" },
+      files: { "src/content/pages/post/fresh-rye.en.md": "---\ntitle: Clash\nsections: []\n---\n" },
     });
     await build.cleanup();
     assert.equal(build.ok, false);
-    assert.match(build.output, /Two sources produce the URL \/post\/fresh-rye: page entry src\/content\/pages\/post\/fresh-rye\.md and news entry src\/content\/news\/fresh-rye\.md/);
+    assert.match(build.output, /Two sources produce the URL \/post\/fresh-rye: page entry src\/content\/pages\/post\/fresh-rye\.en\.md and news entry src\/content\/news\/fresh-rye\.en\.md/);
   });
 
   it("fails on a page entry and a hand-written page with the same URL", async () => {
     const build = await buildFixture("base", { files: { "src/pages/about.astro": "<p>About</p>\n" } });
     await build.cleanup();
     assert.equal(build.ok, false);
-    assert.match(build.output, /Two sources produce the URL \/about: hand-written page src\/pages\/about\.astro and page entry src\/content\/pages\/about\.md/);
+    assert.match(build.output, /Two sources produce the URL \/about: hand-written page src\/pages\/about\.astro and page entry src\/content\/pages\/about\.en\.md/);
   });
 });
 
 describe("template: custom", () => {
+  // A custom page has no props of its own: the markup shows its title and
+  // the text of its first section, in its own markup (site-kit-locales design D53).
   const teamPage = [
     "---",
-    'import { z } from "astro/zod";',
     'import Base from "@hostsmith/site-kit-astro/layouts/Base.astro";',
     'import { customPage } from "@hostsmith/site-kit-astro/custom-page";',
-    'import { field } from "@hostsmith/site-kit-astro/field";',
-    'const { ref, data } = await customPage("team", { intro: z.string() });',
+    'import { field, sectionFields } from "@hostsmith/site-kit-astro/field";',
+    'const { ref, data } = await customPage("team.en");',
+    "const [intro] = data.sections;",
     "---",
-    '<Base title={data.title} path="/team"><h1 {...field(ref, "title")}>{data.title}</h1><p {...field(ref, "intro")}>{data.intro}</p></Base>',
+    '<Base title={data.title} path="/team"><h1 {...field(ref, "title")}>{data.title}</h1><p {...sectionFields(ref, intro).field("body")}>{intro.body}</p></Base>',
     "",
   ].join("\n");
-  const teamEntry = "---\ntitle: Team\ntemplate: custom\nintro: Meet the bakers\n---\n";
+  const teamEntry = "---\ntitle: Team\ntemplate: custom\nsections:\n  - { id: t3m1, type: rich-text, body: Meet the bakers }\n---\n";
 
   it("renders the hand-written page with field attributes", async () => {
-    const build = await buildFixture("base", { files: { "src/pages/team.astro": teamPage, "src/content/pages/team.md": teamEntry } });
+    const build = await buildFixture("base", { files: { "src/pages/team.astro": teamPage, "src/content/pages/team.en.md": teamEntry } });
     try {
       assert.ok(build.ok, build.output);
-      assert.match(await build.read("team/index.html"), /<p data-field="pages\/team#intro">Meet the bakers<\/p>/);
+      assert.match(await build.read("team/index.html"), /<p data-field="pages\/team\.en#sections\[t3m1\]\.body">Meet the bakers<\/p>/);
       assert.match(await build.read("sitemap.xml"), /<loc>https:\/\/www\.example\.com\/team<\/loc>/);
     } finally {
       await build.cleanup();
     }
   });
 
-  it("fails on an undeclared prop of a custom page", async () => {
+  // site-kit-locales, "Custom page props".
+  it("fails on a prop of its own, saying to put the content in a section", async () => {
     const build = await buildFixture("base", {
-      files: { "src/pages/team.astro": teamPage, "src/content/pages/team.md": teamEntry.replace("intro:", "outro: x\nintro:") },
+      files: { "src/pages/team.astro": teamPage, "src/content/pages/team.en.md": teamEntry.replace("template: custom\n", "template: custom\nheading: Our team\n") },
     });
     await build.cleanup();
     assert.equal(build.ok, false);
-    assert.match(build.output, /src\/content\/pages\/team\.md: unknown frontmatter key "outro"/);
+    assert.match(build.output, /unknown frontmatter key "heading"\. A page has title, description, ogImage, template, sections\. Content goes in sections, a custom page's too\./);
+    assert.match(build.output, /team\.en/);
   });
 
-  it("fails when the hand-written page is missing", async () => {
-    const build = await buildFixture("base", { files: { "src/content/pages/catering.md": "---\ntitle: Catering\ntemplate: custom\n---\n" } });
+  it("fails when nothing renders it", async () => {
+    const build = await buildFixture("base", { files: { "src/content/pages/catering.en.md": "---\ntitle: Catering\ntemplate: custom\n---\n" } });
     await build.cleanup();
     assert.equal(build.ok, false);
-    assert.match(build.output, /src\/content\/pages\/catering\.md sets template: custom, but no hand-written page exists for \/catering/);
+    assert.match(build.output, /src\/content\/pages\/catering\.en\.md sets template: custom, but nothing renders it\. Add the page template src\/components\/pages\/catering\.astro, or the hand-written page src\/pages\/catering\.astro/);
+  });
+
+  // site-kit-sections, "Page template" (site-kit-locales design D53).
+  const teamTemplate = teamPage
+    .replace('customPage("team.en")', "customPage(Astro.props.entry)")
+    .replace('path="/team"', "path={Astro.props.path} locale={Astro.props.locale}");
+
+  it("renders a page template with the entry and its path", async () => {
+    const build = await buildFixture("base", { files: { "src/components/pages/team.astro": teamTemplate, "src/content/pages/team.en.md": teamEntry } });
+    try {
+      assert.ok(build.ok, build.output);
+      assert.match(await build.read("team/index.html"), /<p data-field="pages\/team\.en#sections\[t3m1\]\.body">Meet the bakers<\/p>/);
+      assert.match(await build.read("sitemap.xml"), /<loc>https:\/\/www\.example\.com\/team<\/loc>/);
+    } finally {
+      await build.cleanup();
+    }
+  });
+
+  it("fails when both a page template and a hand-written page render it", async () => {
+    const build = await buildFixture("base", {
+      files: { "src/components/pages/team.astro": teamTemplate, "src/pages/team.astro": teamPage, "src/content/pages/team.en.md": teamEntry },
+    });
+    await build.cleanup();
+    assert.equal(build.ok, false);
+    assert.match(build.output, /team\.en\.md sets template: custom, and both src\/components\/pages\/team\.astro and src\/pages\/team\.astro render it/);
   });
 });

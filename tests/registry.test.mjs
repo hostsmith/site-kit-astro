@@ -51,13 +51,13 @@ describe("section registry", () => {
       edit: { ...addSchema("menu-board"), "public/admin/config.site.yml": (text) => text.replace("section_types: []", decapType) },
       files: {
         "src/components/sections/site/menu-board.astro": component,
-        "src/content/pages/menu.md": "---\ntitle: Menu\nsections:\n  - { id: m3n4, type: menu-board, title: Today }\n---\n",
+        "src/content/pages/menu.en.md": "---\ntitle: Menu\nsections:\n  - { id: m3n4, type: menu-board, title: Today }\n---\n",
       },
     });
     try {
       assert.ok(result.ok, result.output);
       assert.match(await result.read("menu/index.html"), /data-section="menu-board"><h2>Today<\/h2>/);
-      assert.match(assembleFiles(result.dir), /^ {10}- name: menu-board\n(?: {12}.*\n)*? {12}fields:\n {14}- \*section_id\n {14}- \{ name: title/m);
+      assert.match(assembleFiles(result.dir, ["en"]), /^ {10}- name: menu-board\n(?: {12}.*\n)*? {12}fields:\n {14}- \*section_id\n {14}- \{ name: title/m);
     } finally {
       await result.cleanup();
     }

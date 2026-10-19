@@ -1,25 +1,21 @@
-// Loads the page entry of a `template: custom` page and checks its props.
+// Loads the page entry of a `template: custom` page.
 //
-// A hand-written page declares the props its page entry may have beyond the
-// common page fields. Unknown or invalid props fail the build:
+// A page template (src/components/pages/<page>.astro) gets its entry as a
+// prop; a hand-written page in src/pages/ names it by its entry id, its
+// file's path without the extension, which ends with its locale:
 //
-//   const page = await customPage("about", { heading: z.string() });
-//   <h1 {...field(page.ref, "heading")}>{page.data.heading}</h1>
-import { getEntry } from "astro:content";
-import { z } from "astro/zod";
-import { describeIssue, pageFields, type Section } from "../kit-content.ts";
+//   const page = await customPage(Astro.props.entry);
+//   const page = await customPage("about.en");
+//   <h1 {...field(page.ref, "title")}>{page.data.title}</h1>
+//
+// A custom page has no props of its own: its content is in its sections,
+// which a CMS can translate, and which the template may render in its own
+// markup (site-kit-locales design D53). The pages collection checks its
+// frontmatter like any page's.
+import { type CollectionEntry, getEntry } from "astro:content";
 
-export async function customPage<S extends z.core.$ZodLooseShape>(id: string, props: S) {
-  const entry = await getEntry("pages", id);
-  const file = entry?.filePath ?? `src/content/pages/${id}.md`;
-  if (!entry) throw new Error(`Missing page entry ${file} for a hand-written page.`);
-
-  // The page collection has already checked the common fields and the sections.
-  const schema = z.strictObject({ ...pageFields, template: z.literal("custom"), sections: z.array(z.unknown()).optional(), ...props });
-  const result = schema.safeParse(entry.data);
-  if (!result.success) {
-    const messages = result.error.issues.map((issue) => describeIssue(issue, entry.data).replace(/\bprop\b/g, "frontmatter key"));
-    throw new Error(`${file}: ${messages.join("; ")}`);
-  }
-  return { entry, ref: `pages/${id}`, data: { ...result.data, sections: entry.data.sections as Section[] | undefined } };
+export async function customPage(page: string | CollectionEntry<"pages">) {
+  const entry = typeof page === "string" ? await getEntry("pages", page) : page;
+  if (!entry) throw new Error(`Missing page entry src/content/pages/${page as string}.md for a hand-written page.`);
+  return { entry, ref: `pages/${entry.id}`, data: entry.data };
 }

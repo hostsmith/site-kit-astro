@@ -1,14 +1,19 @@
 // Prints a new section id for a page file (design D3):
 //
-//   npm run section-id -- src/content/pages/home.md
+//   npm run section-id -- src/content/pages/home.en.md
 //
 // An id is 4 characters: a lowercase letter, then 3 lowercase letters or
 // digits, with at least one digit. The new id differs from every id in the
 // file and every id that ever appeared in the file's git history, so a
 // deleted section's id is never reused on its page.
+//
+// The same goes for the page's translations in a localized site, since they
+// share section ids (site-kit-locales design D56).
 import { execFileSync } from "node:child_process";
 import { randomInt } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { localeCodes } from "./site-config.mjs";
 
 export const SECTION_ID = /^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$/;
 
@@ -21,7 +26,8 @@ export function idsIn(text) {
 }
 
 export function usedIds(file, cwd = process.cwd()) {
-  const used = existsSync(file) ? idsIn(readFileSync(file, "utf8")) : new Set();
+  const path = resolve(cwd, file);
+  const used = existsSync(path) ? idsIn(readFileSync(path, "utf8")) : new Set();
   try {
     const log = execFileSync("git", ["log", "-p", "--follow", "--format=", "--", file], {
       cwd,
@@ -36,6 +42,22 @@ export function usedIds(file, cwd = process.cwd()) {
   return used;
 }
 
+// A page file and its translations: the same name with every locale's code,
+// such as src/content/pages/home.en.md and src/content/pages/home.de.md.
+// `file` is relative to the site's root; without one of the site's locales in
+// its name, or in a root without a site config, it has no translations.
+export function translationsOf(file, codes) {
+  const match = /^(src\/content\/.+\.)([^./]+)(\.md)$/.exec(file.replaceAll("\\", "/"));
+  if (!codes || !match || !codes.includes(match[2])) return [file];
+  return codes.map((code) => `${match[1]}${code}${match[3]}`);
+}
+
+// Every id the page and its translations use or have used.
+export async function usedInPage(file, cwd = process.cwd()) {
+  const files = translationsOf(relative(cwd, resolve(cwd, file)), await localeCodes(cwd));
+  return new Set(files.flatMap((path) => [...usedIds(path, cwd)]));
+}
+
 export function newId(used, random = randomInt) {
   for (;;) {
     let id = LETTERS[random(LETTERS.length)];
@@ -45,11 +67,11 @@ export function newId(used, random = randomInt) {
 }
 
 // `site-kit section-id <page file>` (bin/site-kit.mjs).
-export function cli(args) {
+export async function cli(args) {
   const file = args[0];
   if (!file) {
     console.error("Usage: npm run section-id -- <page file>");
     process.exit(1);
   }
-  console.log(newId(usedIds(file)));
+  console.log(newId(await usedInPage(file)));
 }

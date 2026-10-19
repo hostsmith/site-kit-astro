@@ -5,7 +5,7 @@ import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { newId, SECTION_ID, usedIds } from "../packages/site-kit-astro/scripts/section-id.mjs";
+import { newId, SECTION_ID, translationsOf, usedIds, usedInPage } from "../packages/site-kit-astro/scripts/section-id.mjs";
 
 describe("section-id", () => {
   it("generates ids that match the pattern", () => {
@@ -57,6 +57,51 @@ describe("section-id", () => {
 
     it("works for a new file with no history", () => {
       assert.equal(usedIds("pages/new.md", repo).size, 0);
+    });
+  });
+
+  // site-kit-locales, "New section in a translated page".
+  describe("in a localized site", () => {
+    let repo;
+    const git = (...args) => execFileSync("git", args, { cwd: repo, stdio: "ignore" });
+    const page = (code) => join(repo, "src", "content", "pages", `home.${code}.md`);
+
+    before(async () => {
+      repo = await mkdtemp(join(tmpdir(), "site-kit-section-id-locales-"));
+      git("init", "-q");
+      git("config", "user.email", "test@example.com");
+      git("config", "user.name", "Test");
+      await mkdir(join(repo, "src", "content", "pages"), { recursive: true });
+      await writeFile(
+        join(repo, "src", "site.config.ts"),
+        'export const siteConfig = { url: "https://www.example.com", locales: [{ code: "en" }, { code: "de" }], collections: {} } as const;\n',
+      );
+      await writeFile(page("en"), "---\ntitle: Home\nsections:\n  - id: s7k2\n    type: hero\n---\n");
+      await writeFile(page("de"), "---\ntitle: Startseite\nsections:\n  - id: s7k2\n    type: hero\n  - id: b4n8\n    type: faq\n---\n");
+      git("add", ".");
+      git("commit", "-q", "-m", "add pages");
+      await writeFile(page("de"), "---\ntitle: Startseite\nsections:\n  - id: s7k2\n    type: hero\n---\n");
+      git("commit", "-q", "-am", "drop the German FAQ");
+    });
+    after(() => rm(repo, { recursive: true, force: true }));
+
+    it("finds a page's translations by the locale in their names", () => {
+      assert.deepEqual(translationsOf("src/content/pages/services/painting.de.md", ["en", "de"]), [
+        "src/content/pages/services/painting.en.md",
+        "src/content/pages/services/painting.de.md",
+      ]);
+      assert.deepEqual(translationsOf("src/content/pages/home.en.md", undefined), ["src/content/pages/home.en.md"]);
+      assert.deepEqual(translationsOf("src/content/pages/home.md", ["en", "de"]), ["src/content/pages/home.md"]);
+    });
+
+    it("collects the ids of the page and every translation, deleted ones too", async () => {
+      const used = await usedInPage("src/content/pages/home.en.md", repo);
+      assert.deepEqual([...used].sort(), ["b4n8", "s7k2"]);
+    });
+
+    it("never returns an id a translation has used", async () => {
+      const used = await usedInPage(page("en"), repo);
+      for (let i = 0; i < 2000; i++) assert.ok(!["s7k2", "b4n8"].includes(newId(used)));
     });
   });
 });

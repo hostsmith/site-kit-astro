@@ -16,22 +16,26 @@ describe("styling hooks", () => {
   // The base fixture uses every variant. Its site markup (the news detail
   // template) carries no classes, and the stylesheet is empty, so every class
   // in the output is the kit's. A second build with a logo covers the header's
-  // logo, which replaces the site name.
+  // logo, which replaces the site name, and a localized build covers the
+  // language switcher.
   let unstyled;
   let withLogo;
+  let localized;
   before(async () => {
-    [unstyled, withLogo] = await Promise.all([
+    [unstyled, withLogo, localized] = await Promise.all([
       buildFixture("base", { files: { "src/styles/global.css": "" } }),
       buildFixture("base", {
-        edit: { "src/content/settings/site.yml": (text) => `${text}logo:\n  image: /assets/test/photo.svg\n  alt: Test logo\n` },
+        edit: { "src/content/settings/site.en.yml": (text) => `${text}logo:\n  image: /assets/test/photo.svg\n  alt: Test logo\n` },
       }),
+      buildFixture("locales", { files: { "src/styles/global.css": "" } }),
     ]);
   });
-  after(() => Promise.all([unstyled.cleanup(), withLogo.cleanup()]));
+  after(() => Promise.all([unstyled.cleanup(), withLogo.cleanup(), localized.cleanup()]));
 
   it("builds without any styles", () => {
     assert.ok(unstyled.ok, unstyled.output);
     assert.ok(withLogo.ok, withLogo.output);
+    assert.ok(localized.ok, localized.output);
   });
 
   it("renders only sk- classes", async () => {
@@ -48,7 +52,7 @@ describe("styling hooks", () => {
 
   it("renders exactly the hooks HOOKS.md lists", async () => {
     const rendered = new Set();
-    for (const build of [unstyled, withLogo]) {
+    for (const build of [unstyled, withLogo, localized]) {
       for (const { html } of await pages(build)) for (const name of classesOf(html)) rendered.add(name);
     }
     const documented = await documentedHooks();

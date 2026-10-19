@@ -3,17 +3,22 @@
 // (site-kit-design-system design D38): the home link, each ancestor that has a
 // page, then the current page, not linked. The base layout renders it at the
 // start of `main`. Unstyled it reads as a numbered list; a theme draws the
-// separators.
+// separators. In a localized site, it starts at the locale's home page.
 import { field } from "../lib/field.ts";
 import { breadcrumbTrail } from "../lib/routes.ts";
-import { getSettings, SETTINGS } from "../lib/settings.ts";
+import { getSettings, settingsRef } from "../lib/settings.ts";
+import { localeOfCode } from "../lib/site-locales.ts";
 
 interface Props {
   path: string;
+  // The page's locale code.
+  locale?: string;
 }
 
 const trail = await breadcrumbTrail(Astro.props.path);
-const { ui } = await getSettings();
+const { ui } = await getSettings(Astro.props.locale);
+const SETTINGS = settingsRef(Astro.props.locale);
+const home = localeOfCode(Astro.props.locale)?.path || "/";
 const ancestors = trail?.slice(0, -1) ?? [];
 const current = trail?.at(-1);
 ---
@@ -24,7 +29,7 @@ const current = trail?.at(-1);
       <div class="sk-container">
         <ol class="sk-breadcrumb__list">
           <li class="sk-breadcrumb__item">
-            <a href="/" class="sk-breadcrumb__link" {...field(SETTINGS, "ui", "home")}>
+            <a href={home} class="sk-breadcrumb__link" {...field(SETTINGS, "ui", "home")}>
               {ui.home}
             </a>
           </li>

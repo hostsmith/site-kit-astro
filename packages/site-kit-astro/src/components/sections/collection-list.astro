@@ -3,12 +3,14 @@
 // list, featured. Lists the collection's non-draft entries, newest first, each
 // linked to its detail page. A card shows the entry's image, category, title,
 // date and description when the entry has them. `featured` marks the first
-// card, which a theme shows larger.
+// card, which a theme shows larger. In a localized site, it lists the entries
+// in its own page's locale.
 import type { Section } from "../../kit-content.ts";
 import { field, sectionFields } from "../../lib/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
 import { getEntryRoutes } from "../../lib/routes.ts";
-import { getSettings, SETTINGS } from "../../lib/settings.ts";
+import { getSettings, settingsRef } from "../../lib/settings.ts";
+import { localeOfRef } from "../../lib/site-locales.ts";
 import SectionHeader from "../SectionHeader.astro";
 
 interface Props {
@@ -28,9 +30,11 @@ interface CardData {
 
 const { section, entry } = Astro.props;
 const f = sectionFields(entry, section);
-const settings = await getSettings();
+const locale = localeOfRef(entry)?.code;
+const settings = await getSettings(locale);
+const SETTINGS = settingsRef(locale);
 const collection = section.collection.name;
-const routes = await getEntryRoutes(collection);
+const routes = await getEntryRoutes(collection, locale);
 const items = section.limit === undefined ? routes : routes.slice(0, section.limit);
 const dateFormat = new Intl.DateTimeFormat(settings.language, { dateStyle: "long", timeZone: "UTC" });
 const featured = section.variant === "featured";
@@ -41,10 +45,11 @@ const featured = section.variant === "featured";
     <SectionHeader field={f.field} title={section.title} link={section.link} />
     <ul class="sk-collection-list__list">
       {
-        items.map(({ path, entry: item }, i) => {
+        items.map(({ path, key, entry: item }, i) => {
           const data = item.data as CardData;
           const ref = `${collection}/${item.id}`;
-          const titleId = `${section.id}-${item.id.replaceAll("/", "-")}`;
+          // By the entry's id within its locale, which the list shares.
+          const titleId = `${section.id}-${key.replaceAll("/", "-")}`;
           return (
             <li class:list={["sk-card", "sk-card--linked", featured && i === 0 && "sk-card--featured"]}>
               {data.image && <img src={data.image} alt={data.imageAlt} class="sk-card__media" {...field(ref, "image")} />}

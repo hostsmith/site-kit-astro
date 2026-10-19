@@ -2,11 +2,14 @@
 title: About us
 description: Kestrel Home Services has repaired and renovated homes in Fenwick Falls, Minnesota, since 2009. Meet the team.
 template: custom
-eyebrow: About us
-heading: A neighborhood business, not a call center
-image: /assets/images/project-lead-with-plans.jpg
-imageAlt: Project lead in a hard hat reviewing plans outside a new house
 sections:
+  - id: b0xc
+    type: hero
+    eyebrow: About us
+    title: A neighborhood business, not a call center
+    image: /assets/images/project-lead-with-plans.jpg
+    imageAlt: Project lead in a hard hat reviewing plans outside a new house
+    variant: page
   - id: fok8
     type: rich-text
     title: Our story

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 import { buildFixture } from "./helpers.mjs";
 
-const SETTINGS_FILE = "src/content/settings/site.yml";
+const SETTINGS_FILE = "src/content/settings/site.en.yml";
 const FACTS = 'facts:\n  - name: phone\n    value: "+1 555 0100"\n  - name: email\n    value: test@example.com\n';
 
 // The base fixture's settings with facts, and its phone action using one.
@@ -28,7 +28,7 @@ describe("facts", () => {
     build = await buildFixture("base", {
       edit: { [SETTINGS_FILE]: withFacts },
       files: {
-        "src/content/pages/facts.md": page(
+        "src/content/pages/facts.en.md": page(
           [
             "  - id: f1h0",
             "    type: hero",
@@ -41,7 +41,7 @@ describe("facts", () => {
             "",
           ].join("\n"),
         ),
-        "src/content/news/facts.md": post("Call {phone}. In a template, write `{phone}`."),
+        "src/content/news/facts.en.md": post("Call {phone}. In a template, write `{phone}`."),
       },
     });
   });
@@ -66,15 +66,15 @@ describe("facts", () => {
 
   it("fail on an unknown fact in frontmatter, naming the file, the field and the facts", () =>
     expectFailure(
-      { "src/content/pages/facts.md": page("  - id: f1h0\n    type: hero\n    title: Talk\n    subtitle: Call {phnoe}.\n") },
+      { "src/content/pages/facts.en.md": page("  - id: f1h0\n    type: hero\n    title: Talk\n    subtitle: Call {phnoe}.\n") },
       withFacts,
-      "pages → facts",
+      "pages → facts.en",
       "sections.0.subtitle",
       'unknown fact "{phnoe}". The facts are {phone}, {email}.',
     ));
 
   it("fail on an unknown fact in a Markdown body, naming the file", () =>
-    expectFailure({ "src/content/news/facts.md": post("Call {phnoe}.") }, withFacts, "src/content/news/facts.md", 'unknown fact "{phnoe}"'));
+    expectFailure({ "src/content/news/facts.en.md": post("Call {phnoe}.") }, withFacts, "src/content/news/facts.en.md", 'unknown fact "{phnoe}"'));
 
   it("fail on an unknown fact without any facts", () =>
     expectFailure({}, (text) => text.replace('      number: "+1 555 0100"\n', '      number: "{phone}"\n'), 'unknown fact "{phone}". The settings have no facts.'));

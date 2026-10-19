@@ -41,6 +41,10 @@ Unstyled, a kit page is a readable HTML document. Some elements the kit hides wi
 | `sk-header__actions` | `div` | The actions from `header.actions`, in order, inside the menu |
 | `sk-header__phone` | `a` | A `phone` action: the number as a `tel:` link |
 | `sk-header__link` | `a` | A `link` action: a text link. A `button` action is `sk-button` with `sk-button--primary` or `sk-button--secondary` |
+| `sk-locales` | `nav` | The language switcher of a site with several locales, from a `locales` header action or footer block. Named by `ui.locales` |
+| `sk-locales__list` | `ul` | Its list, one item per locale |
+| `sk-locales__item` | `li` | One locale |
+| `sk-locales__link` | `a` | A locale, by its label, with `lang` and `hreflang`: the current page in that locale, or its home page |
 | `sk-main` | `main` | The page content |
 | `sk-breadcrumb` | `nav` | The breadcrumb, first in `main` on every page whose path has more than one segment. Named by `ui.breadcrumb` |
 | `sk-breadcrumb__list` | `ol` | Its list. Unstyled it reads as a numbered list: a theme draws the separators |
@@ -57,6 +61,7 @@ Unstyled, a kit page is a readable HTML document. Some elements the kit hides wi
 | `sk-footer__block--hours` | `div` | An `hours` block: its title and rows |
 | `sk-footer__block--text` | `div` | A `text` block: its title and text |
 | `sk-footer__block--copyright` | `p` | A `copyright` block: "©", the year, and its text or the site name |
+| `sk-footer__block--locales` | `div` | A `locales` block: the language switcher, `sk-locales` |
 | `sk-footer__logo` | `img` | The logo in a `brand` block, when settings have one |
 | `sk-footer__name` | `span` | The site name in a `brand` block, when settings have no logo |
 | `sk-footer__text` | `p` | A `brand` or `text` block's text |
@@ -75,7 +80,7 @@ Unstyled, a kit page is a readable HTML document. Some elements the kit hides wi
 | `data-ready` | `sk-menu` | The layout's script has run. Hide the menu only while it is `[data-ready]:not([data-open])`, so it stays usable without scripts |
 | `data-open` | `sk-menu` | The menu is open |
 | `aria-expanded` | `sk-header__menu-button` | `true` while the menu is open |
-| `aria-current` | `sk-nav__link`, `sk-breadcrumb__current` | `page` on the link to the current page, and on the breadcrumb's last step |
+| `aria-current` | `sk-nav__link`, `sk-breadcrumb__current`, `sk-locales__link` | `page` on the link to the current page, on the breadcrumb's last step, and on the switcher's current locale |
 
 ## Other attributes
 

@@ -1,0 +1,30 @@
+---
+// Detail template of the localized test site's news: one post in its locale.
+import { field } from "@hostsmith/site-kit-astro/field";
+import { getSettings } from "@hostsmith/site-kit-astro/settings";
+import { getUi } from "@hostsmith/site-kit-astro/ui";
+import { render, type CollectionEntry } from "astro:content";
+
+interface Props {
+  entry: CollectionEntry<"news">;
+  locale?: string;
+}
+
+const { entry, locale } = Astro.props;
+const { title, date } = entry.data;
+const ref = `news/${entry.id}`;
+const settings = await getSettings(locale);
+const ui = await getUi(locale);
+const { Content } = await render(entry);
+const dateFormat = new Intl.DateTimeFormat(settings.language, { dateStyle: "long", timeZone: "UTC" });
+---
+
+<article>
+  <h1 {...field(ref, "title")}>{title}</h1>
+  <p>
+    <time datetime={date} {...field(ref, "date")}>{dateFormat.format(new Date(date))}</time> · <span id="min-read" {...ui.field("minRead")}>{ui.text("minRead", { minutes: 2 })}</span>
+  </p>
+  <div class="sk-prose" {...field(ref, "body")}>
+    <Content />
+  </div>
+</article>

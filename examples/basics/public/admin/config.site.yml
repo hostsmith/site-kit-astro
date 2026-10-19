@@ -4,7 +4,8 @@
 # files in the same commit, then run `npm run decap-config`.
 #
 # The blocks below are copied into config.yml as written, so they may use the
-# kit's anchors: *section_id, *labeled_link, *sections and *link_fields.
+# kit's anchors: *section_id, *labeled_link, *sections, *link_fields and, under
+# `ui`, *plural_forms.
 
 # The GitHub repository that Decap and Sveltia commit to.
 repo: OWNER/REPOSITORY
@@ -20,29 +21,19 @@ repo: OWNER/REPOSITORY
 #       - { name: title, label: Title, widget: string }
 section_types: []
 
+# The site's own interface strings, one field per key of siteUi in
+# src/site.schema.ts, added to the settings' interface text. A plural string
+# takes `fields: *plural_forms`, the kit's plural forms.
+ui:
+  - { name: keepReading, label: Blog post - heading of related posts, widget: string }
+  - { name: minRead, label: "Blog post - reading time, with {minutes}", widget: object, fields: *plural_forms }
+
 # The site's collections, each item starting with `- name: <name>`: one folder
 # collection per collection in src/site.config.ts, which the collection list
-# section can show, and the custom pages.
+# section can show. Every collection is translated, so none is a files
+# collection: a custom page is edited in the pages collection, with its
+# content in sections.
 collections:
-  # Pages with `template: custom`, one file each, with the props their
-  # hand-written page declares. They also show in the pages collection.
-  - name: custom-pages
-    label: Custom pages
-    files:
-      - name: about
-        label: About
-        file: src/content/pages/about.md
-        fields:
-          - { name: title, label: Title, widget: string }
-          - { name: description, label: Description, widget: text, required: false }
-          - { name: ogImage, label: Social image, widget: image, required: false }
-          - { name: template, label: Template, widget: hidden, default: custom }
-          - { name: eyebrow, label: Eyebrow, widget: string }
-          - { name: heading, label: Heading, widget: string }
-          - { name: image, label: Image, widget: image }
-          - { name: imageAlt, label: Image alt text, widget: string }
-          - *sections
-
   - name: news
     label: Blog
     label_singular: Blog post

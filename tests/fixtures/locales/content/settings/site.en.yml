@@ -1,0 +1,47 @@
+name: Test Bakery
+nav:
+  - label: About
+    link: /about
+  - label: Services
+    link: /services
+  - label: Blog
+    link: /blog
+  - label: Contact
+    link: /contact
+header:
+  actions:
+    - type: phone
+      number: "{phone}"
+    - type: button
+      label: Get an estimate
+      link: /contact
+    - type: locales
+footer:
+  blocks:
+    - type: brand
+      text: A test site.
+    - type: contact
+      address: "{address}"
+  bottom:
+    - type: copyright
+    - type: locales
+facts:
+  - name: phone
+    value: (218) 555-0142
+  - name: address
+    value: 1 Test Street
+seo:
+  description: Default description
+  ogImage: /assets/test/share.svg
+ui:
+  skipLink: Skip to content
+  menu: Menu
+  readMore: Read more
+  mainNav: Main
+  footerNav: Footer
+  breadcrumb: Breadcrumb
+  home: Home
+  locales: Language
+  minRead:
+    one: "{minutes} minute"
+    other: "{minutes} minutes"

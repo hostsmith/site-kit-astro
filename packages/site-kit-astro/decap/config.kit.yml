@@ -17,6 +17,10 @@ collections:
     label: Pages
     label_singular: Page
     folder: src/content/pages
+    # Lists nested pages, such as services/painting.en.md, each a file of its
+    # own rather than an _index.md in a folder. A new page is still saved
+    # flat, as <slug>.<locale>.md.
+    nested: { depth: 4, subfolders: false }
     extension: md
     format: frontmatter
     create: true
@@ -24,6 +28,9 @@ collections:
       - { name: title, label: Title, widget: string }
       - { name: description, label: Description, widget: text, required: false }
       - { name: ogImage, label: Social image, widget: image, required: false }
+      # `template: custom` on a page that a page template renders. Hidden, so a
+      # save keeps it and an owner doesn't change it.
+      - { name: template, label: Template, widget: hidden, required: false }
       - &sections
         name: sections
         label: Sections
@@ -45,12 +52,17 @@ collections:
                 label: Call to action
                 widget: object
                 required: false
+                # Not required here: Decap requires the subfields of an empty
+                # optional object, and refuses to save. The build's schemas
+                # still require both when the object is there.
                 fields: &labeled_link
-                  - { name: label, label: Label, widget: string }
-                  - { name: link, label: Link, widget: string }
+                  - { name: label, label: Label, widget: string, required: false }
+                  - { name: link, label: Link, widget: string, required: false }
               - { name: secondaryCta, label: Second button, widget: object, required: false, fields: *labeled_link }
               - { name: note, label: Note under the buttons, widget: string, required: false }
-              - { name: variant, label: Variant, widget: select, options: [centered, image-left, image-right, background, page], default: centered }
+              # A select with a default isn't required: Decap fails one left at
+              # its default, and the build applies the default.
+              - { name: variant, label: Variant, widget: select, options: [centered, image-left, image-right, background, page], default: centered, required: false }
           - name: rich-text
             label: Rich text
             widget: object
@@ -58,7 +70,7 @@ collections:
               - *section_id
               - { name: title, label: Title, widget: string, required: false }
               - { name: body, label: Body, widget: markdown }
-              - { name: variant, label: Variant, widget: select, options: [narrow, wide, title-aside], default: narrow }
+              - { name: variant, label: Variant, widget: select, options: [narrow, wide, title-aside], default: narrow, required: false }
           - name: collection-list
             label: Collection list
             widget: object
@@ -71,7 +83,7 @@ collections:
                 # site: collection options
               - { name: limit, label: Limit, widget: number, value_type: int, min: 1, required: false }
               - { name: link, label: Link beside the title, widget: object, required: false, fields: *labeled_link }
-              - { name: variant, label: Variant, widget: select, options: [cards, list, featured], default: cards }
+              - { name: variant, label: Variant, widget: select, options: [cards, list, featured], default: cards, required: false }
           - name: services-grid
             label: Services grid
             widget: object
@@ -100,8 +112,8 @@ collections:
                   - { name: image, label: Image, widget: image, required: false }
                   - { name: imageAlt, label: Image alt text, widget: string, required: false }
                   - { name: link, label: Link, widget: string, required: false }
-              - { name: variant, label: Variant, widget: select, options: [cards, list], default: cards }
-              - { name: tone, label: Tone, widget: select, options: [plain, surface], default: plain }
+              - { name: variant, label: Variant, widget: select, options: [cards, list], default: cards, required: false }
+              - { name: tone, label: Tone, widget: select, options: [plain, surface], default: plain, required: false }
           - name: gallery
             label: Gallery
             widget: object
@@ -117,7 +129,7 @@ collections:
                   - { name: image, label: Image, widget: image }
                   - { name: alt, label: Alt text, widget: string }
                   - { name: caption, label: Caption, widget: string, required: false }
-              - { name: variant, label: Variant, widget: select, options: [grid, masonry], default: grid }
+              - { name: variant, label: Variant, widget: select, options: [grid, masonry], default: grid, required: false }
           - name: testimonials
             label: Testimonials
             widget: object
@@ -135,8 +147,8 @@ collections:
                   - { name: role, label: Role, widget: string, required: false }
                   - { name: image, label: Photo, widget: image, required: false }
                   - { name: imageAlt, label: Photo alt text, widget: string, required: false }
-              - { name: variant, label: Variant, widget: select, options: [grid, single], default: grid }
-              - { name: tone, label: Tone, widget: select, options: [surface, dark], default: surface }
+              - { name: variant, label: Variant, widget: select, options: [grid, single], default: grid, required: false }
+              - { name: tone, label: Tone, widget: select, options: [surface, dark], default: surface, required: false }
           - name: faq
             label: FAQ
             widget: object
@@ -160,8 +172,8 @@ collections:
               - { name: text, label: Text, widget: text, required: false }
               - { name: button, label: Button, widget: object, fields: *labeled_link }
               - { name: secondaryButton, label: Second button, widget: object, required: false, fields: *labeled_link }
-              - { name: variant, label: Variant, widget: select, options: [banner, card], default: banner }
-              - { name: tone, label: Tone, widget: select, options: [accent, dark, surface], default: accent }
+              - { name: variant, label: Variant, widget: select, options: [banner, card], default: banner, required: false }
+              - { name: tone, label: Tone, widget: select, options: [accent, dark, surface], default: accent, required: false }
           - name: hours-location
             label: Hours and location
             widget: object
@@ -194,7 +206,7 @@ collections:
                 min: 1
                 fields:
                   - { name: text, label: Text, widget: string }
-              - { name: variant, label: Variant, widget: select, options: [line, chips], default: line }
+              - { name: variant, label: Variant, widget: select, options: [line, chips], default: line, required: false }
           - name: stats
             label: Stats
             widget: object
@@ -210,7 +222,7 @@ collections:
                 fields: &stat_fields
                   - { name: value, label: Value, widget: string }
                   - { name: label, label: Label, widget: string }
-              - { name: tone, label: Tone, widget: select, options: [plain, dark], default: plain }
+              - { name: tone, label: Tone, widget: select, options: [plain, dark], default: plain, required: false }
           - name: steps
             label: Steps
             widget: object
@@ -239,8 +251,8 @@ collections:
               - { name: imageAlt, label: Image alt text, widget: string, required: false }
               - { name: stats, label: Figures, label_singular: Figure, widget: list, required: false, max: 4, fields: *stat_fields }
               - { name: link, label: Link, widget: object, required: false, fields: *labeled_link }
-              - { name: variant, label: Variant, widget: select, options: [image-left, image-right], default: image-left }
-              - { name: tone, label: Tone, widget: select, options: [plain, surface], default: plain }
+              - { name: variant, label: Variant, widget: select, options: [image-left, image-right], default: image-left, required: false }
+              - { name: tone, label: Tone, widget: select, options: [plain, surface], default: plain, required: false }
           - name: team
             label: Team
             widget: object
@@ -275,6 +287,9 @@ collections:
               - { name: note, label: Note, widget: text, required: false }
           # site: section types
 
+  # npm run decap-config makes this a folder collection, src/content/settings,
+  # with one site.<locale>.yml per locale. The language isn't a setting: it is
+  # the locale's tag in src/site.config.ts.
   - name: settings
     label: Settings
     files:
@@ -283,14 +298,15 @@ collections:
         file: src/content/settings/site.yml
         fields:
           - { name: name, label: Site name, widget: string }
-          - { name: language, label: Language (BCP 47), widget: string }
           - name: logo
             label: Logo
             widget: object
             required: false
+            # Not required here, as for &labeled_link: the build's schema
+            # requires both when there's a logo.
             fields:
-              - { name: image, label: Image, widget: image }
-              - { name: alt, label: Alt text, widget: string }
+              - { name: image, label: Image, widget: image, required: false }
+              - { name: alt, label: Alt text, widget: string, required: false }
           - name: nav
             label: Navigation
             widget: list
@@ -324,11 +340,19 @@ collections:
                     fields:
                       - { name: label, label: Label, widget: string }
                       - { name: link, label: Link, widget: string }
-                      - { name: style, label: Style, widget: select, options: [primary, secondary], default: primary }
+                      - { name: style, label: Style, widget: select, options: [primary, secondary], default: primary, required: false }
                   - name: link
                     label: Link
                     widget: object
                     fields: *link_fields
+                  # A site with several locales: links to the page in each
+                  # language. It has no props, but Decap rejects a type
+                  # without fields, so it gets a hidden one with no value,
+                  # which neither CMS writes.
+                  - name: locales
+                    label: Language switcher
+                    widget: object
+                    fields: [{ name: switcher, label: Language switcher, widget: hidden }]
           - name: footer
             label: Footer
             widget: object
@@ -389,6 +413,12 @@ collections:
                     fields:
                       - { name: text, label: Text after the year (the site name if empty), widget: string, required: false }
                       - *with_previous
+                  # A site with several locales: links to the page in each language.
+                  - name: locales
+                    label: Language switcher
+                    widget: object
+                    fields:
+                      - *with_previous
               - name: bottom
                 label: Bottom row
                 label_singular: Block
@@ -422,5 +452,7 @@ collections:
               - { name: footerNav, label: Name of the footer links without a title, widget: string }
               - { name: breadcrumb, label: Breadcrumb name, widget: string }
               - { name: home, label: Breadcrumb home link, widget: string }
+              - { name: locales, label: Language switcher name (a site with several locales), widget: string, required: false }
+              # site: ui
 
   # site: collections

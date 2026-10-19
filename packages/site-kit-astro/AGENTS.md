@@ -17,9 +17,11 @@ Site code imports the kit only through these package names:
 - `@hostsmith/site-kit-astro/schema`: field types and helpers for `src/site.schema.ts`;
 - `@hostsmith/site-kit-astro/field`: `field` and `sectionFields`, for field attributes;
 - `@hostsmith/site-kit-astro/markdown`: `renderMarkdown` and `assertNoH1`;
-- `@hostsmith/site-kit-astro/settings`: `getSettings` and `SETTINGS`;
-- `@hostsmith/site-kit-astro/routes`: `pagePath` and `getEntryRoutes`;
-- `@hostsmith/site-kit-astro/custom-page`: `customPage`, for `template: custom` pages;
+- `@hostsmith/site-kit-astro/settings`: `getSettings(locale)`, `settingsRef(locale)` and `SETTINGS`;
+- `@hostsmith/site-kit-astro/ui`: `getUi(locale)`, for interface strings;
+- `@hostsmith/site-kit-astro/locales`: `locales`, `localized`, `localeOfPath` and `localizedPath`, for the site's locales;
+- `@hostsmith/site-kit-astro/routes`: `getEntryRoutes(collection, locale)`;
+- `@hostsmith/site-kit-astro/custom-page`: `customPage(entry)`, for `template: custom` pages and page templates;
 - `@hostsmith/site-kit-astro/components/Sections.astro` and `@hostsmith/site-kit-astro/layouts/Base.astro`.
 
 Never edit files in `node_modules`: the next install replaces them.
@@ -28,10 +30,12 @@ Never edit files in `node_modules`: the next install replaces them.
 
 Every file in the site repository is the site's. The kit reads these from it, so keep them where they are:
 
-- `src/site.config.ts`: the production site URL and each collection's base path;
-- `src/site.schema.ts`: the site-local section types and the site's collections;
+- `src/site.config.ts`: the production site URL, the site's locales and each collection's base path;
+- `src/content/`: the pages, each collection's entries and the settings, one file each per locale, with the locale's code before the extension, such as `src/content/pages/about.en.md` and `src/content/settings/site.en.yml`;
+- `src/site.schema.ts`: the site-local section types, the site's collections, each declared by its schema alone, and its interface strings (`siteUi`). The kit loads the collections: never give one a `loader`;
 - `src/components/sections/site/<type>.astro`: site-local section types;
 - `src/components/collections/<collection>.astro`: each collection's detail template;
+- `src/components/pages/<page>.astro`: page templates, which render a `template: custom` page in every locale;
 - `src/pages/`: hand-written pages, such as `template: custom` pages;
 - `src/styles/global.css`: the site's stylesheet. It imports Tailwind, the theme in `src/styles/theme/` and the site's own `src/styles/site.css`.
 
@@ -63,9 +67,33 @@ Pick the library type that fits a block before writing a site-local one:
 
 ## Header and footer
 
-The header's actions and the footer's blocks are listed in `src/content/settings/site.yml`, like a page's sections; the kit's README lists their types and props. To add a phone number, a button, opening hours or a link column, add a block there, never a setting or a component.
+The header's actions and the footer's blocks are listed in each locale's settings, such as `src/content/settings/site.en.yml`, like a page's sections; the kit's README lists their types and props. To add a phone number, a button, opening hours or a link column, add a block there, never a setting or a component.
 
 A fact that appears in more than one place, such as the phone number, the address or a license number, belongs in the settings' `facts`, and every text that shows it writes `{name}`, such as `{phone}`. Never copy a fact's value into the content: change it in `facts`, once. Quote a YAML value that starts with a brace, such as `number: "{phone}"`. The build fails on an unknown name.
+
+## Interface strings
+
+Never write visible text into a template. A label in the site's own markup, such as "Keep reading" or "4 min read", is an interface string:
+
+1. declare its key in `siteUi` in `src/site.schema.ts`, with `uiString`, its parameters and its plural parameter, if any;
+2. add its field under `ui` in `public/admin/config.site.yml`, with `fields: *plural_forms` for a plural, and run `npm run decap-config`;
+3. write its text under `ui` in the settings, in every locale, with every plural form the locale's language uses;
+4. render it with `getUi(locale)`: `{...ui.field(key)}` on the element, `ui.text(key, values)` as its text.
+
+Alt text, dates and numbers formatted for the page's language aren't interface strings: alt text is content, and a date or number is formatted with the settings' `language`, which the kit fills in from the locale's tag.
+
+## Locales
+
+Every site lists its locales in `src/site.config.ts`, the default first, and names each content file's locale before its extension, such as `src/content/pages/about.en.md`. A file without one of the site's locales in its name fails the build. A site in one language has one locale. The language is the locale's tag: never write `language` into the settings. The kit's README, "Locales", has the layout, the URLs and the steps to add a language. In a site with several locales:
+
+- When you add a page or an entry, add its translation in every locale, beside it with the locale's code, such as `about.de.md` for `about.en.md`, or tell the owner which locales go without it. A page without a translation is served only in its own locales.
+- A translation keeps its source's section ids. A new section gets one id, from `npm run section-id -- <page file>`, in every translation it's added to.
+- Write an internal link as its target's path in the default locale, in every locale: `/contact`, never `/de/kontakt`. The build localizes it. A script that builds a link gets the path from `localizedPath`.
+- A translation's own URL segment is its `localSlug`. Never set one in the default locale.
+- Change a fact, a nav item or an interface string in every locale's settings. Every locale defines the same fact names and keys, and the build fails when one lacks a name.
+- Templates receive the page's `locale`: pass it to `getSettings`, `getUi`, `getEntryRoutes` and the layout. Do it in a site with one locale too, so adding a language needs no template change.
+
+In every site, a custom page has no props of its own: its content goes in sections, and its page template may show a section in its own markup.
 
 ## Styling
 

@@ -16,12 +16,15 @@ import { z } from "astro/zod";
 import type { SiteConfig } from "../index.ts";
 import { FACT_NAME, factsFrom, hasPlaceholder, readFacts, withFacts } from "./lib/facts.ts";
 import { formatPath, type PathPart } from "./lib/field.ts";
-import { icon, itemList, labeledLink, link, mediaPath, requireAlt, section } from "./lib/schema.ts";
+import { type Locale, LOCALE_KEY, resolveLocales, withLocale } from "./lib/locales.ts";
+import { icon, itemList, labeledLink, link, mediaPath, requireAlt, section, type UiString } from "./lib/schema.ts";
 
-// What src/site.schema.ts exports.
+// What src/site.schema.ts exports. `siteUi` is optional: a site without it
+// has only the kit's interface strings.
 export type SiteSchema = {
   siteSectionSchemas: Record<string, z.ZodObject>;
   siteCollections: Record<string, unknown>;
+  siteUi?: Record<string, UiString>;
 };
 
 const navItem = z.strictObject({ label: z.string().min(1), link });
@@ -238,7 +241,10 @@ export type Section = z.output<LibrarySectionSchemas[keyof LibrarySectionSchemas
 export const SECTION_ID = /^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$/;
 
 // The kit's section types and collections, combined with the site's.
-export function defineKitContent(siteConfig: SiteConfig, { siteSectionSchemas, siteCollections }: SiteSchema) {
+export function defineKitContent(siteConfig: SiteConfig, { siteSectionSchemas, siteCollections, siteUi = {} }: SiteSchema) {
+  checkSiteUi(siteUi);
+  // Every site's content is in a folder per locale (site-kit-locales design D48).
+  const locales = resolveLocales(siteConfig.locales);
   const library = librarySectionSchemas(Object.keys(siteConfig.collections) as [string, ...string[]]);
   for (const type of Object.keys(siteSectionSchemas)) {
     if (Object.hasOwn(library, type)) {
@@ -264,9 +270,9 @@ export function defineKitContent(siteConfig: SiteConfig, { siteSectionSchemas, s
     // True for a type defined in src/site.schema.ts.
     isSiteSectionType: (type: string) => Object.hasOwn(siteSectionSchemas, type),
     collections: {
-      pages: pagesCollection(sectionList),
-      settings,
-      ...Object.fromEntries(Object.entries(siteCollections).map(([name, collection]) => [name, withCollectionFacts(collection)])),
+      pages: pagesCollection(sectionList, locales),
+      settings: settingsCollection(siteUi, locales),
+      ...Object.fromEntries(Object.entries(siteCollections).map(([name, collection]) => [name, siteCollection(name, collection, locales)])),
     },
   };
 }
@@ -324,6 +330,9 @@ export function describeIssue(issue: z.core.$ZodIssue, value: unknown): string {
     case "unrecognized_keys":
       return issue.keys.map((key) => `unknown prop "${formatPath([...(issue.path as PathPart[]), key])}"`).join(", ");
     case "invalid_type":
+      // An empty list reads as absent (lib/cms-values.ts), so a required list
+      // without items is reported as one.
+      if (valueAt(value, issue.path) === undefined && issue.expected === "array") return `prop "${path}": needs at least one item`;
       return valueAt(value, issue.path) === undefined
         ? `missing required prop "${path}"`
         : `prop "${path}" must be ${issue.expected === "array" ? "a list" : `a ${issue.expected}`}`;
@@ -354,8 +363,9 @@ function valueAt(value: unknown, path: readonly PropertyKey[]): unknown {
 // Collections
 // ---------------------------------------------------------------------------
 
-// Fields every page has. A `template: custom` page adds its own props, which
-// its hand-written page declares (src/lib/custom-page.ts).
+// Fields every page has. A `template: custom` page has no others: its
+// content is in sections, which a CMS can translate (site-kit-locales design
+// D53).
 export const pageFields = {
   title: z.string().min(1),
   description: z.string().min(1).optional(),
@@ -363,9 +373,28 @@ export const pageFields = {
 };
 const PAGE_KEYS = ["title", "description", "ogImage", "template", "sections"];
 
-const pagesCollection = (sectionList: z.ZodType<Section[]>) =>
-  defineCollection({
-    loader: glob({ pattern: "**/*.md", base: "./src/content/pages" }),
+// A translation's own URL segment, `localSlug` (site-kit-locales design D49).
+// Not `slug`, which Astro's glob loader reads as the entry's id by default.
+// Where it's allowed, the route table checks: only in a locale other than the
+// default.
+export const LOCAL_SLUG = "localSlug";
+export const localSlugField = z.string().regex(/^[a-z0-9][a-z0-9._-]*$/, { error: 'must be one lowercase URL segment, such as "ueber-uns"' });
+
+// The loader of every collection, the site's too (site-kit-locales design
+// D63): the files of `pattern` in src/content/<name>/, each with its path
+// without the extension as its id, such as "services/painting.de" for
+// services/painting.de.md. Astro's default id would drop the dot. Each entry
+// carries its locale, from the code in its name (D48).
+function localeLoader(name: string, pattern: string, locales: Locale[]) {
+  return withLocale(glob({ pattern, base: `./src/content/${name}`, generateId: ({ entry }) => entry.replace(/\.[^./]+$/, "") }), locales);
+}
+
+// A translation exists only in a site with more than one locale.
+const pagesCollection = (sectionList: z.ZodType<Section[]>, locales: Locale[]) => {
+  const localized = locales.length > 1;
+  const keys = localized ? [...PAGE_KEYS, LOCAL_SLUG] : PAGE_KEYS;
+  return defineCollection({
+    loader: localeLoader("pages", "**/*.md", locales),
     // Facts are filled first, so sections validate their filled values.
     schema: withFacts(
       z
@@ -373,36 +402,67 @@ const pagesCollection = (sectionList: z.ZodType<Section[]>) =>
           ...pageFields,
           template: z.literal("custom").optional(),
           sections: sectionList.optional(),
+          ...(localized ? { [LOCAL_SLUG]: localSlugField.optional() } : {}),
         })
         .superRefine((page, ctx) => {
-          if (page.template === "custom") return;
           for (const key of Object.keys(page)) {
-            if (!PAGE_KEYS.includes(key)) {
-              ctx.addIssue({
-                code: "custom",
-                path: [key],
-                message: `unknown frontmatter key "${key}". A page has ${PAGE_KEYS.join(", ")}. Content goes in sections.`,
-              });
-            }
+            if (keys.includes(key)) continue;
+            ctx.addIssue({
+              code: "custom",
+              path: [key],
+              message:
+                key === LOCAL_SLUG
+                  ? `unknown frontmatter key "${LOCAL_SLUG}": a page sets its own URL segment only as a translation, in a site with several locales. The filename is the slug.`
+                  : `unknown frontmatter key "${key}". A page has ${keys.join(", ")}. Content goes in sections${page.template === "custom" ? ", a custom page's too" : ""}.`,
+            });
           }
-          if (page.sections === undefined) {
-            ctx.addIssue({ code: "custom", path: ["sections"], message: 'missing "sections". The list may be empty.' });
-          }
+          // A page without "sections" has none: a CMS leaves an empty list out.
         }),
-      () => readFacts(),
+      (_, locale) => readFacts(process.cwd(), locale),
     ),
   });
+};
 
-// A site collection whose frontmatter is filled with facts before its own
-// schema validates it. A schema may be a function of Astro's schema context.
-function withCollectionFacts(collection: unknown): unknown {
-  const config = collection as { schema?: unknown };
+// A site collection, which the site declares by its schema alone, and the
+// kit loads from src/content/<name>/, one file per entry and locale
+// (site-kit-locales design D63). Its frontmatter is filled with facts before
+// its own schema validates it, each entry from its own locale's facts, and in
+// a localized site a translation may set `localSlug`. A schema may be a
+// function of Astro's schema context.
+function siteCollection(name: string, collection: unknown, locales: Locale[]) {
+  const config = (collection && typeof collection === "object" ? collection : {}) as Record<string, unknown>;
+  const declare = `Declare it by its schema alone, as ${name}: { schema: z.strictObject({ ... }) }: the kit loads every collection from src/content/<name>/, one file per entry and locale, such as <slug>.${locales[0].code}.md.`;
+  const extra = Object.keys(config).find((key) => key !== "schema");
+  if (extra) throw new Error(`Collection "${name}" in src/site.schema.ts sets "${extra}". ${declare}`);
   const { schema } = config;
-  if (typeof schema === "function") {
-    return { ...config, schema: (context: unknown) => withFacts((schema as (context: unknown) => z.ZodType)(context), () => readFacts()) };
-  }
-  if (schema instanceof z.ZodType) return { ...config, schema: withFacts(schema, () => readFacts()) };
-  return collection;
+  const loader = localeLoader(name, "*.md", locales);
+  const wrap = (site: z.ZodType) => withFacts(locales.length > 1 ? withSlug(site) : site, (_, locale) => readFacts(process.cwd(), locale));
+  if (typeof schema === "function") return defineCollection({ loader, schema: (context) => wrap((schema as (context: unknown) => z.ZodType)(context)) });
+  if (schema instanceof z.ZodType) return defineCollection({ loader, schema: wrap(schema) });
+  throw new Error(`Collection "${name}" in src/site.schema.ts has no Zod schema. ${declare}`);
+}
+
+// The site's own schema, with a translation's `localSlug` checked by the kit:
+// the site's strict schema doesn't know the key.
+function withSlug(site: z.ZodType) {
+  return z.unknown().transform((input, ctx) => {
+    if (!input || typeof input !== "object" || !(LOCAL_SLUG in input)) return parseOrReport(site, input, ctx);
+    const { [LOCAL_SLUG]: slug, ...rest } = input as Record<string, unknown>;
+    const checked = localSlugField.safeParse(slug);
+    if (!checked.success) {
+      ctx.addIssue({ code: "custom", path: [LOCAL_SLUG], message: checked.error.issues[0].message });
+      return z.NEVER;
+    }
+    const data = parseOrReport(site, rest, ctx);
+    return data === z.NEVER ? data : { ...(data as object), [LOCAL_SLUG]: checked.data };
+  });
+}
+
+function parseOrReport(schema: z.ZodType, input: unknown, ctx: z.RefinementCtx) {
+  const result = schema.safeParse(input);
+  if (result.success) return result.data;
+  for (const issue of result.error.issues) ctx.addIssue({ ...issue, code: "custom", message: issue.message } as never);
+  return z.NEVER;
 }
 
 // ---------------------------------------------------------------------------
@@ -423,6 +483,8 @@ const headerActionSchemas = {
   phone: block("phone", { number: z.string().min(1), callLabel: z.string().min(1).optional() }),
   button: block("button", { label: z.string().min(1), link, style: z.enum(["primary", "secondary"]).default("primary") }),
   link: block("link", { label: z.string().min(1), link }),
+  // The language switcher of a localized site (site-kit-locales design D52).
+  locales: block("locales", {}),
 };
 
 // Each block in footer.blocks starts a group, such as a column, unless it
@@ -451,6 +513,8 @@ const footerBlockSchemas = {
   text: block("text", { ...footerFields, text: z.string().min(1) }),
   // "© <year> <text>", or the site's name without text.
   copyright: block("copyright", { text: z.string().min(1).optional(), withPrevious: footerFields.withPrevious }),
+  // The language switcher of a localized site (site-kit-locales design D52).
+  locales: block("locales", { withPrevious: footerFields.withPrevious }),
 };
 
 type HeaderActionSchemas = typeof headerActionSchemas;
@@ -523,14 +587,123 @@ const footer = z
     }
   });
 
-const settings = defineCollection({
-  loader: glob({ pattern: "site.yml", base: "./src/content/settings" }),
-  schema: withFacts(
+// ---------------------------------------------------------------------------
+// Interface strings
+// ---------------------------------------------------------------------------
+
+// The interface strings of the kit's own parts, in the site's language. They
+// name what has no visible text, such as the navs and the menu button, so
+// they are required, and none takes a parameter. `locales` names the language
+// switcher: only a localized site needs it, and the route table checks that
+// it has it (site-kit-locales design D52). A block's labels and titles are its
+// own props.
+export const KIT_UI_KEYS = ["skipLink", "menu", "readMore", "mainNav", "footerNav", "breadcrumb", "home", "locales"] as const;
+const OPTIONAL_KIT_UI_KEYS: readonly string[] = ["locales"];
+
+const UI_KEY = /^[a-z][a-zA-Z0-9]*$/;
+const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"] as const;
+
+// The site's declared keys (site-kit-locales design D46).
+function checkSiteUi(siteUi: Record<string, UiString>) {
+  for (const key of Object.keys(siteUi)) {
+    if (!UI_KEY.test(key)) {
+      throw new Error(`Interface string "${key}" in siteUi in src/site.schema.ts must start with a lowercase letter, then letters or digits.`);
+    }
+    if ((KIT_UI_KEYS as readonly string[]).includes(key)) {
+      throw new Error(`Interface string "${key}" in siteUi in src/site.schema.ts is one of the kit's own. Rename it.`);
+    }
+  }
+}
+
+// A plural string: its text in each CLDR plural form the language uses.
+const pluralForms = (error: (issue: { input: unknown }) => string | undefined) =>
+  z.strictObject(
+    Object.fromEntries(PLURAL_CATEGORIES.map((category) => [category, category === "other" ? z.string().min(1) : z.string().min(1).optional()])),
+    { error },
+  );
+
+// The settings' `ui`: the kit's keys and the site's declared ones, each
+// required, and nothing else.
+function uiSchema(siteUi: Record<string, UiString>) {
+  const missing = (key: string, where: string) => (issue: { input: unknown }) =>
+    issue.input === undefined ? `missing "${key}", ${where}, so the settings need its text` : undefined;
+  const shape: Record<string, z.ZodType> = {};
+  for (const key of KIT_UI_KEYS) {
+    const text = z.string({ error: missing(key, "one of the kit's interface strings") }).min(1);
+    shape[key] = OPTIONAL_KIT_UI_KEYS.includes(key) ? text.optional() : text;
+  }
+  for (const [key, declared] of Object.entries(siteUi)) {
+    const where = "declared in siteUi in src/site.schema.ts";
+    shape[key] = declared.plural ? pluralForms(missing(key, where)) : z.string({ error: missing(key, where) }).min(1);
+  }
+  return z.looseObject(shape).superRefine((ui, ctx) => {
+    for (const key of Object.keys(ui)) {
+      if (Object.hasOwn(shape, key)) continue;
+      ctx.addIssue({
+        code: "custom",
+        path: [key],
+        message: `"${key}" is neither one of the kit's interface strings (${KIT_UI_KEYS.join(", ")}) nor declared in siteUi in src/site.schema.ts`,
+      });
+    }
+  });
+}
+
+// Every plural form the settings' language uses, for each plural string.
+function checkPluralForms(siteUi: Record<string, UiString>) {
+  return (settings: { language: string; ui: Record<string, unknown> }, ctx: z.RefinementCtx) => {
+    const needed = new Intl.PluralRules(settings.language).resolvedOptions().pluralCategories;
+    for (const [key, declared] of Object.entries(siteUi)) {
+      const value = settings.ui[key];
+      if (!declared.plural || typeof value !== "object" || value === null) continue;
+      const lacking = needed.filter((category) => !(value as Record<string, unknown>)[category]);
+      if (lacking.length === 0) continue;
+      ctx.addIssue({
+        code: "custom",
+        path: ["ui", key],
+        message: `missing the plural form${lacking.length > 1 ? "s" : ""} ${lacking.map((c) => `"${c}"`).join(", ")}, which ${settings.language} uses. Its forms are ${needed.join(", ")}.`,
+      });
+    }
+  };
+}
+
+// An interface string's own parameters stay as written in the settings:
+// site code fills them (lib/ui.ts).
+const keepUiParams = (siteUi: Record<string, UiString>) => (path: readonly (string | number)[], name: string) =>
+  path[0] === "ui" && typeof path[1] === "string" && (siteUi[path[1]]?.params.includes(name) ?? false);
+
+// The settings' `language` is their locale's tag (site-kit-locales design
+// D54). A settings file doesn't write it: the kit fills it in before the
+// schema checks the settings, so plural rules and site code read it as before.
+function withLanguage(schema: z.ZodType, locales: Locale[]) {
+  return z.preprocess((raw, ctx) => {
+    if (!raw || typeof raw !== "object") return raw;
+    const input = raw as Record<string, unknown>;
+    const locale = locales.find((l) => l.code === input[LOCALE_KEY]) ?? locales[0];
+    if ("language" in input) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["language"],
+        message: `"language" isn't a setting: the locale's tag in src/site.config.ts sets it, here "${locale.tag}". Remove "language" from the settings.`,
+        input,
+      });
+    }
+    return { ...input, language: locale.tag };
+  }, schema);
+}
+
+// One settings file per locale: settings/site.<code>.yml. A settings file
+// without the locale, such as 0.5's site.yml, isn't loaded, and the route
+// table names the file each locale lacks.
+const settingsCollection = (siteUi: Record<string, UiString>, locales: Locale[]) => defineCollection({
+  loader: localeLoader("settings", "site.*.yml", locales),
+  schema: withLanguage(withFacts(
     z.strictObject({
       name: z.string().min(1),
-      language: z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, { error: 'must be a BCP 47 language tag, such as "en" or "et"' }),
+      // Filled in from the locale's tag (withLanguage).
+      language: z.string(),
       logo: z.strictObject({ image: mediaPath, alt: z.string().min(1) }).optional(),
-      nav: z.array(navItem),
+      // May be empty, and a CMS leaves an empty list out.
+      nav: z.array(navItem).default([]),
       header: z.strictObject({ actions: headerActions.optional() }).optional(),
       footer: footer.optional(),
       seo: z.strictObject({ description: z.string().min(1), ogImage: mediaPath.optional() }),
@@ -551,22 +724,12 @@ const settings = defineCollection({
           });
         })
         .optional(),
-      // The interface strings of the kit's own parts, in the site's language.
-      // They name what has no visible text, such as the navs and the menu
-      // button, so all of them are required. A block's labels and titles are
-      // its own props.
-      ui: z.strictObject({
-        skipLink: z.string().min(1),
-        menu: z.string().min(1),
-        readMore: z.string().min(1),
-        mainNav: z.string().min(1),
-        footerNav: z.string().min(1),
-        breadcrumb: z.string().min(1),
-        home: z.string().min(1),
-      }),
-    }),
+      // The interface strings: the kit's and the site's (KIT_UI_KEYS, siteUi).
+      ui: uiSchema(siteUi),
+    }).superRefine(checkPluralForms(siteUi)),
     // The settings fill from their own facts, which stay as written.
     (input) => factsFrom((input as { facts?: unknown } | null)?.facts),
     ["facts"],
-  ),
+    keepUiParams(siteUi),
+  ), locales),
 });

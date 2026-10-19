@@ -1,13 +1,14 @@
 ---
 // One footer block from settings (site-kit-design-system design D35): brand,
-// contact, links, hours, text or copyright. Every block's root carries
+// contact, links, hours, text, copyright or a localized site's locales. Every block's root carries
 // sk-footer__block and its type's modifier. A title renders as an h2, and a
 // links block is a nav, named by its title, or by ui.footerNav without one.
 import type { FooterBlock } from "../kit-content.ts";
 import { field, type PathPart } from "../lib/field.ts";
-import { getSettings, SETTINGS } from "../lib/settings.ts";
+import { getSettings, settingsRef } from "../lib/settings.ts";
 import { telHref } from "../lib/tel.ts";
 import Lines from "./Lines.astro";
+import LocaleSwitcher from "./LocaleSwitcher.astro";
 
 interface Props {
   block: FooterBlock;
@@ -15,10 +16,15 @@ interface Props {
   path: PathPart[];
   // A unique id for the block's title.
   id: string;
+  // The page's locale code: its settings hold the block.
+  locale?: string;
+  // The page's URL path, for a `locales` block's links.
+  pagePath?: string;
 }
 
-const { block, path, id } = Astro.props;
-const settings = await getSettings();
+const { block, path, id, locale, pagePath } = Astro.props;
+const settings = await getSettings(locale);
+const SETTINGS = settingsRef(locale);
 const f = (...rest: PathPart[]) => field(SETTINGS, ...path, ...rest);
 const rootClass = `sk-footer__block sk-footer__block--${block.type}`;
 const title = "title" in block ? block.title : undefined;
@@ -73,6 +79,13 @@ const year = new Date().getFullYear();
         <span {...field(SETTINGS, "name")}>{settings.name}</span>
       )}
     </p>
+  )
+}
+{
+  block.type === "locales" && (
+    <div class={rootClass}>
+      <LocaleSwitcher path={pagePath} locale={locale} />
+    </div>
   )
 }
 {

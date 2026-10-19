@@ -10,18 +10,23 @@
 // modules. Kit code reads nothing else from the site except the fixed paths in
 // design D20.
 import { existsSync } from "node:fs";
-import { rm } from "node:fs/promises";
+import { rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AstroIntegration } from "astro";
 import { staleness } from "./scripts/decap-config.mjs";
+import { type LocaleConfig, resolveLocales } from "./src/lib/locales.ts";
 import { markdownOptions, markdownProcessor } from "./src/lib/markdown.ts";
 
 export type SiteConfig = {
   // The production site URL, such as "https://www.example.com".
   url: string;
-  // Each site collection's base path, such as { news: { basePath: "/news" } }.
-  collections: Record<string, { basePath: string }>;
+  // The site's locales, the default first (src/lib/locales.ts). A site in one
+  // language lists one.
+  locales: readonly LocaleConfig[];
+  // Each site collection's base path, such as { news: { basePath: "/news" } },
+  // or an object with a base path per locale code.
+  collections: Record<string, { basePath: string | Record<string, string> }>;
 };
 
 const CONFIG_MODULE = "virtual:site-kit/config";
@@ -39,14 +44,16 @@ export default function siteKit(siteConfig: SiteConfig): AstroIntegration {
   return {
     name: "@hostsmith/site-kit-astro",
     hooks: {
-      "astro:config:setup": ({ config, command, updateConfig, injectRoute }) => {
+      "astro:config:setup": ({ config, command, updateConfig, injectRoute, addMiddleware }) => {
         const root = fileURLToPath(config.root);
         const siteSchema = join(root, "src", "site.schema.ts");
         if (!existsSync(siteSchema)) {
           throw new Error("Missing src/site.schema.ts. Every kit site has one: it exports siteSectionSchemas and siteCollections.");
         }
+        // Fails early, naming what to fix, on locales the kit can't serve.
+        const locales = resolveLocales(siteConfig.locales);
         if (command === "build") {
-          const problem = staleness(root);
+          const problem = staleness(root, locales.map((locale) => locale.code));
           if (problem) throw new Error(problem);
         }
 
@@ -76,12 +83,23 @@ export default function siteKit(siteConfig: SiteConfig): AstroIntegration {
         for (const [pattern, file] of Object.entries(ROUTES)) {
           injectRoute({ pattern, entrypoint: new URL(file, import.meta.url) });
         }
+        // A localized site's links point to the page's own locale (site-kit-locales design D50).
+        if (locales.length > 1) addMiddleware({ entrypoint: new URL("./src/middleware.ts", import.meta.url), order: "post" });
       },
 
       // The Decap config ships in the repo, but /admin is never deployed (design
       // D7). Astro copies public/ into the output, so the copy is removed here.
+      // Each locale's 404 page, built as <path>/404/index.html, becomes
+      // <path>/404.html, where hosts look for it (site-kit-locales design D57).
       "astro:build:done": async ({ dir }) => {
         await rm(new URL("admin/", dir), { recursive: true, force: true });
+        for (const locale of resolveLocales(siteConfig.locales)) {
+          if (locale.isDefault) continue;
+          const built = new URL(`.${locale.path}/404/index.html`, dir);
+          if (!existsSync(built)) continue;
+          await rename(built, new URL(`.${locale.path}/404.html`, dir));
+          await rm(new URL(`.${locale.path}/404/`, dir), { recursive: true, force: true });
+        }
       },
     },
   };

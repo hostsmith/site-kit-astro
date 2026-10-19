@@ -1,0 +1,47 @@
+name: Testbäckerei
+nav:
+  - label: Über uns
+    link: /about
+  - label: Leistungen
+    link: /services
+  - label: Aktuelles
+    link: /blog
+  - label: Kontakt
+    link: /contact
+header:
+  actions:
+    - type: phone
+      number: "{phone}"
+    - type: button
+      label: Angebot anfragen
+      link: /contact
+    - type: locales
+footer:
+  blocks:
+    - type: brand
+      text: Eine Testseite.
+    - type: contact
+      address: "{address}"
+  bottom:
+    - type: copyright
+    - type: locales
+facts:
+  - name: phone
+    value: (218) 555-0142
+  - name: address
+    value: Teststraße 1
+seo:
+  description: Standardbeschreibung
+  ogImage: /assets/test/share.svg
+ui:
+  skipLink: Zum Inhalt
+  menu: Menü
+  readMore: Weiterlesen
+  mainNav: Hauptmenü
+  footerNav: Fußzeile
+  breadcrumb: Brotkrümel
+  home: Startseite
+  locales: Sprache
+  minRead:
+    one: "{minutes} Minute"
+    other: "{minutes} Minuten"
