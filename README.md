@@ -21,10 +21,10 @@ Each example is a complete site, and each release deploys it from this repositor
 
 ## Start a site
 
-1. Create the site from an example of a kit release. `basics` names the example, and `v0.6.2` the release: use the latest one from the [releases](https://github.com/hostsmith/site-kit-astro/releases). `--no-ai` keeps the example's `AGENTS.md`, which points agents to the kit's rules. Without it, create-astro replaces the file with its own.
+1. Create the site from an example of a kit release. `basics` names the example, and `v0.7.0` the release: use the latest one from the [releases](https://github.com/hostsmith/site-kit-astro/releases). `--no-ai` keeps the example's `AGENTS.md`, which points agents to the kit's rules. Without it, create-astro replaces the file with its own.
 
    ```bash
-   npm create astro@latest my-site -- --template hostsmith/site-kit-astro/examples/basics#v0.6.2 --no-ai
+   npm create astro@latest my-site -- --template hostsmith/site-kit-astro/examples/basics#v0.7.0 --no-ai
    cd my-site
    npm run build   # writes the static site to dist/
    npm run dev     # local preview with live reload
@@ -514,11 +514,11 @@ intro: z.string().meta({ "x-widget": "text", title: "Introduction", description:
 
 ## Kit updates
 
-A site takes kit release `0.6.2` on a branch, which the deploy workflow deploys to the preview site:
+A site takes kit release `0.7.0` on a branch, which the deploy workflow deploys to the preview site:
 
 ```bash
-git switch -c kit-update/v0.6.2
-npm install --save-exact @hostsmith/site-kit-astro@0.6.2
+git switch -c kit-update/v0.7.0
+npm install --save-exact @hostsmith/site-kit-astro@0.7.0
 npm run decap-config
 npx site-kit schema
 npm run check:styles
