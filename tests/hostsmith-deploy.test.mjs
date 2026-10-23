@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { DeployError, deploy, explain, redact, resolveConfig, waitUntilLive } from "../packages/site-kit-astro/scripts/hostsmith-deploy.mjs";
+import { DeployError, deploy, explain, redact, resolveConfig, waitUntilLive } from "../packages/site-kit-astro/scripts/core/hostsmith-deploy.mjs";
 import { PACKAGE, run } from "./helpers.mjs";
 
 const TOKEN = "hsat_secretvalue1234567890";

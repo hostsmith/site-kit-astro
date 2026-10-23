@@ -11,7 +11,7 @@
 // settings' language. Facts in the string were filled at build time.
 /// <reference path="../../virtual.d.ts" />
 import * as siteSchema from "virtual:site-kit/site-schema";
-import { field, type FieldAttrs } from "./field.ts";
+import { field, type FieldAttrs } from "../core/field.ts";
 import { getSettings, settingsRef } from "./settings.ts";
 
 export type UiValues = Record<string, string | number>;

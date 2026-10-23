@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "generator": "@hostsmith/site-kit-astro",
+  "kind": "core",
+  "media": {
+    "dir": "public/assets",
+    "publicPath": "/assets"
+  },
+  "fieldAttribute": {
+    "name": "data-field",
+    "format": "<collection>/<entry id>#<path>"
+  },
+  "collections": {
+    "copy": {
+      "type": "files",
+      "editable": true,
+      "format": "yaml",
+      "locales": null,
+      "files": {
+        "about": {
+          "path": "src/content/copy/about.yml",
+          "fields": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "x-widget": "string"
+              },
+              "intro": {
+                "type": "string",
+                "minLength": 1,
+                "x-widget": "string"
+              },
+              "bakes": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-widget": "string"
+                  },
+                  "items": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
+                    "x-widget": "list"
+                  }
+                },
+                "required": [
+                  "title",
+                  "items"
+                ],
+                "additionalProperties": false,
+                "x-widget": "object"
+              }
+            },
+            "required": [
+              "title",
+              "intro",
+              "bakes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "home": {
+          "path": "src/content/copy/home.yml",
+          "fields": {
+            "type": "object",
+            "properties": {
+              "hero": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-widget": "string"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-widget": "string"
+                  },
+                  "linkLabel": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-widget": "string"
+                  }
+                },
+                "required": [
+                  "title",
+                  "text",
+                  "linkLabel"
+                ],
+                "additionalProperties": false,
+                "x-widget": "object"
+              },
+              "latestTitle": {
+                "type": "string",
+                "minLength": 1,
+                "x-widget": "string"
+              }
+            },
+            "required": [
+              "hero",
+              "latestTitle"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "site": {
+          "path": "src/content/copy/site.yml",
+          "fields": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "x-widget": "string"
+              },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "about": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-widget": "string"
+                  },
+                  "news": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-widget": "string"
+                  }
+                },
+                "required": [
+                  "about",
+                  "news"
+                ],
+                "additionalProperties": false,
+                "x-widget": "object"
+              },
+              "footer": {
+                "type": "string",
+                "minLength": 1,
+                "x-widget": "string"
+              }
+            },
+            "required": [
+              "name",
+              "nav",
+              "footer"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "events": {
+      "editable": false,
+      "fields": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "x-widget": "string"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "x-widget": "string"
+          },
+          "date": {
+            "x-widget": "datetime",
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?)?$"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "date"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "news": {
+      "type": "folder",
+      "editable": true,
+      "path": "src/content/news",
+      "pattern": "*.md",
+      "format": "markdown",
+      "locales": null,
+      "fields": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "x-widget": "string"
+          },
+          "date": {
+            "x-widget": "datetime",
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?)?$"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Summary",
+            "description": "One sentence for the news list.",
+            "x-widget": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "Bakery",
+              "Events"
+            ],
+            "x-widget": "select"
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^\\/assets\\/\\S+$",
+            "x-widget": "image"
+          },
+          "featured": {
+            "type": "boolean",
+            "x-widget": "boolean"
+          }
+        },
+        "required": [
+          "title",
+          "date",
+          "summary",
+          "category"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

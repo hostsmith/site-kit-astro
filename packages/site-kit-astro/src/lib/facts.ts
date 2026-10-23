@@ -15,7 +15,7 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "astro/zod";
 import { parse } from "yaml";
-import { fromCms } from "./cms-values.ts";
+import { fromCms } from "../core/cms-values.ts";
 import { LOCALE_KEY, splitId } from "./locales.ts";
 
 export type Facts = ReadonlyMap<string, string>;
@@ -110,7 +110,7 @@ function fillValue(value: unknown, facts: Facts, options: FillOptions, path: Pat
 }
 
 // A schema that reads what the CMSs write as the content dialect
-// (lib/cms-values.ts), then fills placeholders, before `schema` validates.
+// (core/cms-values.ts), then fills placeholders, before `schema` validates.
 // `getFacts` gets that input and the entry's locale, which its loader added
 // under LOCALE_KEY (lib/locales.ts, withLocale), so the settings can fill
 // from their own `facts`.

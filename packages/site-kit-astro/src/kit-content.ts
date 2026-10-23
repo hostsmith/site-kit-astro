@@ -15,7 +15,7 @@ import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 import type { SiteConfig } from "../index.ts";
 import { FACT_NAME, factsFrom, hasPlaceholder, readFacts, withFacts } from "./lib/facts.ts";
-import { formatPath, type PathPart } from "./lib/field.ts";
+import { formatPath, type PathPart } from "./core/field.ts";
 import { type Locale, LOCALE_KEY, resolveLocales, withLocale } from "./lib/locales.ts";
 import { icon, itemList, labeledLink, link, mediaPath, requireAlt, section, type UiString } from "./lib/schema.ts";
 
@@ -263,7 +263,7 @@ export function defineKitContent(siteConfig: SiteConfig, { siteSectionSchemas, s
 
   // Checks each section on its own first, so errors name the section id, its
   // type and the prop. The typed union then parses the checked list.
-  const sectionList = z.array(z.unknown()).superRefine(checkSections(sectionSchemas)).pipe(z.array(sectionUnion));
+  const sectionList = checkedList(checkSections(sectionSchemas), sectionUnion);
 
   return {
     sectionSchemas,
@@ -330,7 +330,7 @@ export function describeIssue(issue: z.core.$ZodIssue, value: unknown): string {
     case "unrecognized_keys":
       return issue.keys.map((key) => `unknown prop "${formatPath([...(issue.path as PathPart[]), key])}"`).join(", ");
     case "invalid_type":
-      // An empty list reads as absent (lib/cms-values.ts), so a required list
+      // An empty list reads as absent (core/cms-values.ts), so a required list
       // without items is reported as one.
       if (valueAt(value, issue.path) === undefined && issue.expected === "array") return `prop "${path}": needs at least one item`;
       return valueAt(value, issue.path) === undefined
@@ -526,32 +526,48 @@ export type FooterBlock = z.output<FooterBlockSchemas[keyof FooterBlockSchemas]>
 // type and the prop, like sections.
 function blockList<S extends Record<string, z.ZodObject>>(schemas: S, kind: string) {
   const union = z.discriminatedUnion("type", Object.values(schemas) as [S[keyof S], ...S[keyof S][]]);
-  return z
-    .array(z.unknown())
-    .superRefine((items, ctx) => {
-      items.forEach((item, index) => {
-        const label = `${kind} ${index + 1}`;
-        if (typeof item !== "object" || item === null || Array.isArray(item)) {
-          ctx.addIssue({ code: "custom", path: [index], message: `${label} must be an object with a type and props` });
-          return;
-        }
-        const { type } = item as Record<string, unknown>;
-        if (typeof type !== "string" || !Object.hasOwn(schemas, type)) {
-          ctx.addIssue({
-            code: "custom",
-            path: [index, "type"],
-            message: `${label}: unknown type ${JSON.stringify(type)}. ${kind[0].toUpperCase()}${kind.slice(1)} types: ${Object.keys(schemas).join(", ")}.`,
-          });
-          return;
-        }
-        const result = schemas[type].safeParse(item);
-        if (result.success) return;
-        for (const issue of result.error.issues) {
-          ctx.addIssue({ code: "custom", path: [index, ...issue.path], message: `${label} (${type}): ${describeIssue(issue, item)}` });
-        }
-      });
-    })
-    .pipe(z.array(union));
+  return checkedList((items, ctx) => {
+    items.forEach((item, index) => {
+      const label = `${kind} ${index + 1}`;
+      if (typeof item !== "object" || item === null || Array.isArray(item)) {
+        ctx.addIssue({ code: "custom", path: [index], message: `${label} must be an object with a type and props` });
+        return;
+      }
+      const { type } = item as Record<string, unknown>;
+      if (typeof type !== "string" || !Object.hasOwn(schemas, type)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [index, "type"],
+          message: `${label}: unknown type ${JSON.stringify(type)}. ${kind[0].toUpperCase()}${kind.slice(1)} types: ${Object.keys(schemas).join(", ")}.`,
+        });
+        return;
+      }
+      const result = schemas[type].safeParse(item);
+      if (result.success) return;
+      for (const issue of result.error.issues) {
+        ctx.addIssue({ code: "custom", path: [index, ...issue.path], message: `${label} (${type}): ${describeIssue(issue, item)}` });
+      }
+    });
+  }, union);
+}
+
+// A list whose items are checked one by one before the typed union parses
+// them: a page's sections, and the header's and footer's blocks. The checks
+// run in a preprocess step, not a refinement piped to the union, because
+// Astro writes a collection's JSON Schema from its input side: this way it
+// lists every type with its fields (site-kit-core-split design D74, Q10). A
+// value that isn't a list fails as z.array() fails it.
+function checkedList<U extends z.ZodType>(check: (items: unknown[], ctx: z.RefinementCtx<unknown[]>) => void, union: U) {
+  const list = z.array(z.unknown());
+  return z.preprocess((value, ctx) => {
+    const result = list.safeParse(value);
+    if (!result.success) {
+      for (const issue of result.error.issues) ctx.addIssue(issue);
+    } else {
+      check(result.data, ctx as unknown as z.RefinementCtx<unknown[]>);
+    }
+    return value;
+  }, z.array(union));
 }
 
 const headerActions = blockList(headerActionSchemas, "header action").superRefine((actions, ctx) => {

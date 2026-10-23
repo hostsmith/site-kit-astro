@@ -1,0 +1,28 @@
+---
+import { getCollection } from "astro:content";
+import { fieldsFor } from "@hostsmith/site-kit-astro/field";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+// A locale's entries are in its folder, and their ids start with its code.
+const locale = Astro.currentLocale ?? "en";
+const prefix = locale === "en" ? "" : `/${locale}`;
+const news = (await getCollection("news", (entry) => entry.id.startsWith(`${locale}/`))).sort((a, b) => b.data.date.localeCompare(a.data.date));
+---
+
+<BaseLayout title="News">
+  <ul>
+    {
+      news.map((entry) => {
+        const f = fieldsFor("news", entry.id);
+        return (
+          <li>
+            <a href={`${prefix}/news/${entry.id.slice(locale.length + 1)}`} {...f("title")}>
+              {entry.data.title}
+            </a>
+            <p {...f("summary")}>{entry.data.summary}</p>
+          </li>
+        );
+      })
+    }
+  </ul>
+</BaseLayout>

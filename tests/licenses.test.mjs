@@ -92,3 +92,29 @@ describe("license policy in CONTRIBUTING.md", () => {
     }
   });
 });
+
+// site-core, "Content in the repo or in an external CMS" (site-kit-core-split
+// design D86): the package holds no CMS's code, not even optionally. The
+// lockfile holds everything the package and the examples install.
+const CMS_PACKAGES = [
+  /^@sanity\//, /^sanity$/, /^@directus\//, /^directus$/, /^payload$/, /^@payloadcms\//, /^@strapi\//, /^strapi$/,
+  /^contentful$/, /^@contentful\//, /^@storyblok\//, /^@prismicio\//, /^@datocms\//, /^tinacms$/, /^@tinacms\//, /^@builder\.io\//,
+];
+
+function cmsPackages(lockfile) {
+  return Object.keys(lockfile.packages)
+    .filter((path) => path.includes("node_modules/"))
+    .map((path) => path.slice(path.lastIndexOf("node_modules/") + "node_modules/".length))
+    .filter((name) => CMS_PACKAGES.some((pattern) => pattern.test(name)));
+}
+
+describe("CMS packages", () => {
+  it("are none in the lockfile", () => {
+    assert.deepEqual(cmsPackages(lock), []);
+  });
+
+  it("are found when the package depends on one", () => {
+    const edited = withDependency("packages/site-kit-astro", "@sanity/client", { version: "7.0.0", license: "MIT" });
+    assert.deepEqual(cmsPackages(edited), ["@sanity/client"]);
+  });
+});

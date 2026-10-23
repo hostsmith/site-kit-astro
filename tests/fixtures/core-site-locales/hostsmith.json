@@ -1,0 +1,12 @@
+{
+  "kit": { "framework": "astro" },
+  "site": { "id": "" },
+  "build": { "command": "npm run build", "output": "dist", "node": "24" },
+  "content": {
+    "schema": { "source": "zod", "path": ".hostsmith/schema.json" },
+    "root": "src/content",
+    "locales": { "default": "en", "codes": ["en", "de"] }
+  },
+  "media": { "dir": "public/assets", "publicPath": "/assets" },
+  "cms": { "repo": "example-agency/bakery-site" }
+}

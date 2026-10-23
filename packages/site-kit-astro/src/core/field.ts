@@ -34,6 +34,16 @@ export function field(entry: string, ...path: PathPart[]): FieldAttrs {
   return { "data-field": `${entry}#${formatPath(path)}` };
 }
 
+// A binder for one entry, so a site's own components stay readable
+// (site-kit-core-split design D80):
+//
+//   const f = fieldsFor("copy", "home");
+//   f("hero.title")          -> { "data-field": "copy/home#hero.title" }
+//   f("items", 2, "title")   -> { "data-field": "copy/home#items[2].title" }
+export function fieldsFor(collection: string, entryId: string) {
+  return (...path: PathPart[]): FieldAttrs => field(`${collection}/${entryId}`, ...path);
+}
+
 export function sectionFields(entry: string, section: { id: string; type: string }) {
   const prefix = `sections[${section.id}]`;
   return {

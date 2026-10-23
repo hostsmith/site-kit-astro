@@ -8,7 +8,7 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { BASICS, buildFixture, PACKAGE, run } from "./helpers.mjs";
+import { BASICS, buildFixture, CORE_SITE, PACKAGE, run } from "./helpers.mjs";
 
 const siteSchemaWith = (type) => (text) =>
   text.replace(
@@ -72,6 +72,12 @@ describe("published files", () => {
     }
   });
 
+  it("include the core, its copy helper and its commands", () => {
+    for (const path of ["core.ts", "src/core/integration.ts", "src/core/copy.ts", "scripts/core/schema.mjs", "scripts/core/decap-core.mjs", "scripts/core/check-fields.mjs"]) {
+      assert.ok(files.includes(path), `${path} is not published`);
+    }
+  });
+
   // site-kit-sections, "The kit ships no styles".
   it("include no stylesheet", () => {
     for (const path of files) assert.doesNotMatch(path, /\.(css|scss|sass|less)$/, path);
@@ -117,4 +123,45 @@ describe("packed package", () => {
     const check = await run("npm", ["run", "decap-config", "--", "--check"], { cwd: join(dir, "site") });
     assert.equal(check.code, 0, check.output);
   });
+});
+
+// site-kit-package, "Packed package builds the core site": the same tarball in
+// a copy of the core fixture outside the workspace (site-kit-core-split design
+// D83). The commands run from node_modules, where Node strips no types.
+describe("packed package in a core site", () => {
+  let dir;
+  let site;
+  let build;
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "site-kit-packed-core-"));
+    const [{ filename }] = JSON.parse(execFileSync("npm", ["pack", "--json", "--pack-destination", dir], { cwd: PACKAGE, encoding: "utf8" }));
+    site = join(dir, "site");
+    await cp(CORE_SITE, site, { recursive: true, filter: (src) => !/^(node_modules|dist|\.astro)(\/|$)/.test(relative(CORE_SITE, src)) });
+    const pkg = JSON.parse(await readFile(join(site, "package.json"), "utf8"));
+    pkg.dependencies["@hostsmith/site-kit-astro"] = `file:../${filename}`;
+    await writeFile(join(site, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    const install = await run("npm", ["install", "--prefer-offline", "--no-audit", "--no-fund"], { cwd: site });
+    assert.equal(install.code, 0, install.output);
+    build = await run(process.execPath, [join(site, "node_modules", "astro", "bin", "astro.mjs"), "build"], {
+      cwd: site,
+      env: { ...process.env, ASTRO_TELEMETRY_DISABLED: "1", NO_COLOR: "1" },
+    });
+  });
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("is installed, not linked", () => {
+    assert.ok(!lstatSync(join(site, "node_modules", "@hostsmith", "site-kit-astro")).isSymbolicLink());
+  });
+
+  it("builds the site's own pages", async () => {
+    assert.equal(build.code, 0, build.output);
+    assert.match(await readFile(join(site, "dist", "index.html"), "utf8"), /<h1 data-field="copy\/home#hero\.title">/);
+  });
+
+  for (const args of [["schema", "--check"], ["decap-config", "--check"], ["check-fields", "--min", "90"]]) {
+    it(`passes site-kit ${args.join(" ")}`, async () => {
+      const result = await run("npx", ["site-kit", ...args], { cwd: site, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: "1", NO_COLOR: "1" } });
+      assert.equal(result.code, 0, result.output);
+    });
+  }
 });

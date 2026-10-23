@@ -5,10 +5,13 @@
 //   npm run check:urls -- --live <site url> # against a deployed site
 //
 // The paths come from .hostsmith/old-urls.txt, one per line. Against the
-// build output, each path is mapped to the file Hostsmith would serve for it:
-// "/about" is served from `about`, `about/index.html` or `about/index.htm`,
-// "/about/" from `about/index.html` or `about/index.htm`, and "/" from
-// `index.html`. With --live, each path must return 200 without a redirect.
+// build output, each path is mapped to the file Hostsmith would serve for it,
+// in the order Hostsmith looks: "/about" is served from `about`,
+// `about/index.html`, `about/index.htm`, `about.html` or `about.htm`, so a site
+// built with build.format "file" passes too (site-kit-core-split design D81).
+// "/about/" is served from `about/index.html` or `about/index.htm`, and "/"
+// from `index.html`. With --live, each path must return 200 without a
+// redirect.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
@@ -27,7 +30,7 @@ export function servedFile(dist, path) {
   const candidates =
     object === "" || object.endsWith("/")
       ? [`${prefix}index.html`, `${prefix}index.htm`]
-      : [trimmed, `${prefix}index.html`, `${prefix}index.htm`];
+      : [trimmed, `${prefix}index.html`, `${prefix}index.htm`, ...(/\.html?$/.test(trimmed) ? [] : [`${trimmed}.html`, `${trimmed}.htm`])];
   return candidates.find((candidate) => {
     const file = join(dist, candidate);
     return existsSync(file) && statSync(file).isFile();

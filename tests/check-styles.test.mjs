@@ -22,9 +22,10 @@ async function withSite(files, fn) {
   }
 }
 
-// Runs the command in a site holding only the given files.
+// Runs the command in a kit site holding only the given files, and the
+// src/site.schema.ts every kit site has (site-kit-core-split design D72).
 function checkStyles(files, args = []) {
-  return withSite(files, (root) => run(process.execPath, [join(PACKAGE, "bin", "site-kit.mjs"), "check-styles", ...args], { cwd: root }));
+  return withSite({ "src/site.schema.ts": "", ...files }, (root) => run(process.execPath, [join(PACKAGE, "bin", "site-kit.mjs"), "check-styles", ...args], { cwd: root }));
 }
 
 const NAVY = "@theme static {\n  --color-*: initial;\n  --color-bg: #f3f4f7;\n  --color-fg: #14233c;\n  --color-tint: #dee4ee;\n}\n";
