@@ -1,0 +1,33 @@
+---
+// The site's own layout. Its language switcher and links are the site's: the
+// core changes none of them.
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const locale = Astro.currentLocale ?? "en";
+const prefix = locale === "en" ? "" : `/${locale}`;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} | Corner Bakery</title>
+  </head>
+  <body>
+    <header>
+      <a href={prefix || "/"}>Corner Bakery</a>
+      <nav aria-label="Main">
+        <a href={`${prefix}/about`}>{locale === "de" ? "Über uns" : "About"}</a>
+        <a href={`${prefix}/news`}>{locale === "de" ? "Neuigkeiten" : "News"}</a>
+      </nav>
+      <a href={locale === "de" ? "/" : "/de"} hreflang={locale === "de" ? "en" : "de"}>{locale === "de" ? "English" : "Deutsch"}</a>
+    </header>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

@@ -24,9 +24,11 @@
   },
   "exports": {
     ".": "./index.ts",
+    "./core": "./core.ts",
+    "./copy": "./src/core/copy.ts",
     "./content": "./src/content.ts",
     "./schema": "./src/lib/schema.ts",
-    "./field": "./src/lib/field.ts",
+    "./field": "./src/core/field.ts",
     "./markdown": "./src/lib/markdown.ts",
     "./settings": "./src/lib/settings.ts",
     "./routes": "./src/lib/routes.ts",
@@ -41,6 +43,7 @@
   },
   "files": [
     "index.ts",
+    "core.ts",
     "virtual.d.ts",
     "src",
     "scripts",
@@ -52,6 +55,8 @@
   "dependencies": {
     "@astrojs/markdown-satteri": "0.4.3",
     "@hostsmith/sdk": "1.4.0",
+    "devalue": "5.9.4",
+    "ultrahtml": "1.7.0",
     "yaml": "2.9.1"
   },
   "peerDependencies": {

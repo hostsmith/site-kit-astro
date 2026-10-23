@@ -1,0 +1,11 @@
+---
+import { getCollection } from "astro:content";
+import NewsArticle from "../../components/NewsArticle.astro";
+
+export async function getStaticPaths() {
+  const news = await getCollection("news", (entry) => entry.id.startsWith("en/"));
+  return news.map((entry) => ({ params: { slug: entry.id.slice("en/".length) }, props: { entry } }));
+}
+---
+
+<NewsArticle entry={Astro.props.entry} />

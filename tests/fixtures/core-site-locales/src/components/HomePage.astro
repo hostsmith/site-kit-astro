@@ -1,0 +1,13 @@
+---
+import { copy } from "../content.config.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const locale = Astro.currentLocale;
+const home = await copy.get("home", locale);
+const f = copy.fields("home", locale);
+---
+
+<BaseLayout title={home.hero.title}>
+  <h1 {...f("hero.title")}>{home.hero.title}</h1>
+  <p {...f("hero.text")}>{home.hero.text}</p>
+</BaseLayout>

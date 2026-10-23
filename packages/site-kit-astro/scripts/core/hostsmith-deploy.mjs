@@ -16,7 +16,7 @@ import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 
 // The package's version, for the SDK's user agent.
-const KIT_VERSION = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+const KIT_VERSION = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).version;
 
 export const POLL_INTERVAL_MS = 5_000;
 export const TIMEOUT_MS = 10 * 60_000;

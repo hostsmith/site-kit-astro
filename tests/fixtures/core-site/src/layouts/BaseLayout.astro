@@ -1,0 +1,37 @@
+---
+// The site's own layout, as an existing Astro site has one. Its header and
+// footer text is copy too, in src/content/copy/site.yml.
+import { copy } from "../content.config.ts";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const site = await copy.get("site");
+const f = copy.fields("site");
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} | {site.name}</title>
+  </head>
+  <body>
+    <header>
+      <a href="/" {...f("name")}>{site.name}</a>
+      <nav aria-label="Main">
+        <a href="/about" {...f("nav.about")}>{site.nav.about}</a>
+        <a href="/news" {...f("nav.news")}>{site.nav.news}</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer>
+      <p {...f("footer")}>{site.footer}</p>
+    </footer>
+  </body>
+</html>

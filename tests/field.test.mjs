@@ -1,7 +1,7 @@
-// site-kit-sections, "Field attribute format".
+// site-kit-sections, "Field attribute format", and site-core, "Field binder".
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { field, formatPath, sectionFields } from "../packages/site-kit-astro/src/lib/field.ts";
+import { field, fieldsFor, formatPath, sectionFields } from "../packages/site-kit-astro/src/core/field.ts";
 
 describe("field()", () => {
   it("addresses a section prop by section id", () => {
@@ -35,5 +35,15 @@ describe("field()", () => {
     assert.equal(formatPath(["cta", "label"]), "cta.label");
     assert.equal(formatPath(["images", 3, "alt"]), "images[3].alt");
     assert.equal(formatPath(["body"]), "body");
+  });
+});
+
+describe("fieldsFor()", () => {
+  it("keeps a dotted path as written", () => {
+    assert.deepEqual(fieldsFor("copy", "home")("hero.title"), { "data-field": "copy/home#hero.title" });
+  });
+
+  it("addresses a list item by index", () => {
+    assert.deepEqual(fieldsFor("copy", "about")("items", 2, "title"), { "data-field": "copy/about#items[2].title" });
   });
 });

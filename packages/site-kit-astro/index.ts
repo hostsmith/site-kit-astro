@@ -8,7 +8,8 @@
 // It sets the build options every kit site shares, injects the kit's routes,
 // and gives kit code the site's settings and schemas through two virtual
 // modules. Kit code reads nothing else from the site except the fixed paths in
-// design D20.
+// design D20. It runs the core's hooks before its own (site-kit-core-split
+// design D71), so a kit site has everything a core site has.
 import { existsSync } from "node:fs";
 import { rename, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -16,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import type { AstroIntegration } from "astro";
 import { passthroughImageService } from "astro/config";
 import { staleness } from "./scripts/decap-config.mjs";
+import { coreHooks } from "./src/core/integration.ts";
 import { type LocaleConfig, resolveLocales } from "./src/lib/locales.ts";
 import { markdownOptions, markdownProcessor } from "./src/lib/markdown.ts";
 
@@ -42,10 +44,17 @@ const ROUTES = {
 };
 
 export default function siteKit(siteConfig: SiteConfig): AstroIntegration {
+  // The site's locale codes, the default first, for the schema export's check.
+  const core = coreHooks({ kitLocales: () => resolveLocales(siteConfig.locales).map((locale) => locale.code) });
   return {
     name: "@hostsmith/site-kit-astro",
     hooks: {
-      "astro:config:setup": ({ config, command, updateConfig, injectRoute, addMiddleware }) => {
+      "astro:routes:resolved": core["astro:routes:resolved"],
+      "astro:build:start": core["astro:build:start"],
+
+      "astro:config:setup": async (params) => {
+        await core["astro:config:setup"](params);
+        const { config, command, updateConfig, injectRoute, addMiddleware } = params;
         const root = fileURLToPath(config.root);
         const siteSchema = join(root, "src", "site.schema.ts");
         if (!existsSync(siteSchema)) {
@@ -91,12 +100,12 @@ export default function siteKit(siteConfig: SiteConfig): AstroIntegration {
         if (locales.length > 1) addMiddleware({ entrypoint: new URL("./src/middleware.ts", import.meta.url), order: "post" });
       },
 
-      // The Decap config ships in the repo, but /admin is never deployed (design
-      // D7). Astro copies public/ into the output, so the copy is removed here.
-      // Each locale's 404 page, built as <path>/404/index.html, becomes
-      // <path>/404.html, where hosts look for it (site-kit-locales design D57).
-      "astro:build:done": async ({ dir }) => {
-        await rm(new URL("admin/", dir), { recursive: true, force: true });
+      // The core removes /admin from the output (design D7). Then each locale's
+      // 404 page, built as <path>/404/index.html, becomes <path>/404.html,
+      // where hosts look for it (site-kit-locales design D57).
+      "astro:build:done": async (params) => {
+        await core["astro:build:done"](params);
+        const { dir } = params;
         for (const locale of resolveLocales(siteConfig.locales)) {
           if (locale.isDefault) continue;
           const built = new URL(`.${locale.path}/404/index.html`, dir);

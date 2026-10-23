@@ -15,7 +15,7 @@ The kit is the package `@hostsmith/site-kit-astro`, in `node_modules/@hostsmith/
 Site code imports the kit only through these package names:
 
 - `@hostsmith/site-kit-astro/schema`: field types and helpers for `src/site.schema.ts`;
-- `@hostsmith/site-kit-astro/field`: `field` and `sectionFields`, for field attributes;
+- `@hostsmith/site-kit-astro/field`: `field`, `sectionFields` and `fieldsFor`, for field attributes;
 - `@hostsmith/site-kit-astro/markdown`: `renderMarkdown` and `assertNoH1`;
 - `@hostsmith/site-kit-astro/settings`: `getSettings(locale)`, `settingsRef(locale)` and `SETTINGS`;
 - `@hostsmith/site-kit-astro/ui`: `getUi(locale)`, for interface strings;
@@ -121,7 +121,7 @@ To take kit release `<version>`:
 
 1. `git switch -c kit-update/v<version>`
 2. `npm install --save-exact @hostsmith/site-kit-astro@<version>`. If npm reports a conflict on `astro`, install the `astro` version the release notes name in the same command.
-3. `npm run decap-config` and `npm run check:styles`. For each deprecated-hook warning, rename the selector in `src/styles/theme/` and `src/styles/site.css` to the replacement it names. Don't keep a selector list with both names: once the old class is gone, that half matches nothing.
+3. `npm run decap-config`, `npx site-kit schema` and `npm run check:styles`. `npx site-kit schema` writes `.hostsmith/schema.json`, which a site without it gains at the first update that runs it: commit it. For each deprecated-hook warning, rename the selector in `src/styles/theme/` and `src/styles/site.css` to the replacement it names. Don't keep a selector list with both names: once the old class is gone, that half matches nothing.
 4. `npm run build` and `npm run check:urls`. For each build warning about deprecated content, change the content to the replacement it names.
 5. `npm run check:styles -- --built`. Style every hook it reports as unstyled, in the theme or in `site.css`, and replace every class it reports without a rule with the theme's tokens, such as `text-h1` for `text-4xl`.
 6. For a major release, apply the steps in its release notes, and the kit README's checklist for that release, such as "From 0.4 to 0.5". Before taking a release with a "Removed" section, clear every deprecation warning. If the site skipped the release that deprecated a hook, the "Removed" notes and the errors from `npm run check:styles` list what to change.
@@ -139,3 +139,16 @@ Every dependency is pinned to an exact version, and `package-lock.json` is commi
 - `@astrojs/react`, `react` and `react-dom`, only for the DevLink experiment
 
 Don't add a package that isn't on this list. If a change seems to need one, stop and raise it with the developer instead.
+
+## In a core site
+
+A site without `src/site.schema.ts` is a core site: an Astro site with its own pages, layout and components, which adds only the kit's core, `siteKitCore()` from `@hostsmith/site-kit-astro/core`. These rules apply there:
+
+- **Field attributes.** Bind each element that shows a content value: a collection entry's with `fieldsFor(collection, entry.id)` from `@hostsmith/site-kit-astro/field`, page copy with `copy.fields(page, locale)`. Bind the element that shows the value, not a container around it. Mark text the CMS doesn't edit, such as a legal line, `data-field-ignore`.
+- **Page copy.** Copy that a page writes in its markup goes in `src/content/copy/<page>.yml`, declared in `pageCopy()` in `src/content.config.ts`, and the page reads it with `copy.get(page, locale)`. Never name a collection `pages`.
+- **Locales.** They are `content.locales` in `hostsmith.json`, and match Astro's `i18n` when the site sets it. Each translated collection keeps the default locale in its own folder or file suffix too, such as `news/en/a.md` or `news/a.en.md`. With locales, each copy file holds every locale's copy under its code.
+- **Commands.** After a change to a collection's schema, run `npx site-kit schema` and `npx site-kit decap-config`, and commit `.hostsmith/schema.json` and `public/admin/config.yml`. After the build, `npx site-kit check-fields` lists the pages with text that isn't bound yet.
+- **Static output.** Never set `output: "server"` or `export const prerender = false`: Hostsmith serves static files only.
+- **Content source.** `content.source` in `hostsmith.json` says where the content lives: `repo`, the default, or `external`, for a headless CMS the build fetches from. In an external site, edit content in the CMS, never in the repository: there's no schema export, Decap config or page copy to keep up, and `check-fields` only reports. Never commit a CMS token: it belongs in the CI provider's secrets.
+
+These don't apply in a core site: section types and `npm run section-id`, settings, header and footer blocks, interface strings, themes, the `sk-` hooks and `check-styles`, and the dependency list above. The site keeps its own markup, styles and dependencies.

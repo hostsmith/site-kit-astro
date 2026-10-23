@@ -1,0 +1,6 @@
+{
+  "kit": { "framework": "astro" },
+  "site": { "id": "" },
+  "build": { "command": "npm run build", "output": "dist", "node": "24" },
+  "content": { "source": "external", "provider": "sanity" }
+}

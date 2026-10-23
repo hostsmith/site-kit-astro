@@ -7,7 +7,7 @@ The kit has two parts:
 - the npm package [`@hostsmith/site-kit-astro`](https://www.npmjs.com/package/@hostsmith/site-kit-astro): an Astro integration, the section library, the layout, the routes, the content schemas, the `site-kit` command and the agent guidelines (`AGENTS.md`). It ships no CSS: its markup carries styling hooks, listed in [`HOOKS.md`](./packages/site-kit-astro/HOOKS.md);
 - example sites, in [`examples/`](./examples): a new site starts as a copy of one (see [Examples](#examples)). Each example brings its own look, styled with [Tailwind CSS](https://tailwindcss.com).
 
-A site repository holds only the site: its content, settings, look and its own sections. It takes kit releases with `npm install`. The kit is plain Astro, and Hostsmith appears only in deployment tooling, so a kit site builds and runs on any static host.
+A site repository holds only the site: its content, settings, look and its own sections. It takes kit releases with `npm install`. The kit is plain Astro, and Hostsmith appears only in deployment tooling, so a kit site builds and runs on any static host. An existing Astro site can also take the package's core alone, and keep its own pages (see [Core for existing Astro sites](#core-for-existing-astro-sites)).
 
 The kit is before 1.0, and built first for sites migrated from Webflow.
 
@@ -52,10 +52,10 @@ Each example is a complete site, and each release deploys it from this repositor
 | `public/admin/config.yml` | the Decap config, assembled by `npm run decap-config` |
 | `astro.config.mjs`, `src/content.config.ts` | wire the kit and Tailwind in. They rarely change |
 | `AGENTS.md`, `CLAUDE.md`, `.claude/skills/` | agent rules: the kit's rules come from the package |
-| `.hostsmith/` | the site's brief and the old site's URLs |
+| `.hostsmith/` | the site's brief, the old site's URLs, and the [schema export](#schema-export), `schema.json`, written by `npx site-kit schema` |
 | `.github/workflows/hostsmith.yml` | the deploy workflow |
 
-Every file in a site repository is the site's. The kit's code is in `node_modules/@hostsmith/site-kit-astro/`, and no kit update changes the site's files, apart from `package.json`, `package-lock.json` and the generated `public/admin/config.yml`.
+Every file in a site repository is the site's. The kit's code is in `node_modules/@hostsmith/site-kit-astro/`, and no kit update changes the site's files, apart from `package.json`, `package-lock.json`, the generated `public/admin/config.yml` and the generated `.hostsmith/schema.json`.
 
 ## How content works
 
@@ -443,14 +443,17 @@ The kit's public API is what a minor release keeps working:
 - the exports of `src/site.schema.ts`, `siteSectionSchemas`, `siteCollections`, each collection as its schema alone, and the optional `siteUi`;
 - the paths the kit reads from the site: `src/site.config.ts`, `src/site.schema.ts`, `src/components/sections/site/*.astro`, `src/components/collections/<collection>.astro`, `src/components/pages/<page>.astro`, `src/pages/**/*.astro`, `src/styles/global.css`, and the content in `src/content/`, one file per page, entry or settings and locale, such as `pages/about.en.md`;
 - the styling hooks and state attributes in [`HOOKS.md`](./packages/site-kit-astro/HOOKS.md);
+- the format of the [schema export](#schema-export), `.hostsmith/schema.json`;
 - the package's exports:
 
 | Import | What it gives |
 | --- | --- |
 | `@hostsmith/site-kit-astro` | the integration |
+| `@hostsmith/site-kit-astro/core` | `siteKitCore()`, the core alone, for [a site with its own pages](#core-for-existing-astro-sites) |
+| `@hostsmith/site-kit-astro/copy` | `pageCopy()`, for a core site's [page copy](#page-copy) |
 | `@hostsmith/site-kit-astro/content` | `collections`, for `src/content.config.ts`, and the `Section` type |
 | `@hostsmith/site-kit-astro/schema` | field types and helpers for `src/site.schema.ts`, `uiString` among them |
-| `@hostsmith/site-kit-astro/field` | `field` and `sectionFields`, for field attributes |
+| `@hostsmith/site-kit-astro/field` | `field`, `sectionFields` and `fieldsFor`, for field attributes. `fieldsFor("news", entry.id)` returns a binder: `f("cta", "label")` gives `data-field="news/<id>#cta.label"` |
 | `@hostsmith/site-kit-astro/markdown` | `renderMarkdown` and `assertNoH1` |
 | `@hostsmith/site-kit-astro/settings` | `getSettings(locale)`, `settingsRef(locale)` and `SETTINGS` |
 | `@hostsmith/site-kit-astro/ui` | `getUi(locale)`, for [interface strings](#interface-strings) |
@@ -462,6 +465,53 @@ The kit's public API is what a minor release keeps working:
 
 Anything else in the package can change in any release, and the package doesn't let a site import it.
 
+## Schema export
+
+`.hostsmith/schema.json` describes a site's content for Hostsmith's CMS, checks and agents: where each collection's files are, and their fields as JSON Schema, with each field's CMS widget. `npx site-kit schema` writes it from the collections Astro loads, in kit sites and [core sites](#core-for-existing-astro-sites) alike. Commit it, and don't edit it by hand: run the command again after a change to a collection's schema, and after a kit update. `npx site-kit schema --check` fails when the file is missing or stale. The build fails when it is stale, and only warns when it is missing, until a major release requires it.
+
+```json
+{
+  "version": 1,
+  "generator": "@hostsmith/site-kit-astro",
+  "kind": "core",
+  "media": { "dir": "public/assets", "publicPath": "/assets" },
+  "fieldAttribute": { "name": "data-field", "format": "<collection>/<entry id>#<path>" },
+  "collections": {
+    "news": {
+      "type": "folder",
+      "path": "src/content/news",
+      "pattern": "*.md",
+      "format": "markdown",
+      "locales": null,
+      "fields": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "x-widget": "string" },
+          "image": { "type": "string", "pattern": "^\\/assets\\/\\S+$", "x-widget": "image" }
+        },
+        "required": ["title"]
+      }
+    }
+  }
+}
+```
+
+| Key | What it is |
+| --- | --- |
+| `version` | the format's version, `1` |
+| `kind` | `kit` for a site with `src/site.schema.ts`, `core` for any other |
+| `media` | the media folder and its public path, from `hostsmith.json` |
+| `fieldAttribute` | the format of `data-field`: the entry id names the file, and the path is the place in it, such as `pages/about.en#sections[s7k2].title` |
+| `collections` | each collection whose entries are files, by name |
+
+A collection's `type` is `folder`, for entries in `path` whose files match `pattern` and share `fields`, or `files`, for files that each have their own `path` and `fields`. `format` is `markdown`, for front matter with a Markdown body, `yaml` or `json`. `locales` is `null` for a collection in one language, or the default locale's code, all the site's codes and the `structure` of its files, in Decap's words: `multiple_files` (`about.de.md`), `multiple_folders` (`de/about.md`) or `single_file` (every locale in one file, under its code). `fields` describe one locale's content in an entry.
+
+Each field's CMS widget is its `x-widget`. The schema helpers set theirs: `mediaPath` is `image`, `isoDate` is `datetime`, and `link` is `link`. Every other field takes its widget from its type: `string`, `select` for an enum, `boolean`, `number`, `list` or `object`. A site may set a field's widget, its label and its hint with Zod's metadata, which the export keeps:
+
+```ts
+intro: z.string().meta({ "x-widget": "text", title: "Introduction", description: "Two sentences at most." }),
+```
+
 ## Kit updates
 
 A site takes kit release `0.6.2` on a branch, which the deploy workflow deploys to the preview site:
@@ -470,13 +520,14 @@ A site takes kit release `0.6.2` on a branch, which the deploy workflow deploys 
 git switch -c kit-update/v0.6.2
 npm install --save-exact @hostsmith/site-kit-astro@0.6.2
 npm run decap-config
+npx site-kit schema
 npm run check:styles
 npm run build
 npm run check:urls
 npm run check:styles -- --built
 ```
 
-Then commit, push, check the preview site and merge the branch to `main`. If npm reports a conflict on `astro`, the release notes name the `astro` version to install with the kit. A major release's notes give the steps for the site's files.
+Then commit, push, check the preview site and merge the branch to `main`. `npx site-kit schema` works in a site without a `schema` script, and a site without `.hostsmith/schema.json` gains it at the first update that runs the command: commit it too. If npm reports a conflict on `astro`, the release notes name the `astro` version to install with the kit. A major release's notes give the steps for the site's files.
 
 `check:styles` checks the site's theme against the new release's hooks. It fails on a hook the release no longer has, and warns about one it deprecates, naming the replacement. After the build, `--built` warns about hooks the site's pages carry and its theme doesn't style yet, such as a new variant, and about any class that no rule in the built CSS matches, such as a Tailwind default the theme resets. A hook is deprecated in a minor release before a major one removes it, so a site that clears the warnings at each update takes the major release without surprises (`HOOKS.md`, "Deprecated").
 
@@ -519,10 +570,23 @@ In a site:
 | `npm run build` | Builds the site into `dist/`. Set `SITE_NOINDEX=true` for preview builds. |
 | `npm run dev` | Starts the dev server. |
 | `npm run section-id -- <page file>` | Prints a new section id for that page, unused in its translations too. |
-| `npm run check:urls` | Checks that every path in `.hostsmith/old-urls.txt` has a page. Add `--live <url>` to check a deployed site. |
+| `npm run check:urls` | Checks that every path in `.hostsmith/old-urls.txt` has a page, in the files Hostsmith serves for it: `/about` from `about`, `about/index.html`, `about/index.htm`, `about.html` or `about.htm`, in that order, and `/about/` from `about/index.html` or `about/index.htm`. Add `--live <url>` to check a deployed site. |
 | `npm run check:styles` | Finds raw colors outside the color presets, font names outside `tokens/type.css` and `fonts.css`, arbitrary Tailwind values, `sk-` classes the installed kit doesn't list, and color presets that disagree or fail the theme's contrast pairs. Warns about deprecated hooks. The deploy workflow runs it before the build. |
 | `npm run check:styles -- --built` | Warns about `sk-` classes in the built pages that the theme and `site.css` don't style. The deploy workflow runs it after the build. |
 | `npm run decap-config` | Assembles `public/admin/config.yml`, with the `i18n` settings for the site's locales. Add `--check` to only check it. |
+| `npx site-kit schema` | Writes the [schema export](#schema-export), `.hostsmith/schema.json`. Add `--check` to only check it. |
+| `npx site-kit check-fields` | After the build, reports how much of each page's visible text, and of the site's, is inside an element with `data-field`. Add `--min <percent>` to fail below it, and `--json` for the report as JSON. |
+
+`check-fields` counts the text of the body, without `script`, `style`, `noscript` and `template`, and without elements that have `hidden` or `aria-hidden="true"`. Mark an element `data-field-ignore` to leave its text out too, such as a footer's legal line that the CMS doesn't edit. It measures what is bound, not whether the binding is right: bind the element that shows a value, not a large container.
+
+A site with `src/site.schema.ts` is a kit site, and any other is a [core site](#core-for-existing-astro-sites). The commands run in these:
+
+| Command | Kit site | Core site |
+| --- | --- | --- |
+| `build`, `dev` | yes | yes |
+| `check-urls`, `schema`, `check-fields`, `deploy` | yes | yes |
+| `decap-config` | assembles the kit's part and the site's part | generates the config from `.hostsmith/schema.json` |
+| `section-id`, `check-styles` | yes | no: they fail, saying they are for kit sites |
 
 ## Deploying to Hostsmith
 
@@ -542,6 +606,207 @@ Variables, in the repository or the environment:
 | `HOSTSMITH_PREVIEW_SITE_ID` | variable | The preview site. Without it, branch pushes only build. |
 | `HOSTSMITH_PARTITION` | variable | `us` or `eu`, when the sites aren't in your account's home partition |
 | `SITE_NOINDEX` | variable | `true` until the site's domain points to Hostsmith. Previews are always no-index. |
+
+## Core for existing Astro sites
+
+An Astro site that keeps its own pages, layout and components can take the package's core alone. The core is what Hostsmith's CMS, checks and updates need from a site, and it changes none of the site's pages. A kit site has the core already, through `siteKit()`.
+
+1. Install the package:
+
+   ```bash
+   npm install --save-exact @hostsmith/site-kit-astro
+   ```
+
+2. Add the core to `astro.config.mjs`:
+
+   ```js
+   import siteKitCore from "@hostsmith/site-kit-astro/core";
+   import { defineConfig } from "astro/config";
+
+   export default defineConfig({
+     integrations: [siteKitCore()],
+   });
+   ```
+
+3. Add `hostsmith.json` at the site's root:
+
+   ```json
+   {
+     "kit": { "framework": "astro" },
+     "site": { "id": "" },
+     "build": { "command": "npm run build", "output": "dist", "node": "24" },
+     "content": {
+       "schema": { "source": "zod", "path": ".hostsmith/schema.json" },
+       "root": "src/content"
+     },
+     "media": { "dir": "public/assets", "publicPath": "/assets" },
+     "cms": { "repo": "example-agency/bakery-site" }
+   }
+   ```
+
+| Key | What it is |
+| --- | --- |
+| `site.id` | the Hostsmith site that production deploys go to |
+| `build` | the build command, the folder it writes and the Node version |
+| `content.schema` | the site's collections are its own Zod schemas, described in `.hostsmith/schema.json` |
+| `content.root` | the folder that holds the site's content |
+| `media` | the folder for media files, and the path the site serves them under |
+| `cms.repo` | the GitHub repository the CMS saves to, as `OWNER/REPOSITORY` |
+
+The site must build to static files, since Hostsmith serves static files only. A build with `output: "server"`, or with a page or endpoint that sets `export const prerender = false`, fails and names it. The build output never holds `admin/`, so a CMS config in `public/admin/` stays in the repository.
+
+The core adds no routes, layout, components, styles or middleware, and sets none of the site's build options, such as `trailingSlash` or `build.format`. Hostsmith serves `/about` from `about/index.html` and from `about.html`, so either build format works. The core writes no SEO tags, sitemap or `robots.txt`: the site keeps its own head, and can add a sitemap with [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/).
+
+### Page copy
+
+Copy that a page writes in its markup, such as its hero's title, moves into a `copy` collection, so the CMS can edit it: one YAML file per page in `src/content/copy/`, each page with its own schema. `pageCopy()` from `@hostsmith/site-kit-astro/copy` takes the schemas and gives the collection:
+
+```ts
+// src/content.config.ts
+import { pageCopy } from "@hostsmith/site-kit-astro/copy";
+
+export const copy = pageCopy({
+  home: z.strictObject({ hero: z.strictObject({ title: z.string().min(1) }) }),
+  about: z.strictObject({ intro: z.string().min(1) }),
+});
+export const collections = { news, copy: copy.collection };
+```
+
+```astro
+---
+// src/pages/index.astro
+import { copy } from "../content.config.ts";
+const home = await copy.get("home");
+const f = copy.fields("home");
+---
+<h1 {...f("hero.title")}>{home.hero.title}</h1>
+```
+
+`copy.get(page)` returns the page's copy, typed by its schema, and `copy.fields(page)` binds each element that shows it, here with `data-field="copy/home#hero.title"`. Register the collection as `copy`: `pages` is the kit's name for something else. The build fails on a file without a declared page, on a declared page without a file, and on a file that breaks its page's schema, naming the file and the field. The site's other collections bind their elements with `fieldsFor()` from `@hostsmith/site-kit-astro/field`, such as `fieldsFor("news", entry.id)("title")`.
+
+### Locales
+
+A core site in more than one language lists its locales in `hostsmith.json`:
+
+```json
+"content": { "locales": { "default": "en", "codes": ["en", "de"] } }
+```
+
+A code is the text the site's file paths use, such as `de`. When the site also sets Astro's `i18n`, the build fails unless both name the same default and the same locales. The core adds no routes: the site keeps its own routing, language switcher and `hreflang` links.
+
+Each collection keeps its files where they are, in a layout the CMS can write:
+
+- a folder per locale, such as `src/content/news/en/a.md` and `src/content/news/de/a.md`, is Decap's `multiple_folders`;
+- the code before the extension, such as `src/content/news/a.en.md`, is `multiple_files`;
+- a collection with no code in its paths, such as the site's authors, is in one language.
+
+The default locale needs its own folder or suffix too: `news/a.md` beside `news/de/a.md` fails `npx site-kit schema`, naming the collection. Move those files once, or set the collection's layout in `hostsmith.json` as `content.collections.<name>.i18n`: `"multiple_folders"`, `"multiple_files"` or `false`. A collection without entries sets its `path` and `pattern` there too, such as `{ "path": "src/content/events", "pattern": "*.md", "i18n": "multiple_folders" }`.
+
+With locales, each `copy` file holds every locale's copy under its code:
+
+```yaml
+# src/content/copy/home.yml
+en:
+  hero:
+    title: Fresh bread every morning
+de:
+  hero:
+    title: Jeden Morgen frisches Brot
+```
+
+`copy.get("home", Astro.currentLocale)` and `copy.fields("home", Astro.currentLocale)` take the locale, and the default one without it. The fields put the code first, as in `data-field="copy/home#de.hero.title"`. The build fails on a file without a locale's copy, or with a key that isn't one of the codes.
+
+### Decap CMS
+
+A core site's Decap config, `public/admin/config.yml`, is generated from its [schema export](#schema-export), so Decap CMS and Sveltia CMS can edit the site with no Hostsmith service. Run `npx site-kit schema`, then `npx site-kit decap-config`, and commit both files. The config saves to the GitHub repository in `cms.repo` in `hostsmith.json`, `OWNER/REPOSITORY`, on its `main` branch.
+
+| `x-widget` | Decap widget |
+| --- | --- |
+| `string`, `link` | `string`. A link's hint says that an internal link starts with `/` |
+| `text`, `markdown`, `image`, `boolean` | the widget of that name |
+| `datetime` | `datetime`, written as `YYYY-MM-DD` |
+| `select` | `select`, with the enum's values as its options |
+| `number` | `number`, `int` for an integer |
+| `list` | `list`, of one field or of an object's fields |
+| `object` | `object`, with its fields |
+
+A Markdown collection also gets its body as a `body` field. A field's label is its `.meta({ title })`, or its name split into words, and its hint is its `.meta({ description })`. A field that the schema doesn't require, or that is in an optional object, isn't required in the CMS either. A field with no widget, such as a union of types, fails the command: give it one with `.meta({ "x-widget": ... })`. With locales, the config has Decap's `i18n`, with each collection's layout, and every field is translated.
+
+`npx site-kit decap-config --check` fails when the config doesn't match the export, and so does the build. Without the config, the build only warns. In a kit site, the same command assembles the kit's part of the config and the site's part instead.
+
+### Content in an external CMS
+
+A site whose content is in a headless CMS, such as Sanity, Directus, Payload or Strapi, keeps that CMS. Its build fetches the content, through an Astro loader or in a page's frontmatter, and Hostsmith hosts the built files. The site declares it in `hostsmith.json`:
+
+```json
+"content": { "source": "external", "provider": "sanity" }
+```
+
+`provider` names the CMS for people who read the file, and no code reads it. An external site's `content` holds only these two keys. A site without `content.source` keeps its content in its repository, as a kit site always does.
+
+| | Content in the repository | Content in an external CMS |
+| --- | --- | --- |
+| Editing | Hostsmith's CMS, Decap or Sveltia, or a commit | the CMS's own editor |
+| Schema export and Decap config | yes | no: `npx site-kit schema` and `npx site-kit decap-config` exit with a message |
+| `check-fields` | a gate with `--min` | a report: the CMS's text has nothing in the repository to bind to |
+| Deploys, previews, `check-urls`, core and dependency updates, hosting | yes | yes |
+| A content change reaches the site | with a commit | when the CMS starts the deploy workflow |
+
+Upkeep covers the site's code and the core: dependency and core updates, the checks and hosting. It doesn't cover the CMS: its account, its schema or its content. The site still builds to static files, so previews show published content: draft previews and visual editing, which need a server, aren't supported. Keep the CMS's read token in the CI provider's secrets, such as the deploy workflow's GitHub environment secrets, never in `hostsmith.json` or the repository.
+
+A repository site may also have a collection that a loader fetches from elsewhere. Its entries have no file, so the schema export lists it with `"editable": false` and its fields, and the Decap config has no collection for it.
+
+#### Rebuild on publish
+
+The examples' deploy workflow, `.github/workflows/hostsmith.yml`, also runs on demand with a `target` input, so the CMS can start it when content is published. A core site uses the same workflow without its two style-check steps, which are for kit sites. The CMS calls GitHub's API:
+
+```http
+POST https://api.github.com/repos/OWNER/REPOSITORY/actions/workflows/hostsmith.yml/dispatches
+Authorization: Bearer <token>
+Accept: application/vnd.github+json
+
+{"ref": "main", "inputs": {"target": "production"}}
+```
+
+The token is a fine-grained personal access token for that repository only, with the "Actions" repository permission at "Read and write". Keep it in the CMS's secret settings or environment.
+
+- **Sanity:** add a GROQ-powered webhook in the project's API settings: the method POST, the URL and the two headers above, the create, update and delete triggers, a filter for the document types the site shows, such as `_type in ["post", "page"]`, and the projection `{"ref": "main", "inputs": {"target": "production"}}` as its body. It fires when a change is published, not for drafts. After the first publish, check the webhook's attempts log.
+- **Directus:** add a Flow with an Event Hook trigger on `items.create`, `items.update` and `items.delete` for the site's collections, and a "Webhook / Request URL" operation with the method POST, the URL and the two headers above, and the JSON body above.
+- **Payload:** Payload has no webhook settings, so each collection the site shows gets an `afterChange` hook, in the Payload project, that calls the API:
+
+  ```ts
+  import type { CollectionAfterChangeHook } from "payload";
+
+  export const rebuildSite: CollectionAfterChangeHook = async ({ doc }) => {
+    if (doc._status === "draft") return doc;
+    await fetch("https://api.github.com/repos/OWNER/REPOSITORY/actions/workflows/hostsmith.yml/dispatches", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.GITHUB_DISPATCH_TOKEN}`, Accept: "application/vnd.github+json" },
+      body: JSON.stringify({ ref: "main", inputs: { target: "production" } }),
+    });
+    return doc;
+  };
+  ```
+
+- **Strapi:** Strapi's own webhooks send a fixed body, which GitHub's API rejects without `ref`, so the Strapi project calls the API from a Document Service middleware, in `register()` in `src/index.ts`:
+
+  ```ts
+  export default {
+    register({ strapi }) {
+      strapi.documents.use(async (context, next) => {
+        const result = await next();
+        if (context.action === "publish") {
+          await fetch("https://api.github.com/repos/OWNER/REPOSITORY/actions/workflows/hostsmith.yml/dispatches", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${process.env.GITHUB_DISPATCH_TOKEN}`, Accept: "application/vnd.github+json" },
+            body: JSON.stringify({ ref: "main", inputs: { target: "production" } }),
+          });
+        }
+        return result;
+      });
+    },
+  };
+  ```
 
 ## Working on the kit
 

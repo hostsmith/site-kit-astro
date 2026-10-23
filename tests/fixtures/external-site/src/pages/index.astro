@@ -1,0 +1,26 @@
+---
+import { getCollection } from "astro:content";
+
+const posts = await getCollection("posts");
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Clay Studio</title>
+  </head>
+  <body>
+    <h1>Clay Studio</h1>
+    <ul>
+      {
+        posts.map((post) => (
+          <li>
+            <h2>{post.data.title}</h2>
+            <p>{post.data.excerpt}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </body>
+</html>

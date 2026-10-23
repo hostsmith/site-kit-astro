@@ -1,0 +1,16 @@
+---
+import { copy } from "../content.config.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const about = await copy.get("about");
+const f = copy.fields("about");
+---
+
+<BaseLayout title="About">
+  <h1 {...f("title")}>{about.title}</h1>
+  <p {...f("intro")}>{about.intro}</p>
+  <h2 {...f("bakes.title")}>{about.bakes.title}</h2>
+  <ul>
+    {about.bakes.items.map((item, i) => <li {...f("bakes.items", i)}>{item}</li>)}
+  </ul>
+</BaseLayout>

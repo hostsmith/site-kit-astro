@@ -1,0 +1,29 @@
+---
+import { getCollection } from "astro:content";
+import { fieldsFor } from "@hostsmith/site-kit-astro/field";
+import { copy } from "../content.config.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const home = await copy.get("home");
+const f = copy.fields("home");
+const latest = (await getCollection("news")).sort((a, b) => b.data.date.localeCompare(a.data.date))[0];
+const news = latest && fieldsFor("news", latest.id);
+---
+
+<BaseLayout title="Home">
+  <section>
+    <h1 {...f("hero.title")}>{home.hero.title}</h1>
+    <p {...f("hero.text")}>{home.hero.text}</p>
+    <a href="/about" {...f("hero.linkLabel")}>{home.hero.linkLabel}</a>
+  </section>
+  {
+    latest && news && (
+      <section>
+        <h2 {...f("latestTitle")}>{home.latestTitle}</h2>
+        <a href={`/news/${latest.id}`} {...news("title")}>
+          {latest.data.title}
+        </a>
+      </section>
+    )
+  }
+</BaseLayout>

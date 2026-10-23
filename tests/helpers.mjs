@@ -8,13 +8,16 @@
 // schema, collection templates, tokens, the site's Decap part), copied over
 // the example's own. buildFixture() builds a temporary copy of the example
 // with the fixture and returns the result, so tests can check the output or
-// the failure message.
+// the failure message. A core fixture (tests/fixtures/core-site*/) is a whole
+// site of its own, which buildCoreSite() builds.
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { EXPORT_FILE } from "../packages/site-kit-astro/scripts/core/schema-export.mjs";
 import { ASSEMBLED, assembleFiles } from "../packages/site-kit-astro/scripts/decap-config.mjs";
 import { localeCodes } from "../packages/site-kit-astro/scripts/site-config.mjs";
 import { readHooks } from "../packages/site-kit-astro/scripts/hooks-reference.mjs";
@@ -45,18 +48,13 @@ const SITE_CODE_FOLDERS = ["src/components/sections/site", "src/components/colle
  * With a fixture, the example's hand-written pages are left out, so the
  * fixture doesn't need their page entries, and the fixture's site code
  * replaces the example's. The Decap config is then assembled again, as a site
- * would with `npm run decap-config`, unless the test sets it itself.
+ * would with `npm run decap-config`, unless the test sets it itself. The
+ * example's schema export, which a fixture or an edit makes stale, is left
+ * out unless the test sets it, and the build only warns without it.
  */
 export async function buildFixture(fixture, { example = "basics", files = {}, edit = {}, remove = [], env = {} } = {}) {
   const source = join(EXAMPLES, example);
-  const dir = await mkdtemp(join(tmpdir(), "site-kit-test-"));
-  await cp(source, dir, { recursive: true, filter: (src) => !NOT_COPIED.has(relative(source, src).split(/[\\/]/)[0]) });
-
-  // Each package is linked on its own, so Astro and Vite caches stay per build.
-  await mkdir(join(dir, "node_modules"));
-  for (const name of await readdir(join(REPO, "node_modules"))) {
-    if (!name.startsWith(".")) await symlink(join(REPO, "node_modules", name), join(dir, "node_modules", name));
-  }
+  const dir = await copySite(source, "site-kit-test-");
 
   if (fixture) {
     const fixtureDir = join(REPO, "tests", "fixtures", fixture);
@@ -81,8 +79,64 @@ export async function buildFixture(fixture, { example = "basics", files = {}, ed
   if (!Object.hasOwn(files, ASSEMBLED) && !Object.hasOwn(edit, ASSEMBLED)) {
     await writeFile(join(dir, ASSEMBLED), assembleFiles(dir, await localeCodes(dir)));
   }
+  if (!Object.hasOwn(files, EXPORT_FILE) && !Object.hasOwn(edit, EXPORT_FILE)) {
+    await rm(join(dir, EXPORT_FILE), { force: true });
+  }
   for (const path of remove) await rm(join(dir, path));
 
+  return buildSite(dir, env);
+}
+
+// The core fixture sites (site-kit-core-split design D83): plain Astro sites
+// with their own layout and pages, which use only the kit's core.
+export const CORE_SITE = join(REPO, "tests", "fixtures", "core-site");
+
+/**
+ * Builds a copy of a core fixture site, `core-site` unless `fixture` names
+ * another folder under tests/fixtures/. `files`, `edit`, `remove` and `env`
+ * work as in buildFixture().
+ */
+export async function buildCoreSite({ env = {}, ...changes } = {}) {
+  return buildSite(await coreSiteCopy(changes), env);
+}
+
+// A copy of a core fixture site with the changes buildCoreSite() takes, not
+// built. The caller removes it.
+export async function coreSiteCopy({ fixture = "core-site", files = {}, edit = {}, remove = [] } = {}) {
+  const dir = await copySite(join(REPO, "tests", "fixtures", fixture), "site-kit-core-");
+  for (const [path, rewrite] of Object.entries(edit)) {
+    await writeFile(join(dir, path), rewrite(await readFile(join(dir, path), "utf8")));
+  }
+  for (const [path, content] of Object.entries(files)) {
+    await mkdir(dirname(join(dir, path)), { recursive: true });
+    await writeFile(join(dir, path), content);
+  }
+  for (const path of remove) await rm(join(dir, path), { recursive: true });
+  return dir;
+}
+
+// The workspace's `site-kit` command in a site's root.
+export function siteKit(dir, args, env = {}) {
+  return run(process.execPath, [join(PACKAGE, "bin", "site-kit.mjs"), ...args], { cwd: dir, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: "1", NO_COLOR: "1", ...env } });
+}
+
+// A temporary copy of a site, with the workspace's packages linked. The
+// caller removes it.
+export async function copySite(source, prefix = "site-kit-copy-") {
+  const dir = await mkdtemp(join(tmpdir(), prefix));
+  await cp(source, dir, { recursive: true, filter: (src) => !NOT_COPIED.has(relative(source, src).split(/[\\/]/)[0]) });
+
+  // Each package is linked on its own, so Astro and Vite caches stay per build.
+  await mkdir(join(dir, "node_modules"));
+  for (const name of await readdir(join(REPO, "node_modules"))) {
+    if (!name.startsWith(".")) await symlink(join(REPO, "node_modules", name), join(dir, "node_modules", name));
+  }
+  return dir;
+}
+
+// `astro build` in a site's copy, without SITE_NOINDEX unless `env` sets it.
+// The copy keeps Astro's caches between two builds.
+export async function buildSite(dir, env = {}) {
   const { SITE_NOINDEX, ...baseEnv } = process.env;
   const result = await run(process.execPath, [join(REPO, "node_modules", "astro", "bin", "astro.mjs"), "build"], {
     cwd: dir,
@@ -113,6 +167,18 @@ export function run(command, args, options) {
 // Every built HTML file, relative to dist/.
 export async function htmlFiles(dist) {
   return (await readdir(dist, { recursive: true })).filter((file) => file.endsWith(".html"));
+}
+
+// Every file of a build, relative to dist/, by its SHA-256, hashed asset names
+// and all.
+export async function fileHashes(dist) {
+  const hashes = [];
+  for (const entry of await readdir(dist, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const path = join(entry.parentPath, entry.name);
+    hashes.push([relative(dist, path), createHash("sha256").update(await readFile(path)).digest("hex")]);
+  }
+  return Object.fromEntries(hashes.sort(([a], [b]) => a.localeCompare(b)));
 }
 
 // The inner HTML of the first element whose opening tag contains `marker`.

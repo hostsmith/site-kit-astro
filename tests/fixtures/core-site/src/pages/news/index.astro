@@ -1,0 +1,26 @@
+---
+import { getCollection } from "astro:content";
+import { fieldsFor } from "@hostsmith/site-kit-astro/field";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const news = (await getCollection("news")).sort((a, b) => b.data.date.localeCompare(a.data.date));
+---
+
+<BaseLayout title="News">
+  <h1>News</h1>
+  <ul>
+    {
+      news.map((entry) => {
+        const f = fieldsFor("news", entry.id);
+        return (
+          <li>
+            <a href={`/news/${entry.id}`} {...f("title")}>
+              {entry.data.title}
+            </a>
+            <p {...f("summary")}>{entry.data.summary}</p>
+          </li>
+        );
+      })
+    }
+  </ul>
+</BaseLayout>

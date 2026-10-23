@@ -1,0 +1,21 @@
+---
+import { type CollectionEntry, render } from "astro:content";
+import { fieldsFor } from "@hostsmith/site-kit-astro/field";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+interface Props {
+  entry: CollectionEntry<"news">;
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const f = fieldsFor("news", entry.id);
+---
+
+<BaseLayout title={entry.data.title}>
+  <article>
+    <h1 {...f("title")}>{entry.data.title}</h1>
+    <time datetime={entry.data.date} {...f("date")}>{entry.data.date}</time>
+    <div {...f("body")}><Content /></div>
+  </article>
+</BaseLayout>

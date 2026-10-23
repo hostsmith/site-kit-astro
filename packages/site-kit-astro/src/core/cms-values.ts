@@ -31,7 +31,7 @@ function isEmpty(value: unknown): boolean {
   return false;
 }
 
-function isoText(date: Date): string {
+export function isoText(date: Date): string {
   const text = date.toISOString();
   return text.endsWith("T00:00:00.000Z") ? text.slice(0, 10) : text;
 }

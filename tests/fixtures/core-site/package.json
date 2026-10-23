@@ -1,0 +1,13 @@
+{
+  "name": "core-site-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build"
+  },
+  "dependencies": {
+    "@hostsmith/site-kit-astro": "0.6.2",
+    "astro": "7.3.8"
+  }
+}

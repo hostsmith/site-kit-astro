@@ -16,6 +16,7 @@ const SITE_LAYOUT = [
   "AGENTS.md",
   "CLAUDE.md",
   ".hostsmith/brief.md",
+  ".hostsmith/schema.json",
   ".claude/skills/migrate-webflow/SKILL.md",
   "public/admin/config.site.yml",
   "public/admin/config.yml",
