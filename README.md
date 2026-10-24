@@ -2,6 +2,8 @@
 
 A reusable kit for building websites with [Astro](https://astro.build), with guidelines for AI agents and example sites that carry their own designs. Content lives in Markdown and YAML files, so people and agents can change a site with ordinary edits and review them in a pull request.
 
+The [documentation](https://hostsmith.net/docs/site-kit) walks through the kit, from a first site to the client's domain. This README is the reference.
+
 The kit has two parts:
 
 - the npm package [`@hostsmith/site-kit-astro`](https://www.npmjs.com/package/@hostsmith/site-kit-astro): an Astro integration, the section library, the layout, the routes, the content schemas, the `site-kit` command and the agent guidelines (`AGENTS.md`). It ships no CSS: its markup carries styling hooks, listed in [`HOOKS.md`](./packages/site-kit-astro/HOOKS.md);
@@ -347,7 +349,7 @@ To add German to a site whose default locale is English:
 3. Style the switcher's hooks, `sk-locales`, `sk-locales__list`, `sk-locales__item` and `sk-locales__link`, and `sk-footer__block--locales` for a footer block, in the theme's `layout.css`, as `basics`' theme does. A theme from before 0.6 has no rules for them.
 4. Copy `pages/home.en.md` and `pages/404.en.md` to `pages/home.de.md` and `pages/404.de.md`, and translate them. Translate the other pages and entries the German site should have, as in [Translating](#translating).
 5. Have each collection template take the `locale` prop it receives, and pass it to `getSettings`, `getUi` and `getEntryRoutes`, as `basics`' blog template does.
-6. Run `npm run decap-config`, `npm run build`, `npm run check:urls` and `npm run check:styles -- --built`. The default locale's URLs stay as they were, so the old site's URL list still passes, and `--built` names any switcher hook the theme doesn't style yet.
+6. Run `npm run decap-config`, `npx site-kit schema`, `npm run build`, `npm run check:urls` and `npm run check:styles -- --built`, and commit `.hostsmith/schema.json`, which now lists the new locale. The default locale's URLs stay as they were, so the old site's URL list still passes, and `--built` names any switcher hook the theme doesn't style yet.
 
 ## Styling
 
@@ -467,7 +469,7 @@ Anything else in the package can change in any release, and the package doesn't 
 
 ## Schema export
 
-`.hostsmith/schema.json` describes a site's content for Hostsmith's CMS, checks and agents: where each collection's files are, and their fields as JSON Schema, with each field's CMS widget. `npx site-kit schema` writes it from the collections Astro loads, in kit sites and [core sites](#core-for-existing-astro-sites) alike. Commit it, and don't edit it by hand: run the command again after a change to a collection's schema, and after a kit update. `npx site-kit schema --check` fails when the file is missing or stale. The build fails when it is stale, and only warns when it is missing, until a major release requires it.
+`.hostsmith/schema.json` describes a site's content for CMS configs, checks and agents: where each collection's files are, and their fields as JSON Schema, with each field's CMS widget. `npx site-kit schema` writes it from the collections Astro loads, in kit sites and [core sites](#core-for-existing-astro-sites) alike. Commit it, and don't edit it by hand: run the command again after a change to a collection's schema, and after a kit update. `npx site-kit schema --check` fails when the file is missing or stale. The build fails when it is stale, and only warns when it is missing, until a major release requires it.
 
 ```json
 {
@@ -609,7 +611,7 @@ Variables, in the repository or the environment:
 
 ## Core for existing Astro sites
 
-An Astro site that keeps its own pages, layout and components can take the package's core alone. The core is what Hostsmith's CMS, checks and updates need from a site, and it changes none of the site's pages. A kit site has the core already, through `siteKit()`.
+An Astro site that keeps its own pages, layout and components can take the package's core alone. The core is what Hostsmith's checks, deploys and updates need from a site, and it changes none of the site's pages. A kit site has the core already, through `siteKit()`.
 
 1. Install the package:
 
@@ -746,7 +748,7 @@ A site whose content is in a headless CMS, such as Sanity, Directus, Payload or 
 
 | | Content in the repository | Content in an external CMS |
 | --- | --- | --- |
-| Editing | Hostsmith's CMS, Decap or Sveltia, or a commit | the CMS's own editor |
+| Editing | Decap or Sveltia, or a commit | the CMS's own editor |
 | Schema export and Decap config | yes | no: `npx site-kit schema` and `npx site-kit decap-config` exit with a message |
 | `check-fields` | a gate with `--min` | a report: the CMS's text has nothing in the repository to bind to |
 | Deploys, previews, `check-urls`, core and dependency updates, hosting | yes | yes |

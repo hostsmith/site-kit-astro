@@ -3,8 +3,9 @@
 // `url` is the production site URL. Canonical links, Open Graph URLs, the
 // sitemap and robots.txt are built from it, and astro.config.mjs reads it.
 //
-// `locales` lists the site's languages, the default first. Each has a content
-// folder, src/content/<folder>/<code>/, and its tag sets the pages' language.
+// `locales` lists the site's languages, the default first. Each content file
+// names its code before the extension, such as src/content/pages/about.en.md,
+// and its tag sets the pages' language.
 // The default locale is served at the root; adding a second one serves it
 // under its own path, such as /de.
 //
