@@ -4,9 +4,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { lstatSync } from "node:fs";
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { BASICS, buildFixture, CORE_SITE, PACKAGE, run } from "./helpers.mjs";
 
@@ -78,6 +78,14 @@ describe("published files", () => {
     }
   });
 
+  // site-kit-webflow-migration design D97.
+  it("include every file of the Webflow migration skill", async () => {
+    const skill = join(PACKAGE, "skills", "migrate-webflow");
+    const ours = (await readdir(skill, { recursive: true, withFileTypes: true })).filter((entry) => entry.isFile()).map((entry) => relative(PACKAGE, join(entry.parentPath, entry.name)));
+    assert.ok(ours.includes(join("skills", "migrate-webflow", "SKILL.md")), "the skill has no SKILL.md");
+    for (const path of ours) assert.ok(files.includes(path.split(sep).join("/")), `${path} is not published`);
+  });
+
   // site-kit-sections, "The kit ships no styles".
   it("include no stylesheet", () => {
     for (const path of files) assert.doesNotMatch(path, /\.(css|scss|sass|less)$/, path);
@@ -112,6 +120,14 @@ describe("packed package", () => {
 
   it("is installed, not linked", () => {
     assert.ok(!lstatSync(join(dir, "site", "node_modules", "@hostsmith", "site-kit-astro")).isSymbolicLink());
+  });
+
+  // site-kit-package, "Installed package holds the skill".
+  it("holds the Webflow migration skill", () => {
+    const skill = join(dir, "site", "node_modules", "@hostsmith", "site-kit-astro", "skills", "migrate-webflow");
+    for (const file of ["SKILL.md", "steps/01-snapshot.md", "steps/11-clean-up.md", "scripts/fidelity.mjs"]) {
+      assert.ok(lstatSync(join(skill, file)).isFile(), `${file} isn't installed`);
+    }
   });
 
   it("builds the example", async () => {

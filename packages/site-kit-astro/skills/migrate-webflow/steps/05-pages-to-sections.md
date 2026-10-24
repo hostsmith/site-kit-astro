@@ -1,0 +1,128 @@
+---
+scope: kit
+---
+
+# 5. Pages to sections
+
+Rebuild each static page of the export as a page entry made of sections, keeping its text, its images and their order. Read the element mapping, `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/references/elements.md`, first.
+
+## Split each page
+
+A page built with Client-First is a `page-wrapper` holding the navbar, a `main-wrapper` and the footer. The `main-wrapper` holds the top-level sections, named `section_*`. For each page in the URL map, and for `404.html`:
+
+- **The navbar and the footer** are the layout's, from step 4: skip them.
+- **Each top-level section** becomes one section entry, in the export's order.
+- **A nested block** that stands on its own, such as a tour block with an image and text inside a steps section, may become a section of its own, after its parent.
+
+Without Client-First, the top-level sections are the direct children of `main`, or of the body, between the navbar and the footer.
+
+## Find Components
+
+Webflow's export writes out each use of a Component and leaves no marker. Before you pick any section's type, look for repeated structures: the same tree of classes in several places, on one page or across pages, with different text, links or images. Each one is a Component.
+
+- **One type:** each becomes one shared type, with the text, links and images that differ as its props, used wherever it appeared.
+- **Navbar and footer** are Components too, but they're the layout's.
+- **The report:** list each Component in the report's "Components", with the pages it's on.
+
+Expect a call to action band repeated on several pages, and cards repeated in a list, such as the plans on a pricing page.
+
+## Pick each section's type
+
+For each section, in this order:
+
+1. **A library type** whose structure matches: the same parts, in the same order. The kit's README, "Section types", lists each type's props, variants and tones. The theme then restyles it to the old look. A hero, a call to action, questions and answers, prices, a numbered process or a list of entries often match.
+2. **A variant** of a site-local type you've already made, when only the layout differs.
+3. **A new site-local type,** otherwise. This is the usual case for a section with a layout of its own.
+
+A site-local type is the section's markup from the export, cleaned, with its content in props:
+
+- **The component,** `src/components/sections/site/<type>.astro`: the export's structure, with every `w-` class, every `data-w-` and `data-wf-` attribute and every inline style removed, and its classes renamed after the type, such as `.amenities` and `.amenities__item`.
+- **Its props:** every text, link and image, so the CMS can edit them, each bound with its field attribute. Render a title with `Title.astro`, so its `==` marks highlight.
+- **The schema:** `section("<type>", { ... })` in `siteSectionSchemas` in `src/site.schema.ts`, with `mediaPath` and `requireAlt` for images, `link` for links and `icon` for icons, from `@hostsmith/site-kit-astro/schema`.
+- **The Decap type:** under `section_types` in `public/admin/config.site.yml`, with a field for each prop.
+- **The styles:** in `src/styles/theme/sections.css`, or utilities in its markup, as step 3 says.
+
+Name a type after what it shows, such as `amenities` or `plan-cards`, never after a page or a library type. A minimal component:
+
+```astro
+---
+import Title from "@hostsmith/site-kit-astro/components/Title.astro";
+import { sectionFields } from "@hostsmith/site-kit-astro/field";
+
+const { section, entry } = Astro.props;
+const f = sectionFields(entry, section);
+---
+
+<section {...f.root} class="amenities">
+  <div class="sk-container">
+    <h2 class="amenities__title" {...f.field("title")}><Title text={section.title} /></h2>
+    <ul class="amenities__list">
+      {
+        section.items.map((item, i) => (
+          <li class="amenities__item">
+            <h3 class="amenities__name" {...f.field("items", i, "title")}>{item.title}</h3>
+            <p {...f.field("items", i, "text")}>{item.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+```
+
+`{...f.root}` goes on the section's root element: it carries the section's type and its `reveal`. `sk-container` gives the content the theme's width and gutter.
+
+After adding or changing a type, run `npm run decap-config` and `npx site-kit schema`.
+
+## Write the page entries
+
+Each page becomes `src/content/pages/<path>.<code>.md`, after the export's file: `index.html` is `home`, `about.html` is `about`, and `services/painting.html` is `services/painting`. Its frontmatter:
+
+- `title`: the page's `<title>`;
+- `description`: its meta description;
+- `ogImage`: its Open Graph image, when it has its own;
+- `sections`: one entry per section, each with an id from `npm run section-id -- src/content/pages/<path>.<code>.md`, run once for each new section.
+
+Its body stays empty. In the sections:
+
+- **The text as it is:** every heading, paragraph, label and alt text, exactly. List a typo you notice in the report, and don't fix it.
+- **Highlights:** words a heading wraps in a span to color them, such as `Work <span class="text-color-accent">together</span> by the river`, become `==` marks: `Work ==together== by the river`. Only in a prop named `title`: a highlight elsewhere goes to the report.
+- **Links:** an internal `.html` link becomes its clean path, and a link to a CMS item its path in the URL map (step 2).
+- **Images:** `/assets/images/<name>`, the name step 7 gives the file, with the export's alt text. When the export's alt text is empty, write a short one and list it in the report's "Alt text written", for the owner to check.
+- **Facts:** a phone number, email or address that the settings hold as a fact is written `{name}`.
+- **Buttons:** a button's text and link become the type's `cta`, `secondaryCta`, `button` or `link`.
+- **Icons:** an icon image in a card becomes the item's `icon`: a site icon from step 7, named after its file in `src/icons/`.
+
+## Webflow's elements
+
+Map each one through the element mapping: tabs, sliders, lightboxes, background video, dropdowns, embeds, video in rich text, forms and the rest. For each embed with a frame, ask the person how it loads: on a click, the default; directly, only when the site's privacy notice names the provider; as a link or a still image instead; or not at all. Record each answer in the report's "Embeds".
+
+Never copy raw HTML, a script or a style into the content or a component. What has no replacement goes into the report's "Not carried over", with its page.
+
+## Interactions
+
+Read the interactions from `.hostsmith/snapshot/code/js/webflow.js` as text, as the element mapping's "Interactions" says, and never run the file. A simple entrance animation becomes a `reveal` preset on each section that carries its class, on the section or on its header: `reveal: fade-up` in the section entry. On an element of a site-local type's own markup, it's `data-reveal="fade-up"` in the component instead. Record each interaction in the report's "Interactions", with its id and what was done with it.
+
+## Pages that need their own template
+
+A page whose layout no sequence of sections can express, such as one built around interactions that don't carry over, gets `template: custom` and a page template in `src/components/pages/<page>.astro`, still built from sections where it can be (the kit's README, "Custom pages"). Use it rarely, and list each such page in the report.
+
+## The 404 page
+
+Webflow's `404.html` becomes the page entry `404`, built from sections, such as a `hero` with the variant `page` and a link home. When the export has no `404.html`, or has Webflow's near-default one, with little more than "Page not found", write the page in the site's voice, from its other pages' copy, with a link home, and list it in the report as written, for the owner to approve.
+
+## Not carried over
+
+These go into the report's "Not carried over":
+
+- the password page, `401.html`, and the pages Webflow protected with a password;
+- the search page and site search;
+- a collection list's pages beyond the first, which Webflow serves at query strings such as `?a1b2c3d4_page=2`.
+
+## Localized sites
+
+Copy each page into every other locale, such as `about.de.md` beside `about.en.md`, keeping its section ids, with its `localSlug` from its alternate URL in the sitemap: `/de/uber-uns` gives `localSlug: uber-uns`. Its text stays the primary locale's. List each copy in the report's "To translate".
+
+## Then
+
+Run `npm run build`. It fails, naming the file, on a missing prop, an unknown key, a component without a schema or a schema without a component. Images show as missing until step 7 copies them. Record each page's sections and types in the report's "Pages".

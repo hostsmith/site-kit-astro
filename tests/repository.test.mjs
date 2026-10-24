@@ -1,6 +1,7 @@
 // site-kit-repository: layout, manifest, pinned dependencies, no Hostsmith
 // runtime. Every example is a site, so the site checks run for each.
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -17,7 +18,6 @@ const SITE_LAYOUT = [
   "CLAUDE.md",
   ".hostsmith/brief.md",
   ".hostsmith/schema.json",
-  ".claude/skills/migrate-webflow/SKILL.md",
   "public/admin/config.site.yml",
   "public/admin/config.yml",
   "public/assets",
@@ -64,6 +64,13 @@ const KIT_REPO_LAYOUT = [
 
 const SITE_ALLOWLIST = ["@hostsmith/site-kit-astro", "astro", "tailwindcss", "@tailwindcss/vite", "@astrojs/react", "react", "react-dom"];
 
+// The headings of the brief template, each with placeholders to fill in.
+const BRIEF_HEADINGS = ["Business facts", "Audience", "Voice", "Do and don't", "Contacts"];
+
+// The migration skill's pointer in the `webflow` example, and its target.
+const POINTER = ".claude/skills/migrate-webflow/SKILL.md";
+const SKILL = "node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/SKILL.md";
+
 const kitPackage = JSON.parse(readFileSync(join(PACKAGE, "package.json"), "utf8"));
 const kitAgents = readFileSync(join(PACKAGE, "AGENTS.md"), "utf8");
 
@@ -95,6 +102,36 @@ for (const example of EXAMPLE_NAMES) {
         for (const path of KIT_CODE) assert.ok(!existsSync(join(dir, path)), `the example has ${path}`);
         const sections = await readdir(join(dir, "src/components/sections"));
         assert.deepEqual(sections, ["site"], "library sections belong in the package");
+      });
+
+      // site-kit-webflow-migration design D97 and D98: only the `webflow`
+      // example points to the package's migration skill, and ignores the
+      // snapshot of Webflow's exports.
+      if (example === "webflow") {
+        it("points to the package's migration skill", () => {
+          const pointer = readFileSync(join(dir, POINTER), "utf8");
+          assert.match(pointer, /^---\nname: migrate-webflow\ndescription: Migrate a Webflow site into this kit site from Webflow's code export and CMS CSV exports\n---\n/);
+          assert.ok(pointer.includes(`\`${SKILL}\``), `the pointer doesn't name ${SKILL}`);
+          assert.ok(existsSync(join(PACKAGE, "skills", "migrate-webflow", "SKILL.md")), "the package has no migration skill");
+          assert.match(pointer, /npm ci/);
+        });
+
+        it("ignores the snapshot", () => {
+          execFileSync("git", ["check-ignore", "-q", join(dir, ".hostsmith", "snapshot", "probe")], { cwd: REPO });
+        });
+      } else {
+        it("has no migration skill", () => {
+          assert.ok(!existsSync(join(dir, ".claude")), "only the webflow example points to the migration skill");
+        });
+      }
+
+      it("has the brief template", () => {
+        const brief = readFileSync(join(dir, ".hostsmith/brief.md"), "utf8");
+        for (const heading of BRIEF_HEADINGS) {
+          const section = brief.split(/^## /m).find((part) => part.startsWith(`${heading}\n`));
+          assert.ok(section, `the brief has no "## ${heading}"`);
+          assert.match(section, /<[a-z][^>]*>/, `"## ${heading}" has no placeholder`);
+        }
       });
     });
 
