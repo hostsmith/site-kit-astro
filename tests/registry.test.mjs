@@ -57,7 +57,7 @@ describe("section registry", () => {
     try {
       assert.ok(result.ok, result.output);
       assert.match(await result.read("menu/index.html"), /data-section="menu-board"><h2>Today<\/h2>/);
-      assert.match(assembleFiles(result.dir, ["en"]), /^ {10}- name: menu-board\n(?: {12}.*\n)*? {12}fields:\n {14}- \*section_id\n {14}- \{ name: title/m);
+      assert.match(assembleFiles(result.dir, ["en"]), /^ {10}- name: menu-board\n(?: {12}.*\n)*? {12}fields:\n {14}- \*section_id\n {14}- \*section_reveal\n {14}- \{ name: title/m);
     } finally {
       await result.cleanup();
     }

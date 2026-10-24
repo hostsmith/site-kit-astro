@@ -1,10 +1,14 @@
 ---
-// One of the kit's icons (site-kit-design-system design D37): an inline SVG in
-// the current text color, 24 by 24 unless a theme resizes `.sk-icon`, so it
-// shows correctly without CSS. Icons are decorative, so they are hidden from
-// assistive technology. `data-icon` names the icon, for a theme that tells
-// icons apart, such as the menu button's menu and close icons.
+// One of the kit's icons (site-kit-design-system design D37), or one of the
+// site's own, from src/icons/ (site-kit-webflow-example design D107): an
+// inline SVG in the current text color, 24 by 24 unless a theme resizes
+// `.sk-icon`, so it shows correctly without CSS. Icons are decorative, so they
+// are hidden from assistive technology. `data-icon` names the icon, for a
+// theme that tells icons apart, such as the menu button's menu and close
+// icons. A site icon keeps its own viewBox, fill and stroke, and without a
+// fill of its own it fills in the current text color.
 import { ICONS } from "../lib/icons.ts";
+import { siteIcons } from "../lib/site-icons.ts";
 
 interface Props {
   name: string;
@@ -12,22 +16,40 @@ interface Props {
 
 const { name } = Astro.props;
 const body = ICONS[name];
-if (body === undefined) throw new Error(`Unknown icon "${name}".`);
+const site = body === undefined ? siteIcons.find((siteIcon) => siteIcon.name === name) : undefined;
+if (body === undefined && site === undefined) throw new Error(`Unknown icon "${name}".`);
+const siteAttributes = site && { ...site.attributes, fill: site.attributes.fill ?? "currentColor" };
 ---
 
-<svg
-  class="sk-icon"
-  data-icon={name}
-  xmlns="http://www.w3.org/2000/svg"
-  width="24"
-  height="24"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
-  aria-hidden="true"
-  focusable="false"
-  set:html={body}
-/>
+{
+  site ? (
+    <svg
+      class="sk-icon"
+      data-icon={name}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      {...siteAttributes}
+      aria-hidden="true"
+      focusable="false"
+      set:html={site.body}
+    />
+  ) : (
+    <svg
+      class="sk-icon"
+      data-icon={name}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      set:html={body}
+    />
+  )
+}

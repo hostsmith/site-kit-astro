@@ -1,18 +1,18 @@
 // site-kit-package, "New sites start from an example": every example builds
-// as is. site-kit-repository, "Example content covers the whole kit": the
-// `basics` example's content.
+// as is. site-kit-repository, "Example content covers the whole kit" and "The
+// `webflow` example": each example's content.
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { checkBuilt } from "../packages/site-kit-astro/scripts/check-styles.mjs";
 import { defineKitContent } from "../packages/site-kit-astro/src/kit-content.ts";
 import { siteConfig } from "../examples/basics/src/site.config.ts";
 import * as siteSchema from "../examples/basics/src/site.schema.ts";
-import { BASICS, buildFixture, deprecatedHooks, EXAMPLE_NAMES, EXAMPLES, htmlFiles } from "./helpers.mjs";
+import { BASICS, buildFixture, deprecatedHooks, EXAMPLE_NAMES, EXAMPLES, hookReference, htmlFiles, themeCoverage } from "./helpers.mjs";
 
-// The nine library section types (site-kit-section-library).
+// The library section types (site-kit-section-library).
 const LIBRARY_TYPES = [
   "hero",
   "rich-text",
@@ -29,6 +29,9 @@ const LIBRARY_TYPES = [
   "split",
   "team",
   "pricing-list",
+  "tabs",
+  "slider",
+  "embed",
 ];
 const { sectionSchemas } = defineKitContent(siteConfig, siteSchema);
 
@@ -74,10 +77,14 @@ describe("examples", () => {
 
         // site-kit-themes, "A theme styles every hook": no deprecated hook renders.
         const deprecated = await deprecatedHooks();
-        for (const file of await htmlFiles(build.dist)) {
-          const html = await build.read(file);
+        const pages = await Promise.all((await htmlFiles(build.dist)).map(async (file) => ({ file, html: await build.read(file) })));
+        for (const { file, html } of pages) {
           for (const hook of deprecated.keys()) assert.ok(!new RegExp(`class="[^"]*\\b${hook}\\b`).test(html), `${example}'s ${file} uses the deprecated hook ${hook}`);
         }
+
+        // site-kit-section-library, "Each example builds the types it lists".
+        const all = pages.map(({ html }) => html).join("\n");
+        for (const type of themeCoverage(example).types) assert.ok(all.includes(`data-section="${type}"`), `${example} lists ${type} but renders none`);
       } finally {
         await build.cleanup();
       }
@@ -94,10 +101,13 @@ describe("basics example content", () => {
   });
   after(() => build.cleanup());
 
-  it("renders every library section type", () => {
+  // site-kit-repository, "Basics renders its listed types".
+  it("renders every library section type its theme lists", () => {
     assert.ok(build.ok, build.output);
     assert.deepEqual(Object.keys(sectionSchemas).sort(), [...LIBRARY_TYPES].sort(), "the example registers exactly the library types");
-    for (const type of LIBRARY_TYPES) assert.ok(html.includes(`data-section="${type}"`), `no ${type} section`);
+    const { types } = themeCoverage("basics");
+    assert.deepEqual(types, LIBRARY_TYPES.slice(0, 15), "basics lists the types it had before the interactive parts");
+    for (const type of types) assert.ok(html.includes(`data-section="${type}"`), `no ${type} section`);
   });
 
   it("has the design's pages, the blog, a custom page and the 404 page", async () => {
@@ -169,5 +179,113 @@ describe("basics example content", () => {
     } finally {
       await bad.cleanup();
     }
+  });
+});
+
+// site-kit-repository, "The `webflow` example" (site-kit-webflow-example design
+// D101).
+describe("webflow example content", () => {
+  const WEBFLOW = join(EXAMPLES, "webflow");
+  let build;
+  let pages;
+  let html;
+  let webflowTypes;
+  before(async () => {
+    const { siteConfig: config } = await import("../examples/webflow/src/site.config.ts");
+    webflowTypes = defineKitContent(config, await import("../examples/webflow/src/site.schema.ts")).sectionSchemas;
+    build = await buildFixture(null, { example: "webflow" });
+    pages = await Promise.all((await htmlFiles(build.dist)).map(async (file) => ({ file, html: await build.read(file) })));
+    html = pages.map((page) => page.html).join("\n");
+  });
+  after(() => build.cleanup());
+
+  // The values of a section prop's enum, through its default.
+  const optionsOf = (schema) => schema?.unwrap?.().options ?? schema?.options ?? [];
+
+  it("renders every library section type, in each variant and tone", () => {
+    assert.ok(build.ok, build.output);
+    const roots = [...html.matchAll(/<section data-section="([a-z-]+)"(?: data-reveal="[a-z-]+")? class="([^"]+)"/g)].map((m) => ({ type: m[1], classes: m[2].split(" ") }));
+    for (const type of LIBRARY_TYPES) {
+      const own = roots.filter((root) => root.type === type);
+      assert.ok(own.length > 0, `no ${type} section`);
+      for (const variant of optionsOf(webflowTypes[type].shape.variant)) {
+        assert.ok(own.some((root) => root.classes.includes(`sk-${type}--${variant}`)), `no ${type} in the variant ${variant}`);
+      }
+      for (const tone of optionsOf(webflowTypes[type].shape.tone)) {
+        assert.ok(own.some((root) => root.classes.includes(`sk-tone-${tone}`)), `no ${type} in the tone ${tone}`);
+      }
+    }
+  });
+
+  it("renders every interactive part, and the content model's additions", () => {
+    for (const [part, marker] of [
+      ["tabs", 'role="tablist"'],
+      ["a rotating slider", 'class="sk-slider__pause"'],
+      ["the lightbox", 'class="sk-lightbox"'],
+      ["a background video", 'class="sk-video"'],
+      ["a map embed", "Show map"],
+      ["a video embed", "Play video"],
+      ["nested nav items", 'class="sk-nav__item"'],
+      ["a submenu button beside a link", 'aria-label="Interactive submenu"'],
+      ["reveal", 'data-reveal="fade-up"'],
+      ["a highlighted word", 'class="sk-highlight"'],
+      ["a site icon", 'data-icon="square-dot"'],
+      ["the brand block's own logo", 'src="/assets/images/logo-reversed.svg"'],
+    ]) {
+      assert.ok(html.includes(marker), `no ${part}`);
+    }
+    const post = pages.find((page) => page.file === "news/collection-entry/index.html").html;
+    assert.match(post, /data-title="Big Buck Bunny, by the Blender Foundation"/, "no video link in a body");
+  });
+
+  it("renders every footer block type and header action", () => {
+    const home = pages.find((page) => page.file === "index.html").html;
+    for (const type of ["brand", "contact", "links", "hours", "text", "copyright", "locales"]) assert.ok(home.includes(`sk-footer__block--${type}`), `no ${type} footer block`);
+    for (const hook of ["sk-header__phone", "sk-header__link", "sk-header__call"]) assert.ok(home.includes(hook), `no ${hook}`);
+    assert.match(home.split("</header>")[0], /class="sk-button sk-button--primary"/);
+  });
+
+  it("holds no Webflow code", async () => {
+    const files = [
+      ...(await readdir(WEBFLOW, { recursive: true })).filter((file) => !/^(node_modules|dist|\.astro)\b/.test(file) && /\.(astro|css|md|ya?ml|ts|mjs|json|html|svg)$/.test(file)).map((file) => join(WEBFLOW, file)),
+      ...(await readdir(build.dist, { recursive: true })).filter((file) => /\.(html|css|js)$/.test(file)).map((file) => join(build.dist, file)),
+    ];
+    // Webflow's runtime classes, such as w-nav or w--current. Tailwind's width
+    // utilities, such as w-full, are no Webflow code.
+    const webflowClass = /(?<![\w-])\.?w-(?:-current|nav|container|row|col|button|inline-block|richtext|form|input|select|checkbox|radio|tab|slider|slide|lightbox|dropdown|embed|video|background-video|layout|webflow|mod-|icon|clearfix|list-unstyled|condition|dyn-|pagination|commerce|iframe|widget|clearfix)/;
+    for (const file of files) {
+      const text = await readFile(file, "utf8");
+      assert.doesNotMatch(text, webflowClass, `${file} has a Webflow class`);
+      assert.doesNotMatch(text, /webflow\.js|jquery|website-files\.com|webflow\.com|\.webflow\.io|data-wf-/i, `${file} has Webflow code or loads from a Webflow host`);
+    }
+  });
+
+  it("has nothing to credit, and media made for the example", async () => {
+    const credits = await readFile(join(WEBFLOW, "CREDITS.md"), "utf8");
+    assert.match(credits, /no third-party files/);
+    assert.doesNotMatch(credits, /`public\/assets\/[^`]+\.[a-z0-9]+`/, "CREDITS.md lists a file");
+    const assets = (await readdir(join(WEBFLOW, "public", "assets"), { recursive: true, withFileTypes: true })).filter((file) => file.isFile()).map((file) => file.name);
+    assert.deepEqual(assets.filter((name) => !/^(placeholder-[a-z0-9-]+\.svg|logo(-reversed)?\.svg|clip\.(mp4|webm))$/.test(name)), [], "the example has media it didn't make");
+    for (const clip of ["clip.mp4", "clip.webm"]) assert.ok((await stat(join(WEBFLOW, "public", "assets", "video", clip))).size < 300 * 1024, `${clip} is 300 KB or more`);
+  });
+
+  it("marks placeholder images as placeholders, and has no bracketed placeholders", async () => {
+    for (const [tag] of html.matchAll(/<img\b[^>]*>/g)) {
+      const src = tag.match(/src="([^"]*)"/)?.[1] ?? "";
+      const alt = tag.match(/alt="([^"]*)"/)?.[1] ?? "";
+      if (src.includes("/placeholder-")) assert.ok(alt.startsWith("Placeholder"), `a placeholder without "Placeholder" in its alt text: ${tag}`);
+    }
+    const content = join(WEBFLOW, "src", "content");
+    for (const file of await readdir(content, { recursive: true })) {
+      if (!/\.(md|ya?ml)$/.test(file)) continue;
+      const placeholder = (await readFile(join(content, file), "utf8")).match(/\[[^\]\n]+\](?!\()/);
+      assert.equal(placeholder, null, `src/content/${file} has the placeholder ${placeholder?.[0]}`);
+    }
+  });
+
+  it("documents every part it renders in the hook reference", () => {
+    const rendered = new Set([...html.matchAll(/\sclass="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)).filter((name) => name.startsWith("sk-")));
+    const unknown = [...rendered].filter((name) => !hookReference().classes.has(name));
+    assert.deepEqual(unknown, []);
   });
 });

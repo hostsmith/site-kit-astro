@@ -8,6 +8,7 @@ import type { Section } from "../kit-content.ts";
 import { field } from "../core/field.ts";
 import { VISUALLY_HIDDEN } from "../lib/hooks.ts";
 import { sectionComponent } from "./sections/registry.ts";
+import Title from "./Title.astro";
 
 interface Props {
   // Field-attribute entry name, such as "pages/home".
@@ -24,7 +25,7 @@ const firstHero = hasH1 ? undefined : sections.find((s) => s.type === "hero")?.i
 {
   !hasH1 && firstHero === undefined && (
     <h1 style={VISUALLY_HIDDEN} {...field(entry, "title")}>
-      {title}
+      <Title text={title} />
     </h1>
   )
 }

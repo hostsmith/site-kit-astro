@@ -1,0 +1,44 @@
+# Decap CMS config: this site's part. `npm run decap-config` assembles
+# public/admin/config.yml from the kit's part, public/admin/config.kit.yml,
+# and this file. src/site.schema.ts mirrors these fields by hand: change both
+# files in the same commit, then run `npm run decap-config`.
+#
+# The blocks below are copied into config.yml as written, so they may use the
+# kit's anchors: *section_id, *labeled_link, *sections, *link_fields and, under
+# `ui`, *plural_forms.
+
+# The GitHub repository that Decap and Sveltia commit to.
+repo: OWNER/REPOSITORY
+
+# Site-local section types, one per src/components/sections/site/<type>.astro.
+# Each item starts with `- name: <type>` and has a block `fields:` list
+# without an id field: the assembler adds it. For example:
+#
+#   - name: menu-board
+#     label: Menu board
+#     widget: object
+#     fields:
+#       - { name: title, label: Title, widget: string }
+section_types: []
+
+# The site's collections, each item starting with `- name: <name>`: one folder
+# collection per collection in src/site.config.ts, which the collection list
+# section can show. Every collection is translated, so none is a files
+# collection.
+collections:
+  - name: news
+    label: News
+    label_singular: News entry
+    folder: src/content/news
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: date, label: Date, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false }
+      - { name: description, label: Description, widget: text, required: false }
+      - { name: image, label: Image, widget: image, required: false }
+      - { name: imageAlt, label: Image alt text, widget: string, required: false }
+      - { name: draft, label: Draft, widget: boolean, required: false }
+      - { name: body, label: Body, widget: markdown }

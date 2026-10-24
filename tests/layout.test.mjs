@@ -124,6 +124,37 @@ describe("base layout", () => {
     assert.match(footer, new RegExp(`<h2 id="sk-footer-block-5" class="sk-footer__title" ${at("\\[5\\]\\.title")}>\\s*Since 1998`));
   });
 
+  // site-kit-content-model, "Settings file": the reversed logo in the footer.
+  it("shows the brand block's own logo in the footer, and the settings' logo in the header", async () => {
+    const reversed = await buildFixture("base", {
+      edit: {
+        [SETTINGS_FILE]: (text) =>
+          `${text}logo:\n  image: /assets/test/photo.svg\n  alt: Test logo\n`.replace("    - type: brand\n", "    - type: brand\n      logo: /assets/test/share.svg\n      logoAlt: Test Bakery, reversed\n"),
+      },
+    });
+    try {
+      assert.ok(reversed.ok, reversed.output);
+      const html = await reversed.read("index.html");
+      assert.match(html.split("</header>")[0], /<img src="\/assets\/test\/photo\.svg" alt="Test logo" class="sk-header__logo"/);
+      assert.match(
+        html.slice(html.indexOf("<footer")),
+        /<div class="sk-footer__block sk-footer__block--brand">\s*<img src="\/assets\/test\/share\.svg" alt="Test Bakery, reversed" class="sk-footer__logo" data-field="settings\/site\.en#footer\.blocks\[0\]\.logo">/,
+      );
+    } finally {
+      await reversed.cleanup();
+    }
+  });
+
+  it("fails on a brand block's logo without alt text", async () => {
+    const bad = await buildFixture("base", { edit: { [SETTINGS_FILE]: (text) => text.replace("    - type: brand\n", "    - type: brand\n      logo: /assets/test/share.svg\n") } });
+    try {
+      assert.equal(bad.ok, false);
+      assert.match(bad.output, /footer block 1 \(brand\): image "\/assets\/test\/share\.svg" has no alt text\. Set "logoAlt"\./);
+    } finally {
+      await bad.cleanup();
+    }
+  });
+
   it("renders the bottom row", () => {
     const bottom = home.slice(home.indexOf('<div class="sk-footer__bottom">'));
     assert.match(bottom, /<p class="sk-footer__block sk-footer__block--copyright">\s*© \d{4} <span data-field="settings\/site\.en#footer\.bottom\[0\]\.text">Test Bakery LLC · License 12345<\/span>/);

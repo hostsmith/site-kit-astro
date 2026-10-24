@@ -1,0 +1,49 @@
+---
+// embed: title, url, kind (map, video, other), aspect (16:9, 4:3, 1:1, 21:9),
+// caption, load (click, direct). No variants. A placeholder until the visitor
+// presses its button, which loads the frame (site-kit-webflow-example design
+// D105): the page requests nothing from the provider before that. The base
+// layout adds the script that loads it. The title is the section's heading and
+// the frame's name.
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../core/field.ts";
+import { EMBED_UI_KEYS, embedHtml, embedSource } from "../../lib/embed.ts";
+import { sectionClass } from "../../lib/hooks.ts";
+import { partUi } from "../../lib/part-ui.ts";
+import { localeOfRef } from "../../lib/site-locales.ts";
+import { plainTitle } from "../../lib/title.ts";
+import SectionHeader from "../SectionHeader.astro";
+
+interface Props {
+  section: Extract<Section, { type: "embed" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { title, url, kind, aspect, caption, load } = section;
+const f = sectionFields(entry, section);
+const source = embedSource(url, kind)!;
+let strings;
+if (load === "click") {
+  const ui = await partUi(localeOfRef(entry)?.code, "embed", [EMBED_UI_KEYS[kind], "embedNotice", "embedOpen"]);
+  strings = { button: ui(EMBED_UI_KEYS[kind]), notice: ui("embedNotice", { host: source.host }), open: ui("embedOpen", { host: source.linkHost }) };
+}
+const html = embedHtml({
+  source,
+  kind,
+  title: plainTitle(title),
+  aspect,
+  caption,
+  captionAttributes: ` data-field="${f.field("caption")["data-field"]}"`,
+  load,
+  strings,
+});
+---
+
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <SectionHeader field={f.field} title={title} />
+    <Fragment set:html={html} />
+  </div>
+</section>

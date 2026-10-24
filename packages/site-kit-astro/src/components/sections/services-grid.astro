@@ -8,6 +8,7 @@ import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
 import Icon from "../Icon.astro";
 import SectionHeader from "../SectionHeader.astro";
+import Title from "../Title.astro";
 
 interface Props {
   section: Extract<Section, { type: "services-grid" }>;
@@ -37,12 +38,12 @@ const f = sectionFields(entry, section);
               {item.link ? (
                 <h3 class="sk-card__title">
                   <a href={item.link} {...f.field("items", i, "title")}>
-                    {item.title}
+                    <Title text={item.title} />
                   </a>
                 </h3>
               ) : (
                 <h3 class="sk-card__title" {...f.field("items", i, "title")}>
-                  {item.title}
+                  <Title text={item.title} />
                 </h3>
               )}
               {item.text && (

@@ -6,18 +6,26 @@
 // (core/schema.ts), and the kit's own are below.
 import { z } from "astro/zod";
 import { CONTENT_ICONS } from "./icons.ts";
+import { siteIcons } from "./site-icons.ts";
 
 export { isoDate, itemList, labeledLink, link, mediaPath, requireAlt } from "../core/schema.ts";
 
-// An icon from the kit's icon set, by name (site-kit-design-system design
-// D37). An unknown name fails with the allowed names.
-export const icon = z.enum(CONTENT_ICONS);
+// An icon from the kit's icon set (site-kit-design-system design D37) or the
+// site's own, in src/icons/ (site-kit-webflow-example design D107), by name.
+// An unknown name fails with the allowed names.
+export const icon = z.enum([...CONTENT_ICONS, ...siteIcons.map((siteIcon) => siteIcon.name)]);
+
+// The entrance animations a section entry, or an element of the site's own
+// markup, may ask for with `reveal` (site-kit-webflow-example design D104). The
+// kit marks the element, and the theme animates it.
+export const REVEAL_PRESETS = ["fade", "fade-up", "fade-down", "slide-left", "slide-right", "scale"] as const;
 
 // A section type's schema. The record key, the `type` literal and the
-// component's file name are the same kebab-case name (design D2).
+// component's file name are the same kebab-case name (design D2). Every
+// section may set `reveal`, which sectionFields() puts on its root.
 export function section<const T extends string, S extends z.core.$ZodLooseShape>(type: T, props: S) {
   // The id format and per-page uniqueness are checked on the whole list.
-  return z.strictObject({ id: z.string(), type: z.literal(type), ...props });
+  return z.strictObject({ id: z.string(), type: z.literal(type), reveal: z.enum(REVEAL_PRESETS).optional(), ...props });
 }
 
 // An interface string the site declares in `siteUi`, in src/site.schema.ts

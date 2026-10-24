@@ -8,6 +8,7 @@ import { field } from "../core/field.ts";
 import { breadcrumbTrail } from "../lib/routes.ts";
 import { getSettings, settingsRef } from "../lib/settings.ts";
 import { localeOfCode } from "../lib/site-locales.ts";
+import { plainTitle } from "../lib/title.ts";
 
 interface Props {
   path: string;
@@ -36,13 +37,13 @@ const current = trail?.at(-1);
           {ancestors.map((crumb) => (
             <li class="sk-breadcrumb__item">
               <a href={crumb.path} class="sk-breadcrumb__link" {...field(crumb.ref, "title")}>
-                {crumb.title}
+                {plainTitle(crumb.title)}
               </a>
             </li>
           ))}
           <li class="sk-breadcrumb__item">
             <span aria-current="page" class="sk-breadcrumb__current" {...field(current.ref, "title")}>
-              {current.title}
+              {plainTitle(current.title)}
             </span>
           </li>
         </ol>

@@ -51,12 +51,16 @@ collections:
             widget: object
             fields:
               - &section_id { name: id, label: Section id, widget: string, pattern: [ "^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$", "A lowercase letter, then 3 lowercase letters or digits, with at least one digit" ], hint: "A random label that keeps pointing at this section when sections move. For a new section, run npm run section-id -- <page file> for an id this page has never used, such as k3m9. Never change it or copy it from another section.", i18n: true }
+              # Every section type, the site's own too, can ask the theme for an entrance animation.
+              - &section_reveal { name: reveal, label: Entrance animation, widget: select, options: [ fade, fade-up, fade-down, slide-left, slide-right, scale ], required: false, hint: "The theme animates the section as it scrolls into view, unless the visitor asks for reduced motion.", i18n: true }
               - { name: eyebrow, label: Eyebrow, widget: string, required: false, i18n: true }
               - { name: badge, label: Badge, widget: string, required: false, i18n: true }
               - { name: title, label: Title, widget: string, i18n: true }
               - { name: subtitle, label: Subtitle, widget: string, required: false, i18n: true }
               - { name: image, label: Image, widget: image, required: false, i18n: true }
               - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+              - &video_field { name: video, label: Video (MP4; the image is its poster), widget: file, required: false, hint: "A short, muted, looping clip. The hero takes one only with the background variant.", i18n: true }
+              - &video_webm_field { name: videoWebm, label: Video as WebM (optional), widget: file, required: false, i18n: true }
               - name: cta
                 label: Call to action
                 widget: object
@@ -78,6 +82,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: body, label: Body, widget: markdown, i18n: true }
               - { name: variant, label: Variant, widget: select, options: [ narrow, wide, title-aside ], default: narrow, required: false, i18n: true }
@@ -86,6 +91,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: collection
                 label: Collection
@@ -100,6 +106,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - &eyebrow_field { name: eyebrow, label: Eyebrow, widget: string, required: false, i18n: true }
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
@@ -131,6 +138,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: images
                 label: Images
@@ -142,12 +150,14 @@ collections:
                   - { name: image, label: Image, widget: image, i18n: true }
                   - { name: alt, label: Alt text, widget: string, i18n: true }
                   - { name: caption, label: Caption, widget: string, required: false, i18n: true }
+              - { name: lightbox, label: Open images large, widget: boolean, default: false, required: false, i18n: true }
               - { name: variant, label: Variant, widget: select, options: [ grid, masonry ], default: grid, required: false, i18n: true }
           - name: testimonials
             label: Testimonials
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Testimonials
@@ -168,6 +178,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Questions
@@ -183,6 +194,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, i18n: true }
               - { name: text, label: Text, widget: text, required: false, i18n: true }
               - { name: button, label: Button, widget: object, fields: *labeled_link, i18n: true }
@@ -194,6 +206,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: address, label: Address, widget: text, required: false, hint: "Type {address} to use the address from Facts.", i18n: true }
               - name: hours
@@ -214,6 +227,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Items
@@ -229,6 +243,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Figures
@@ -246,6 +261,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
@@ -263,11 +279,14 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: body, label: Body, widget: markdown, required: false, i18n: true }
               - { name: image, label: Image, widget: image, i18n: true }
               - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+              - *video_field
+              - *video_webm_field
               - { name: stats, label: Figures, label_singular: Figure, widget: list, required: false, max: 4, fields: *stat_fields, i18n: true }
               - { name: link, label: Link, widget: object, required: false, fields: *labeled_link, i18n: true }
               - { name: variant, label: Variant, widget: select, options: [ image-left, image-right ], default: image-left, required: false, i18n: true }
@@ -277,6 +296,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
               - name: items
@@ -295,6 +315,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Prices
@@ -306,6 +327,62 @@ collections:
                   - { name: label, label: Label, widget: string, i18n: true }
                   - { name: price, label: Price as shown, widget: string, i18n: true }
               - { name: note, label: Note, widget: text, required: false, i18n: true }
+          - name: tabs
+            label: Tabs
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: intro, label: Intro, widget: text, required: false, i18n: true }
+              - name: items
+                label: Tabs
+                label_singular: Tab
+                widget: list
+                i18n: true
+                min: 2
+                fields:
+                  - { name: label, label: Tab label, widget: string, i18n: true }
+                  - { name: title, label: Title, widget: string, required: false, i18n: true }
+                  - { name: body, label: Body, widget: markdown, required: false, i18n: true }
+                  - { name: image, label: Image, widget: image, required: false, i18n: true }
+                  - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+                  - { name: link, label: Link, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ horizontal, vertical ], default: horizontal, required: false, i18n: true }
+          - name: slider
+            label: Slider
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: intro, label: Intro, widget: text, required: false, i18n: true }
+              - name: slides
+                label: Slides
+                label_singular: Slide
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: image, label: Image, widget: image, required: false, i18n: true }
+                  - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+                  - { name: title, label: Title, widget: string, required: false, i18n: true }
+                  - { name: body, label: Body, widget: markdown, required: false, i18n: true }
+                  - { name: link, label: Link, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - { name: autoplay, label: Seconds between slides (empty for no rotation), widget: number, value_type: float, min: 3, required: false, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ full, cards ], default: full, required: false, i18n: true }
+          - name: embed
+            label: Map, video or other embed
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title (also names the frame), widget: string, i18n: true }
+              - { name: url, label: URL (https), widget: string, pattern: [ "^https://", "Starts with https://" ], i18n: true }
+              - { name: kind, label: Kind, widget: select, options: [ map, video, other ], default: other, required: false, hint: "A video is a YouTube or Vimeo link.", i18n: true }
+              - { name: aspect, label: Aspect ratio, widget: select, options: [ "16:9", "4:3", "1:1", "21:9" ], default: "16:9", required: false, i18n: true }
+              - { name: caption, label: Caption, widget: string, required: false, i18n: true }
+              - { name: load, label: Loads, widget: select, options: [ click, direct ], default: click, required: false, hint: "click shows a button first, so nothing loads from the provider until the visitor asks. Use direct only when the site's privacy notice names the provider.", i18n: true }
   - name: settings
     label: Settings
     label_singular: Settings
@@ -333,9 +410,19 @@ collections:
         label: Navigation
         widget: list
         i18n: true
-        fields: &link_fields
+        fields:
           - { name: label, label: Label, widget: string, i18n: true }
-          - { name: link, label: Link, widget: string, i18n: true }
+          - { name: link, label: Link (optional with sub-items), widget: string, required: false, i18n: true }
+          - name: children
+            label: Sub-items
+            label_singular: Sub-item
+            widget: list
+            i18n: true
+            required: false
+            hint: "Links under this item, one level deep, shown as a dropdown in the header."
+            fields: &link_fields
+              - { name: label, label: Label, widget: string, i18n: true }
+              - { name: link, label: Link, widget: string, i18n: true }
       # The header's actions and the footer's blocks (site-kit-design-system
       # design D35). Business facts, such as a phone number or opening
       # hours, are props of the block that shows them.
@@ -397,6 +484,8 @@ collections:
                 widget: object
                 fields:
                   - { name: text, label: Text, widget: text, required: false, i18n: true }
+                  - { name: logo, label: Own logo (replaces the site's logo here), widget: image, required: false, i18n: true }
+                  - { name: logoAlt, label: Own logo alt text, widget: string, required: false, i18n: true }
                   - &with_previous { name: withPrevious, label: Same group as the block before, widget: boolean, default: false, required: false, i18n: true }
               - name: contact
                 label: Contact details
@@ -485,6 +574,23 @@ collections:
           - { name: breadcrumb, label: Breadcrumb name, widget: string, i18n: true }
           - { name: home, label: Breadcrumb home link, widget: string, i18n: true }
           - { name: locales, label: Language switcher name (a site with several locales), widget: string, required: false, i18n: true }
+          # The interactive parts' strings: a page that shows a part needs its own.
+          - { name: sliderPrevious, label: Slider - previous button, widget: string, required: false, i18n: true }
+          - { name: sliderNext, label: Slider - next button, widget: string, required: false, i18n: true }
+          - { name: sliderPause, label: Slider - pause button, widget: string, required: false, i18n: true }
+          - { name: sliderPlay, label: Slider - play button, widget: string, required: false, i18n: true }
+          - { name: sliderStatus, label: "Slider - status, with {current} and {total}", widget: string, required: false, i18n: true }
+          - { name: lightboxClose, label: Gallery lightbox - close button, widget: string, required: false, i18n: true }
+          - { name: lightboxPrevious, label: Gallery lightbox - previous button, widget: string, required: false, i18n: true }
+          - { name: lightboxNext, label: Gallery lightbox - next button, widget: string, required: false, i18n: true }
+          - { name: videoPause, label: Video - pause button, widget: string, required: false, i18n: true }
+          - { name: videoPlay, label: Video - play button, widget: string, required: false, i18n: true }
+          - { name: embedShowMap, label: Embed - button that loads a map, widget: string, required: false, i18n: true }
+          - { name: embedPlayVideo, label: Embed - button that loads a video, widget: string, required: false, i18n: true }
+          - { name: embedShowContent, label: Embed - button that loads other content, widget: string, required: false, i18n: true }
+          - { name: embedNotice, label: "Embed - notice, with {host}", widget: string, required: false, i18n: true }
+          - { name: embedOpen, label: "Embed - link to the content on its site, with {host}", widget: string, required: false, i18n: true }
+          - { name: navSubmenu, label: "Navigation - submenu button of a linked item, with {label}", widget: string, required: false, i18n: true }
           - { name: keepReading, label: Blog post - heading of related posts, widget: string, i18n: true }
           - { name: minRead, label: "Blog post - reading time, with {minutes}", widget: object, fields: &plural_forms [ { name: zero, label: Zero, widget: string, required: false, i18n: true }, { name: one, label: One, widget: string, required: false, i18n: true }, { name: two, label: Two, widget: string, required: false, i18n: true }, { name: few, label: Few, widget: string, required: false, i18n: true }, { name: many, label: Many, widget: string, required: false, i18n: true }, { name: other, label: Other, widget: string, i18n: true } ], i18n: true }
 

@@ -1,0 +1,611 @@
+# Decap CMS config, assembled by `npm run decap-config` from the kit's part
+# (@hostsmith/site-kit-astro/decap/config.kit.yml) and this site's part
+# (public/admin/config.site.yml). Don't edit this file: edit the site's
+# part and run the command again.
+#
+# Decap CMS and Sveltia CMS both read it. The build removes /admin, so it is
+# never deployed.
+backend:
+  name: github
+  repo: OWNER/REPOSITORY
+  branch: main
+media_folder: public/assets
+public_folder: /assets
+
+# The site's locales, from src/site.config.ts. Each content file names its
+# locale before its extension, such as about.en.md.
+i18n:
+  structure: multiple_files
+  locales: [ en ]
+  default_locale: en
+
+collections:
+  - name: pages
+    label: Pages
+    label_singular: Page
+    folder: src/content/pages
+    i18n: true
+    # Lists nested pages, such as services/painting.en.md, each a file of its
+    # own rather than an _index.md in a folder. A new page is still saved
+    # flat, as <slug>.<locale>.md.
+    nested: { depth: 4, subfolders: false }
+    extension: md
+    format: frontmatter
+    create: true
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - { name: description, label: Description, widget: text, required: false, i18n: true }
+      - { name: ogImage, label: Social image, widget: image, required: false, i18n: true }
+      # `template: custom` on a page that a page template renders. Hidden, so a
+      # save keeps it and an owner doesn't change it.
+      - { name: template, label: Template, widget: hidden, required: false, i18n: true }
+      - &sections
+        name: sections
+        label: Sections
+        widget: list
+        i18n: true
+        typeKey: type
+        types:
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - &section_id { name: id, label: Section id, widget: string, pattern: [ "^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$", "A lowercase letter, then 3 lowercase letters or digits, with at least one digit" ], hint: "A random label that keeps pointing at this section when sections move. For a new section, run npm run section-id -- <page file> for an id this page has never used, such as k3m9. Never change it or copy it from another section.", i18n: true }
+              # Every section type, the site's own too, can ask the theme for an entrance animation.
+              - &section_reveal { name: reveal, label: Entrance animation, widget: select, options: [ fade, fade-up, fade-down, slide-left, slide-right, scale ], required: false, hint: "The theme animates the section as it scrolls into view, unless the visitor asks for reduced motion.", i18n: true }
+              - { name: eyebrow, label: Eyebrow, widget: string, required: false, i18n: true }
+              - { name: badge, label: Badge, widget: string, required: false, i18n: true }
+              - { name: title, label: Title, widget: string, i18n: true }
+              - { name: subtitle, label: Subtitle, widget: string, required: false, i18n: true }
+              - { name: image, label: Image, widget: image, required: false, i18n: true }
+              - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+              - &video_field { name: video, label: Video (MP4; the image is its poster), widget: file, required: false, hint: "A short, muted, looping clip. The hero takes one only with the background variant.", i18n: true }
+              - &video_webm_field { name: videoWebm, label: Video as WebM (optional), widget: file, required: false, i18n: true }
+              - name: cta
+                label: Call to action
+                widget: object
+                i18n: true
+                required: false
+                # Not required here: Decap requires the subfields of an empty
+                # optional object, and refuses to save. The build's schemas
+                # still require both when the object is there.
+                fields: &labeled_link
+                  - { name: label, label: Label, widget: string, required: false, i18n: true }
+                  - { name: link, label: Link, widget: string, required: false, i18n: true }
+              - { name: secondaryCta, label: Second button, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - { name: note, label: Note under the buttons, widget: string, required: false, i18n: true }
+              # A select with a default isn't required: Decap fails one left at
+              # its default, and the build applies the default.
+              - { name: variant, label: Variant, widget: select, options: [ centered, image-left, image-right, background, page ], default: centered, required: false, i18n: true }
+          - name: rich-text
+            label: Rich text
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: body, label: Body, widget: markdown, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ narrow, wide, title-aside ], default: narrow, required: false, i18n: true }
+          - name: collection-list
+            label: Collection list
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - name: collection
+                label: Collection
+                widget: select
+                i18n: true
+                options: [ news ]
+              - { name: limit, label: Limit, widget: number, value_type: int, min: 1, required: false, i18n: true }
+              - { name: link, label: Link beside the title, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ cards, list, featured ], default: cards, required: false, i18n: true }
+          - name: services-grid
+            label: Services grid
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - &eyebrow_field { name: eyebrow, label: Eyebrow, widget: string, required: false, i18n: true }
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: intro, label: Intro, widget: text, required: false, i18n: true }
+              - { name: link, label: Link beside the title, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - name: items
+                label: Services
+                label_singular: Service
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: title, label: Title, widget: string, i18n: true }
+                  - { name: text, label: Text, widget: text, required: false, i18n: true }
+                  # The kit's icon set: src/lib/icons.ts lists the same names.
+                  - &icon_field
+                    name: icon
+                    label: Icon
+                    widget: select
+                    i18n: true
+                    required: false
+                    options: [ calendar, check, clock, file-text, hammer, house, mail, map-pin, paint-roller, phone, ruler, shield-check, sparkles, star, users, wrench, square-dot ]
+                  - { name: image, label: Image, widget: image, required: false, i18n: true }
+                  - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+                  - { name: link, label: Link, widget: string, required: false, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ cards, list ], default: cards, required: false, i18n: true }
+              - { name: tone, label: Tone, widget: select, options: [ plain, surface ], default: plain, required: false, i18n: true }
+          - name: gallery
+            label: Gallery
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - name: images
+                label: Images
+                label_singular: Image
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: image, label: Image, widget: image, i18n: true }
+                  - { name: alt, label: Alt text, widget: string, i18n: true }
+                  - { name: caption, label: Caption, widget: string, required: false, i18n: true }
+              - { name: lightbox, label: Open images large, widget: boolean, default: false, required: false, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ grid, masonry ], default: grid, required: false, i18n: true }
+          - name: testimonials
+            label: Testimonials
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - name: items
+                label: Testimonials
+                label_singular: Testimonial
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: quote, label: Quote, widget: text, i18n: true }
+                  - { name: name, label: Name, widget: string, i18n: true }
+                  - { name: role, label: Role, widget: string, required: false, i18n: true }
+                  - { name: image, label: Photo, widget: image, required: false, i18n: true }
+                  - { name: imageAlt, label: Photo alt text, widget: string, required: false, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ grid, single ], default: grid, required: false, i18n: true }
+              - { name: tone, label: Tone, widget: select, options: [ surface, dark ], default: surface, required: false, i18n: true }
+          - name: faq
+            label: FAQ
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - name: items
+                label: Questions
+                label_singular: Question
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: question, label: Question, widget: string, i18n: true }
+                  - { name: answer, label: Answer, widget: markdown, i18n: true }
+          - name: cta
+            label: Call to action
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, i18n: true }
+              - { name: text, label: Text, widget: text, required: false, i18n: true }
+              - { name: button, label: Button, widget: object, fields: *labeled_link, i18n: true }
+              - { name: secondaryButton, label: Second button, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ banner, card ], default: banner, required: false, i18n: true }
+              - { name: tone, label: Tone, widget: select, options: [ accent, dark, surface ], default: accent, required: false, i18n: true }
+          - name: hours-location
+            label: Hours and location
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: address, label: Address, widget: text, required: false, hint: "Type {address} to use the address from Facts.", i18n: true }
+              - name: hours
+                label: Opening hours
+                label_singular: Opening hours row
+                widget: list
+                i18n: true
+                required: false
+                fields:
+                  - { name: days, label: Days, widget: string, i18n: true }
+                  - { name: time, label: Time, widget: string, i18n: true }
+              - { name: phone, label: Phone, widget: string, required: false, hint: "Type {phone} to use the phone number from Facts.", i18n: true }
+              - { name: email, label: Email, widget: string, required: false, hint: "Type {email} to use the email address from Facts.", i18n: true }
+              - { name: note, label: Note, widget: text, required: false, i18n: true }
+              - { name: mapLink, label: Map link, widget: object, required: false, fields: *labeled_link, i18n: true }
+          - name: trust-bar
+            label: Trust bar
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - name: items
+                label: Items
+                label_singular: Item
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: text, label: Text, widget: string, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ line, chips ], default: line, required: false, i18n: true }
+          - name: stats
+            label: Stats
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - name: items
+                label: Figures
+                label_singular: Figure
+                widget: list
+                i18n: true
+                min: 2
+                max: 4
+                fields: &stat_fields
+                  - { name: value, label: Value, widget: string, i18n: true }
+                  - { name: label, label: Label, widget: string, i18n: true }
+              - { name: tone, label: Tone, widget: select, options: [ plain, dark ], default: plain, required: false, i18n: true }
+          - name: steps
+            label: Steps
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - *eyebrow_field
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: intro, label: Intro, widget: text, required: false, i18n: true }
+              - name: items
+                label: Steps
+                label_singular: Step
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: title, label: Title, widget: string, i18n: true }
+                  - { name: text, label: Text, widget: text, required: false, i18n: true }
+          - name: split
+            label: Image and text
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - *eyebrow_field
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: body, label: Body, widget: markdown, required: false, i18n: true }
+              - { name: image, label: Image, widget: image, i18n: true }
+              - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+              - *video_field
+              - *video_webm_field
+              - { name: stats, label: Figures, label_singular: Figure, widget: list, required: false, max: 4, fields: *stat_fields, i18n: true }
+              - { name: link, label: Link, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ image-left, image-right ], default: image-left, required: false, i18n: true }
+              - { name: tone, label: Tone, widget: select, options: [ plain, surface ], default: plain, required: false, i18n: true }
+          - name: team
+            label: Team
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: intro, label: Intro, widget: text, required: false, i18n: true }
+              - name: items
+                label: People
+                label_singular: Person
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: name, label: Name, widget: string, i18n: true }
+                  - { name: role, label: Role, widget: string, required: false, i18n: true }
+                  - { name: image, label: Photo, widget: image, required: false, i18n: true }
+                  - { name: imageAlt, label: Photo alt text, widget: string, required: false, i18n: true }
+          - name: pricing-list
+            label: Pricing list
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - name: items
+                label: Prices
+                label_singular: Price
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: label, label: Label, widget: string, i18n: true }
+                  - { name: price, label: Price as shown, widget: string, i18n: true }
+              - { name: note, label: Note, widget: text, required: false, i18n: true }
+          - name: tabs
+            label: Tabs
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: intro, label: Intro, widget: text, required: false, i18n: true }
+              - name: items
+                label: Tabs
+                label_singular: Tab
+                widget: list
+                i18n: true
+                min: 2
+                fields:
+                  - { name: label, label: Tab label, widget: string, i18n: true }
+                  - { name: title, label: Title, widget: string, required: false, i18n: true }
+                  - { name: body, label: Body, widget: markdown, required: false, i18n: true }
+                  - { name: image, label: Image, widget: image, required: false, i18n: true }
+                  - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+                  - { name: link, label: Link, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ horizontal, vertical ], default: horizontal, required: false, i18n: true }
+          - name: slider
+            label: Slider
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false, i18n: true }
+              - { name: intro, label: Intro, widget: text, required: false, i18n: true }
+              - name: slides
+                label: Slides
+                label_singular: Slide
+                widget: list
+                i18n: true
+                min: 1
+                fields:
+                  - { name: image, label: Image, widget: image, required: false, i18n: true }
+                  - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+                  - { name: title, label: Title, widget: string, required: false, i18n: true }
+                  - { name: body, label: Body, widget: markdown, required: false, i18n: true }
+                  - { name: link, label: Link, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - { name: autoplay, label: Seconds between slides (empty for no rotation), widget: number, value_type: float, min: 3, required: false, i18n: true }
+              - { name: variant, label: Variant, widget: select, options: [ full, cards ], default: full, required: false, i18n: true }
+          - name: embed
+            label: Map, video or other embed
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title (also names the frame), widget: string, i18n: true }
+              - { name: url, label: URL (https), widget: string, pattern: [ "^https://", "Starts with https://" ], i18n: true }
+              - { name: kind, label: Kind, widget: select, options: [ map, video, other ], default: other, required: false, hint: "A video is a YouTube or Vimeo link.", i18n: true }
+              - { name: aspect, label: Aspect ratio, widget: select, options: [ "16:9", "4:3", "1:1", "21:9" ], default: "16:9", required: false, i18n: true }
+              - { name: caption, label: Caption, widget: string, required: false, i18n: true }
+              - { name: load, label: Loads, widget: select, options: [ click, direct ], default: click, required: false, hint: "click shows a button first, so nothing loads from the provider until the visitor asks. Use direct only when the site's privacy notice names the provider.", i18n: true }
+  - name: settings
+    label: Settings
+    label_singular: Settings
+    folder: src/content/settings
+    extension: yml
+    format: yml
+    create: false
+    delete: false
+    i18n: true
+    identifier_field: name
+    summary: Site settings
+    fields:
+      - { name: name, label: Site name, widget: string, i18n: true }
+      - name: logo
+        label: Logo
+        widget: object
+        i18n: true
+        required: false
+        # Not required here, as for &labeled_link: the build's schema
+        # requires both when there's a logo.
+        fields:
+          - { name: image, label: Image, widget: image, required: false, i18n: true }
+          - { name: alt, label: Alt text, widget: string, required: false, i18n: true }
+      - name: nav
+        label: Navigation
+        widget: list
+        i18n: true
+        fields:
+          - { name: label, label: Label, widget: string, i18n: true }
+          - { name: link, label: Link (optional with sub-items), widget: string, required: false, i18n: true }
+          - name: children
+            label: Sub-items
+            label_singular: Sub-item
+            widget: list
+            i18n: true
+            required: false
+            hint: "Links under this item, one level deep, shown as a dropdown in the header."
+            fields: &link_fields
+              - { name: label, label: Label, widget: string, i18n: true }
+              - { name: link, label: Link, widget: string, i18n: true }
+      # The header's actions and the footer's blocks (site-kit-design-system
+      # design D35). Business facts, such as a phone number or opening
+      # hours, are props of the block that shows them.
+      - name: header
+        label: Header
+        widget: object
+        i18n: true
+        required: false
+        fields:
+          - name: actions
+            label: Actions
+            label_singular: Action
+            widget: list
+            i18n: true
+            required: false
+            typeKey: type
+            types:
+              - name: phone
+                label: Phone number
+                widget: object
+                fields:
+                  - { name: number, label: Number, widget: string, hint: "Type {phone} to use the phone number from Facts.", i18n: true }
+                  - { name: callLabel, label: Call button label (adds an icon-only call button), widget: string, required: false, i18n: true }
+              - name: button
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string, i18n: true }
+                  - { name: link, label: Link, widget: string, i18n: true }
+                  - { name: style, label: Style, widget: select, options: [ primary, secondary ], default: primary, required: false, i18n: true }
+              - name: link
+                label: Link
+                widget: object
+                fields: *link_fields
+              # A site with several locales: links to the page in each
+              # language. It has no props, but Decap rejects a type
+              # without fields, so it gets a hidden one with no value,
+              # which neither CMS writes.
+              - name: locales
+                label: Language switcher
+                widget: object
+                fields: [ { name: switcher, label: Language switcher, widget: hidden, i18n: true } ]
+      - name: footer
+        label: Footer
+        widget: object
+        i18n: true
+        required: false
+        fields:
+          - name: blocks
+            label: Blocks
+            label_singular: Block
+            widget: list
+            i18n: true
+            required: false
+            typeKey: type
+            types: &footer_block_types
+              - name: brand
+                label: Name or logo
+                widget: object
+                fields:
+                  - { name: text, label: Text, widget: text, required: false, i18n: true }
+                  - { name: logo, label: Own logo (replaces the site's logo here), widget: image, required: false, i18n: true }
+                  - { name: logoAlt, label: Own logo alt text, widget: string, required: false, i18n: true }
+                  - &with_previous { name: withPrevious, label: Same group as the block before, widget: boolean, default: false, required: false, i18n: true }
+              - name: contact
+                label: Contact details
+                widget: object
+                fields:
+                  - { name: title, label: Title, widget: string, required: false, i18n: true }
+                  - { name: address, label: Address, widget: text, required: false, hint: "Type {address} to use the address from Facts.", i18n: true }
+                  - { name: phone, label: Phone, widget: string, required: false, hint: "Type {phone} to use the phone number from Facts.", i18n: true }
+                  - { name: email, label: Email, widget: string, required: false, hint: "Type {email} to use the email address from Facts.", i18n: true }
+                  - *with_previous
+              - name: links
+                label: Links
+                widget: object
+                fields:
+                  - { name: title, label: Title, widget: string, required: false, i18n: true }
+                  - { name: links, label: Links, widget: list, fields: *link_fields, i18n: true }
+                  - *with_previous
+              - name: hours
+                label: Hours
+                widget: object
+                fields:
+                  - { name: title, label: Title, widget: string, required: false, i18n: true }
+                  - name: rows
+                    label: Rows
+                    label_singular: Row
+                    widget: list
+                    i18n: true
+                    fields:
+                      - { name: days, label: Days, widget: string, i18n: true }
+                      - { name: time, label: Time, widget: string, i18n: true }
+                  - *with_previous
+              - name: text
+                label: Text
+                widget: object
+                fields:
+                  - { name: title, label: Title, widget: string, required: false, i18n: true }
+                  - { name: text, label: Text, widget: text, i18n: true }
+                  - *with_previous
+              - name: copyright
+                label: Copyright line
+                widget: object
+                fields:
+                  - { name: text, label: Text after the year (the site name if empty), widget: string, required: false, i18n: true }
+                  - *with_previous
+              # A site with several locales: links to the page in each language.
+              - name: locales
+                label: Language switcher
+                widget: object
+                fields:
+                  - *with_previous
+          - name: bottom
+            label: Bottom row
+            label_singular: Block
+            widget: list
+            i18n: true
+            required: false
+            typeKey: type
+            types: *footer_block_types
+      - name: seo
+        label: Search and sharing defaults
+        widget: object
+        i18n: true
+        fields:
+          - { name: description, label: Description, widget: text, i18n: true }
+          - { name: ogImage, label: Social image, widget: image, required: false, i18n: true }
+      - name: facts
+        label: Facts
+        label_singular: Fact
+        widget: list
+        i18n: true
+        required: false
+        hint: "Facts that appear in several places, such as the phone number. Any text on the site can use one as {name}, such as {phone}, and shows its value."
+        fields:
+          - { name: name, label: Name, widget: string, pattern: [ "^[a-z][a-zA-Z0-9]*$", "A lowercase letter, then letters or digits, such as phone or licenseNo" ], i18n: true }
+          - { name: value, label: Value, widget: text, i18n: true }
+      - name: ui
+        label: Interface text
+        widget: object
+        i18n: true
+        fields:
+          - { name: skipLink, label: Skip link, widget: string, i18n: true }
+          - { name: menu, label: Menu button, widget: string, i18n: true }
+          - { name: readMore, label: Read more link, widget: string, i18n: true }
+          - { name: mainNav, label: Main navigation name, widget: string, i18n: true }
+          - { name: footerNav, label: Name of the footer links without a title, widget: string, i18n: true }
+          - { name: breadcrumb, label: Breadcrumb name, widget: string, i18n: true }
+          - { name: home, label: Breadcrumb home link, widget: string, i18n: true }
+          - { name: locales, label: Language switcher name (a site with several locales), widget: string, required: false, i18n: true }
+          # The interactive parts' strings: a page that shows a part needs its own.
+          - { name: sliderPrevious, label: Slider - previous button, widget: string, required: false, i18n: true }
+          - { name: sliderNext, label: Slider - next button, widget: string, required: false, i18n: true }
+          - { name: sliderPause, label: Slider - pause button, widget: string, required: false, i18n: true }
+          - { name: sliderPlay, label: Slider - play button, widget: string, required: false, i18n: true }
+          - { name: sliderStatus, label: "Slider - status, with {current} and {total}", widget: string, required: false, i18n: true }
+          - { name: lightboxClose, label: Gallery lightbox - close button, widget: string, required: false, i18n: true }
+          - { name: lightboxPrevious, label: Gallery lightbox - previous button, widget: string, required: false, i18n: true }
+          - { name: lightboxNext, label: Gallery lightbox - next button, widget: string, required: false, i18n: true }
+          - { name: videoPause, label: Video - pause button, widget: string, required: false, i18n: true }
+          - { name: videoPlay, label: Video - play button, widget: string, required: false, i18n: true }
+          - { name: embedShowMap, label: Embed - button that loads a map, widget: string, required: false, i18n: true }
+          - { name: embedPlayVideo, label: Embed - button that loads a video, widget: string, required: false, i18n: true }
+          - { name: embedShowContent, label: Embed - button that loads other content, widget: string, required: false, i18n: true }
+          - { name: embedNotice, label: "Embed - notice, with {host}", widget: string, required: false, i18n: true }
+          - { name: embedOpen, label: "Embed - link to the content on its site, with {host}", widget: string, required: false, i18n: true }
+          - { name: navSubmenu, label: "Navigation - submenu button of a linked item, with {label}", widget: string, required: false, i18n: true }
+
+  - name: news
+    label: News
+    label_singular: News entry
+    folder: src/content/news
+    i18n: true
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - { name: date, label: Date, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false, i18n: true }
+      - { name: description, label: Description, widget: text, required: false, i18n: true }
+      - { name: image, label: Image, widget: image, required: false, i18n: true }
+      - { name: imageAlt, label: Image alt text, widget: string, required: false, i18n: true }
+      - { name: draft, label: Draft, widget: boolean, required: false, i18n: true }
+      - { name: body, label: Body, widget: markdown, i18n: true }

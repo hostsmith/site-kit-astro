@@ -1,0 +1,455 @@
+/*
+ * The page frame: the skip link, the header and its menu, the breadcrumb and
+ * the footer, styled through the kit's hooks
+ * (node_modules/@hostsmith/site-kit-astro/HOOKS.md) with the theme's
+ * variables. Structural only: layout, hidden states, focus and touch targets.
+ * Plain CSS, no @apply. global.css imports this file into Tailwind's
+ * `components` layer, so utilities in the site's own markup can override it.
+ *
+ * Below `lg` (tokens/space.css), where Webflow's Navbar collapses, the header
+ * shows the brand, the call button and the menu button, and the menu is a
+ * panel. The panel is hidden only while the menu is
+ * `[data-ready]:not([data-open])`, and a submenu only while its item is, so
+ * without JavaScript both stay visible and usable.
+ */
+
+.sk-container {
+  max-width: var(--container-site);
+  margin-inline: auto;
+  padding-inline: var(--spacing-gutter);
+}
+
+.sk-main {
+  display: block;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+/* Skip link: off screen until it has focus. */
+.sk-skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 50;
+  padding: 0.75rem 1rem;
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  transform: translateY(-200%);
+}
+
+.sk-skip-link:focus,
+.sk-skip-link:focus-visible {
+  transform: none;
+}
+
+/* Header */
+.sk-header {
+  position: relative;
+  z-index: 20;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+
+  & > .sk-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 0.75rem;
+  }
+}
+
+.sk-header__brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin-right: auto;
+  text-decoration: none;
+}
+
+.sk-header__logo {
+  display: block;
+  width: auto;
+  height: 2rem;
+}
+
+.sk-header__name {
+  font-weight: 700;
+}
+
+.sk-header__call,
+.sk-header__menu-button:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.sk-header__menu-button {
+  gap: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+
+  &[aria-expanded="true"] [data-icon="menu"],
+  &:not([aria-expanded="true"]) [data-icon="x"] {
+    display: none;
+  }
+}
+
+/* The label stays for screen readers; the icons show the state. */
+.sk-header__menu-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The menu: a panel under the header row below `lg`. */
+.sk-menu {
+  flex-basis: 100%;
+  padding-block: 0.5rem 1rem;
+}
+
+.sk-menu[data-ready]:not([data-open]) {
+  @variant max-lg {
+    display: none;
+  }
+}
+
+.sk-nav {
+  width: 100%;
+
+  @variant lg {
+    width: auto;
+  }
+}
+
+.sk-nav__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sk-nav__link {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  text-decoration: none;
+
+  &[aria-current="page"] {
+    text-decoration: underline;
+  }
+}
+
+/* Nested nav items: below `lg` a nested list under the item; from `lg` a
+   dropdown under it. */
+.sk-nav__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sk-nav__toggle:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.sk-nav__toggle {
+  & .sk-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &[aria-expanded="true"] .sk-icon {
+    transform: rotate(180deg);
+  }
+
+  &[data-current] {
+    text-decoration: underline;
+  }
+}
+
+.sk-nav__submenu {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  list-style: none;
+}
+
+.sk-nav__item[data-ready]:not([data-open]) .sk-nav__submenu {
+  display: none;
+}
+
+.sk-nav__sublink {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  text-decoration: none;
+
+  &[aria-current="page"] {
+    text-decoration: underline;
+  }
+}
+
+.sk-header__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sk-header__link,
+.sk-header__phone {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+/* The language switcher, in the header's actions or a footer block. */
+.sk-locales__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sk-locales__item {
+  display: flex;
+}
+
+.sk-locales__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+
+  &[aria-current="page"] {
+    font-weight: 700;
+  }
+}
+
+.sk-locales {
+  color: inherit;
+}
+
+/* From `lg`: one row of the brand, the nav and the actions. */
+.sk-header {
+  @variant lg {
+    & > .sk-container {
+      flex-wrap: nowrap;
+      gap: 1.5rem;
+    }
+
+    & .sk-header__call,
+    & .sk-header__menu-button:not([hidden]) {
+      display: none;
+    }
+  }
+}
+
+.sk-menu {
+  @variant lg {
+    display: flex;
+    flex: 1 1 auto;
+    flex-basis: auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 0;
+
+    & .sk-nav__list {
+      flex-direction: row;
+      gap: 0 1.5rem;
+    }
+
+    & .sk-nav__item {
+      position: relative;
+      flex-wrap: nowrap;
+    }
+
+    & .sk-nav__submenu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 30;
+      min-width: 12rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      box-shadow: var(--shadow-overlay);
+    }
+
+    & .sk-header__actions {
+      flex-direction: row;
+      align-items: center;
+      margin: 0;
+    }
+  }
+}
+
+/* Breadcrumb, at the top of main on nested pages. */
+.sk-breadcrumb {
+  padding-top: 1.5rem;
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+  letter-spacing: var(--text-small--letter-spacing);
+  font-weight: var(--text-small--font-weight);
+}
+
+.sk-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sk-breadcrumb__item + .sk-breadcrumb__item::before {
+  content: "/" / "";
+  margin-right: 0.5rem;
+  color: var(--color-muted);
+}
+
+.sk-breadcrumb__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+}
+
+.sk-breadcrumb__current[aria-current="page"] {
+  font-weight: 700;
+}
+
+/* Footer: the groups as columns from `md`. */
+.sk-footer {
+  padding-block: 3rem 2rem;
+  background: var(--color-fg);
+  color: var(--color-bg);
+
+  & > .sk-container {
+    display: grid;
+    gap: 2rem;
+
+    @variant md {
+      grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    }
+  }
+
+  & :focus-visible {
+    outline-color: var(--color-bg);
+  }
+}
+
+.sk-footer__group,
+.sk-footer__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sk-footer__block--brand,
+.sk-footer__block--contact,
+.sk-footer__block--links,
+.sk-footer__block--hours,
+.sk-footer__block--text,
+.sk-footer__block--locales {
+  min-width: 0;
+}
+
+/* Its own width, not the column's, which would center the logo's drawing. */
+.sk-footer__logo {
+  display: block;
+  align-self: flex-start;
+  width: auto;
+  height: 2rem;
+}
+
+.sk-footer__name {
+  font-weight: 700;
+}
+
+.sk-footer__title {
+  font-size: var(--text-h6);
+  line-height: var(--text-h6--line-height);
+  letter-spacing: var(--text-h6--letter-spacing);
+  font-weight: var(--text-h6--font-weight);
+}
+
+.sk-footer__text,
+.sk-footer__address,
+.sk-footer__hours-list,
+.sk-footer__block--copyright {
+  color: var(--color-on-dark);
+}
+
+.sk-footer__contact {
+  display: flex;
+  flex-direction: column;
+  font-style: normal;
+}
+
+.sk-footer__links {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sk-footer__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--color-on-dark);
+}
+
+.sk-footer__hours-list {
+  margin: 0;
+}
+
+.sk-footer__hours-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 1rem;
+
+  & dd {
+    margin: 0;
+  }
+}
+
+.sk-footer__bottom {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-muted);
+
+  & .sk-footer__links {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+  }
+}
+
+.sk-footer__block--copyright {
+  display: block;
+}

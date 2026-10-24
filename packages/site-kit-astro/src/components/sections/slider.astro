@@ -1,0 +1,160 @@
+---
+// slider: title, intro, slides (image + imageAlt, title, body, link),
+// autoplay. Variants: full (default), one slide at a time; cards, several in a
+// row. With its script, the WAI-ARIA carousel pattern: previous and next
+// buttons, a status line such as "Slide 2 of 4", and, with `autoplay`, a
+// pause button. It rotates only with `autoplay`, never under reduced motion,
+// and pauses while hovered or focused. Without the script, the slides are a
+// list that scrolls sideways (site-kit-webflow-example design D104).
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../core/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
+import { renderMarkdown } from "../../lib/markdown.ts";
+import { partUi } from "../../lib/part-ui.ts";
+import { localeOfRef } from "../../lib/site-locales.ts";
+import Icon from "../Icon.astro";
+import SectionHeader from "../SectionHeader.astro";
+import Title from "../Title.astro";
+
+interface Props {
+  section: Extract<Section, { type: "slider" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { title, intro, slides, autoplay } = section;
+const f = sectionFields(entry, section);
+const keys = ["sliderPrevious", "sliderNext", "sliderStatus", ...(autoplay ? ["sliderPause", "sliderPlay"] : [])];
+const ui = await partUi(localeOfRef(entry)?.code, "slider", keys);
+const bodies = await Promise.all(
+  slides.map((slide, i) => (slide.body === undefined ? undefined : renderMarkdown(slide.body, `${entry} section "${section.id}" (slider) slides[${i}].body`, entry))),
+);
+const list = `${section.id}-slides`;
+const status = (current: number) => ui("sliderStatus", { current, total: slides.length });
+---
+
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <SectionHeader field={f.field} title={title} intro={intro} />
+    <ul id={list} class="sk-slider__list">
+      {
+        slides.map((slide, i) => (
+          <li class="sk-slider__slide" role="group" aria-label={status(i + 1)}>
+            {slide.image && <img src={slide.image} alt={slide.imageAlt} loading="lazy" decoding="async" class="sk-slider__media" {...f.field("slides", i, "image")} />}
+            {slide.title && (
+              <h3 class="sk-slider__title" {...f.field("slides", i, "title")}>
+                <Title text={slide.title} />
+              </h3>
+            )}
+            {bodies[i] && <div class="sk-slider__body sk-prose" {...f.field("slides", i, "body")} set:html={bodies[i]} />}
+            {slide.link && (
+              <a href={slide.link.link} class="sk-slider__link" {...f.field("slides", i, "link", "label")}>
+                {slide.link.label}
+              </a>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+    <div class="sk-slider__controls" data-status={ui("sliderStatus")} data-autoplay={autoplay} hidden>
+      {
+        autoplay && (
+          <button type="button" class="sk-slider__pause" aria-controls={list} aria-label={ui("sliderPause")} data-pause={ui("sliderPause")} data-play={ui("sliderPlay")}>
+            <Icon name="pause" />
+            <Icon name="play" />
+          </button>
+        )
+      }
+      <button type="button" class="sk-slider__previous" aria-controls={list} aria-label={ui("sliderPrevious")}>
+        <Icon name="chevron-left" />
+      </button>
+      <p class="sk-slider__status" aria-live="polite">{status(1)}</p>
+      <button type="button" class="sk-slider__next" aria-controls={list} aria-label={ui("sliderNext")}>
+        <Icon name="chevron-right" />
+      </button>
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+  // The carousel pattern on each slider not set up yet. The list keeps
+  // scrolling sideways, so a swipe moves it too, and the status follows the
+  // slide nearest its start. Inline, so it runs where the slider is, and only
+  // on pages that have one.
+  for (const slider of document.querySelectorAll(".sk-slider:not([data-ready])")) {
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    const list = slider.querySelector(".sk-slider__list");
+    const controls = slider.querySelector(".sk-slider__controls");
+    if (!list || !controls) continue;
+    const slides = [...list.children];
+    const status = controls.querySelector(".sk-slider__status");
+    const pause = controls.querySelector(".sk-slider__pause");
+    const offset = (slide) => slide.getBoundingClientRect().left - list.getBoundingClientRect().left + list.scrollLeft;
+    let current = 0;
+    const announce = () => {
+      status.textContent = controls.dataset.status.replace("{current}", String(current + 1)).replace("{total}", String(slides.length));
+    };
+    const show = (index) => {
+      current = (index + slides.length) % slides.length;
+      list.scrollTo({ left: offset(slides[current]), behavior: reduced.matches ? "auto" : "smooth" });
+      announce();
+    };
+    let settle;
+    list.addEventListener("scroll", () => {
+      clearTimeout(settle);
+      settle = window.setTimeout(() => {
+        const nearest = slides.reduce((best, slide, i) => (Math.abs(offset(slide) - list.scrollLeft) < Math.abs(offset(slides[best]) - list.scrollLeft) ? i : best), 0);
+        if (nearest !== current) {
+          current = nearest;
+          announce();
+        }
+      }, 100);
+    });
+    controls.querySelector(".sk-slider__previous")?.addEventListener("click", () => show(current - 1));
+    controls.querySelector(".sk-slider__next")?.addEventListener("click", () => show(current + 1));
+
+    // Rotation: only with autoplay, and never by itself under reduced motion.
+    // It waits while the slider is hovered or holds focus, other than on the
+    // pause button, and stops when that button is pressed.
+    const seconds = Number(controls.dataset.autoplay);
+    if (pause && seconds >= 3) {
+      let playing = !reduced.matches;
+      let hovered = false;
+      let focused = false;
+      let timer;
+      const update = () => {
+        window.clearInterval(timer);
+        const rotating = playing && !hovered && !focused;
+        if (rotating) timer = window.setInterval(() => show(current + 1), seconds * 1000);
+        slider.toggleAttribute("data-playing", playing);
+        pause.setAttribute("aria-label", playing ? pause.dataset.pause : pause.dataset.play);
+        status.setAttribute("aria-live", rotating ? "off" : "polite");
+      };
+      pause.addEventListener("click", () => {
+        playing = !playing;
+        update();
+      });
+      slider.addEventListener("mouseenter", () => {
+        hovered = true;
+        update();
+      });
+      slider.addEventListener("mouseleave", () => {
+        hovered = false;
+        update();
+      });
+      slider.addEventListener("focusin", (event) => {
+        focused = event.target !== pause;
+        update();
+      });
+      slider.addEventListener("focusout", (event) => {
+        if (slider.contains(event.relatedTarget)) return;
+        focused = false;
+        update();
+      });
+      update();
+    }
+    controls.hidden = false;
+    slider.setAttribute("data-ready", "");
+  }
+</script>

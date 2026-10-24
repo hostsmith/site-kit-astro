@@ -1,6 +1,16 @@
 # Kestrel theme
 
-The look of the `basics` example, from the design canvas "Astro Small Business Kit". It styles every hook in the kit's `HOOKS.md` (`node_modules/@hostsmith/site-kit-astro/HOOKS.md`), and the site's own markup uses its tokens through Tailwind utilities.
+The look of the `basics` example, from the design canvas "Astro Small Business Kit". It styles the hooks in the kit's `HOOKS.md` (`node_modules/@hostsmith/site-kit-astro/HOOKS.md`) of the base layout and of the section types below, and the site's own markup uses its tokens through Tailwind utilities.
+
+## Coverage
+
+The theme doesn't style the parts in `HOOKS.md`'s "Parts", or a section type it doesn't list: `npm run check:styles -- --built` names their hooks when a page renders them.
+
+| Covers | |
+| --- | --- |
+| Section types | `hero`, `rich-text`, `collection-list`, `services-grid`, `gallery`, `testimonials`, `faq`, `cta`, `hours-location`, `trust-bar`, `stats`, `steps`, `split`, `team`, `pricing-list` |
+| Parts | none |
+| Header nav from | `md`, 820 px |
 
 ## Files
 

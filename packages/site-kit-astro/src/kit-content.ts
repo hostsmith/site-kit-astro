@@ -14,6 +14,7 @@ import { defineCollection } from "astro/content/config";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 import type { SiteConfig } from "../index.ts";
+import { EMBED_ASPECTS, videoSource } from "./lib/embed.ts";
 import { FACT_NAME, factsFrom, hasPlaceholder, readFacts, withFacts } from "./lib/facts.ts";
 import { formatPath, type PathPart } from "./core/field.ts";
 import { type Locale, LOCALE_KEY, resolveLocales, withLocale } from "./lib/locales.ts";
@@ -28,6 +29,47 @@ export type SiteSchema = {
 };
 
 const navItem = z.strictObject({ label: z.string().min(1), link });
+
+// A main nav item (site-kit-webflow-example design D108): a link, a list of
+// child links one level deep, as in Webflow's Dropdown, or both.
+const navChild = z
+  .strictObject({ label: z.string().min(1), link, children: z.unknown().optional() })
+  .superRefine((child, ctx) => {
+    if (child.children === undefined) return;
+    ctx.addIssue({ code: "custom", path: ["children"], message: `nav item "${child.label}" is a child with children of its own. Nav items nest one level deep: make them items of their own.` });
+  });
+const navEntry = z
+  .strictObject({ label: z.string().min(1), link: link.optional(), children: z.array(navChild).min(1, { error: "needs at least one child" }).optional() })
+  .superRefine((item, ctx) => {
+    if (item.link === undefined && item.children === undefined) {
+      ctx.addIssue({ code: "custom", path: ["link"], message: `nav item "${item.label}" has neither a "link" nor "children". Give it one or both.` });
+    }
+  });
+
+// The URL of an embed, the one external URL the content dialect allows besides
+// a video link in a body (site-kit-webflow-example design D105). Only https.
+const httpsUrl = z
+  .string()
+  .superRefine((value, ctx) => {
+    if (!URL.canParse(value)) ctx.addIssue({ code: "custom", message: `prop "url": "${value}" isn't a URL. An embed's url starts with https://` });
+    else if (new URL(value).protocol !== "https:") ctx.addIssue({ code: "custom", message: `prop "url": "${value}" doesn't use https, which an embed's url must` });
+  })
+  .meta({ "x-widget": "string" });
+
+// A video file under /assets/, for `hero` and `split` (site-kit-webflow-example
+// design D103): the MP4 in `video`, and an optional WebM in `videoWebm`.
+const videoPath = (prop: string, extension: "mp4" | "webm") =>
+  mediaPath.refine((path) => path.toLowerCase().endsWith(`.${extension}`), { error: `prop "${prop}" must be an .${extension} file` }).meta({ "x-widget": "file" });
+
+// A section's video needs its image, the poster, and a WebM goes with an MP4.
+const checkVideo = (value: { video?: string; videoWebm?: string; image?: string }, ctx: z.RefinementCtx) => {
+  if (value.video !== undefined && value.image === undefined) {
+    ctx.addIssue({ code: "custom", path: ["image"], message: 'prop "video" needs "image", the poster that shows until the video plays' });
+  }
+  if (value.videoWebm !== undefined && value.video === undefined) {
+    ctx.addIssue({ code: "custom", path: ["video"], message: 'prop "videoWebm" needs "video", the MP4 every browser plays' });
+  }
+};
 
 // Figures with a label, such as { value: "500+", label: "Projects completed" },
 // at most four: `stats` and `split` set the minimum.
@@ -51,6 +93,10 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     subtitle: z.string().min(1).optional(),
     image: mediaPath.optional(),
     imageAlt: z.string().min(1).optional(),
+    // A decorative video behind the text, muted and looping, with `image` as
+    // its poster. Only with the variant `background`.
+    video: videoPath("video", "mp4").optional(),
+    videoWebm: videoPath("videoWebm", "webm").optional(),
     cta: labeledLink.optional(),
     secondaryCta: labeledLink.optional(),
     // A short line under the buttons, such as "Typical projects from $4,800".
@@ -58,9 +104,13 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     variant: z.enum(["centered", "image-left", "image-right", "background", "page"]).default("centered"),
   })
     .superRefine(requireAlt("image", "imageAlt"))
+    .superRefine(checkVideo)
     .superRefine((hero, ctx) => {
-      if (hero.variant !== "centered" && hero.variant !== "page" && hero.image === undefined) {
+      if (hero.variant !== "centered" && hero.variant !== "page" && hero.image === undefined && hero.video === undefined) {
         ctx.addIssue({ code: "custom", path: ["image"], message: `variant "${hero.variant}" needs an image` });
+      }
+      if (hero.video !== undefined && hero.variant !== "background") {
+        ctx.addIssue({ code: "custom", path: ["video"], message: `prop "video" goes only with variant "background", not "${hero.variant}"` });
       }
     }),
 
@@ -117,6 +167,9 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
         })
         .superRefine(requireAlt("image", "alt")),
     ),
+    // Each image opens large in a dialog, with its caption and the others a
+    // button away (site-kit-webflow-example design D103).
+    lightbox: z.boolean().optional(),
     variant: z.enum(["grid", "masonry"]).default("grid"),
   }),
 
@@ -199,11 +252,65 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     body: z.string().min(1).optional(),
     image: mediaPath,
     imageAlt: z.string().min(1).optional(),
+    // The media as a muted, looping video, with `image` as its poster and
+    // `imageAlt` as its text alternative.
+    video: videoPath("video", "mp4").optional(),
+    videoWebm: videoPath("videoWebm", "webm").optional(),
     stats: statList.min(1, { error: "needs at least 1 item" }).optional(),
     link: labeledLink.optional(),
     variant: z.enum(["image-left", "image-right"]).default("image-left"),
     tone: z.enum(["plain", "surface"]).default("plain"),
-  }).superRefine(requireAlt("image", "imageAlt")),
+  })
+    .superRefine(requireAlt("image", "imageAlt"))
+    .superRefine(checkVideo),
+
+  // Panels behind a row of tabs, such as floors or plans (site-kit-webflow-example
+  // design D103). Without scripts, each panel shows under its label.
+  tabs: section("tabs", {
+    title: z.string().min(1).optional(),
+    intro: z.string().min(1).optional(),
+    items: z
+      .array(
+        z
+          .strictObject({
+            label: z.string().min(1),
+            title: z.string().min(1).optional(),
+            body: z.string().min(1).optional(),
+            image: mediaPath.optional(),
+            imageAlt: z.string().min(1).optional(),
+            link: labeledLink.optional(),
+          })
+          .superRefine(requireAlt("image", "imageAlt")),
+      )
+      .min(2, { error: "needs at least 2 items" }),
+    variant: z.enum(["horizontal", "vertical"]).default("horizontal"),
+  }),
+
+  // Slides one at a time, or cards in a row, with previous and next buttons
+  // (site-kit-webflow-example design D103). It rotates only with `autoplay`,
+  // the seconds between slides. Without scripts, a list that scrolls sideways.
+  slider: section("slider", {
+    title: z.string().min(1).optional(),
+    intro: z.string().min(1).optional(),
+    slides: itemList(
+      z
+        .strictObject({
+          image: mediaPath.optional(),
+          imageAlt: z.string().min(1).optional(),
+          title: z.string().min(1).optional(),
+          body: z.string().min(1).optional(),
+          link: labeledLink.optional(),
+        })
+        .superRefine(requireAlt("image", "imageAlt"))
+        .superRefine((slide, ctx) => {
+          if (slide.image === undefined && slide.title === undefined && slide.body === undefined) {
+            ctx.addIssue({ code: "custom", path: ["image"], message: 'needs an "image", a "title" or a "body"' });
+          }
+        }),
+    ),
+    autoplay: z.number().min(3, { error: "is the seconds between slides, at least 3" }).optional(),
+    variant: z.enum(["full", "cards"]).default("full"),
+  }),
 
   // The people behind the business. A member without a photo gets a placeholder.
   team: section("team", {
@@ -226,6 +333,23 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ label: z.string().min(1), price: z.string().min(1) })),
     note: z.string().min(1).optional(),
+  }),
+
+  // A map, a video or other content in a frame, which loads only when the
+  // visitor asks for it (site-kit-webflow-example design D105). The title
+  // names the frame. `direct` loads it at once: only for a site whose privacy
+  // notice names the provider.
+  embed: section("embed", {
+    title: z.string().min(1),
+    url: httpsUrl,
+    kind: z.enum(["map", "video", "other"]).default("other"),
+    aspect: z.enum(EMBED_ASPECTS).default("16:9"),
+    caption: z.string().min(1).optional(),
+    load: z.enum(["click", "direct"]).default("click"),
+  }).superRefine((embed, ctx) => {
+    if (embed.kind === "video" && URL.canParse(embed.url) && videoSource(embed.url) === undefined) {
+      ctx.addIssue({ code: "custom", path: ["url"], message: `prop "url": "${embed.url}" isn't a YouTube or Vimeo video, which kind "video" plays. Use kind "other" for another player.` });
+    }
   }),
 });
 
@@ -494,8 +618,15 @@ const footerFields = {
   withPrevious: z.boolean().optional(),
 };
 const footerBlockSchemas = {
-  // The site's logo or name, with a line of text.
-  brand: block("brand", { text: z.string().min(1).optional(), withPrevious: footerFields.withPrevious }),
+  // The site's logo or name, with a line of text. Its own logo, such as a
+  // reversed one for a dark footer, replaces the settings' logo here
+  // (site-kit-webflow-example design D108).
+  brand: block("brand", {
+    text: z.string().min(1).optional(),
+    logo: mediaPath.optional(),
+    logoAlt: z.string().min(1).optional(),
+    withPrevious: footerFields.withPrevious,
+  }).superRefine(requireAlt("logo", "logoAlt")),
   contact: block("contact", {
     ...footerFields,
     address: z.string().min(1).optional(),
@@ -607,14 +738,38 @@ const footer = z
 // Interface strings
 // ---------------------------------------------------------------------------
 
-// The interface strings of the kit's own parts, in the site's language. They
-// name what has no visible text, such as the navs and the menu button, so
-// they are required, and none takes a parameter. `locales` names the language
-// switcher: only a localized site needs it, and the route table checks that
-// it has it (site-kit-locales design D52). A block's labels and titles are its
-// own props.
-export const KIT_UI_KEYS = ["skipLink", "menu", "readMore", "mainNav", "footerNav", "breadcrumb", "home", "locales"] as const;
-const OPTIONAL_KIT_UI_KEYS: readonly string[] = ["locales"];
+// The interface strings of the interactive parts (site-kit-webflow-example
+// design D104), with the parameters the kit fills, such as "Slide {current}
+// of {total}". They are optional in the settings: a page that renders a part
+// needs its strings, and the part fails the build without them
+// (lib/part-ui.ts), so a site that uses no part needs none.
+export const PART_UI_PARAMS: Record<string, readonly string[]> = {
+  sliderPrevious: [],
+  sliderNext: [],
+  sliderPause: [],
+  sliderPlay: [],
+  sliderStatus: ["current", "total"],
+  lightboxClose: [],
+  lightboxPrevious: [],
+  lightboxNext: [],
+  videoPause: [],
+  videoPlay: [],
+  embedShowMap: [],
+  embedPlayVideo: [],
+  embedShowContent: [],
+  embedNotice: ["host"],
+  embedOpen: ["host"],
+  navSubmenu: ["label"],
+};
+
+// The interface strings of the kit's own parts, in the site's language. The
+// layout's name what has no visible text, such as the navs and the menu
+// button, so they are required, and none takes a parameter. `locales` names
+// the language switcher: only a localized site needs it, and the route table
+// checks that it has it (site-kit-locales design D52). The interactive parts'
+// strings follow them. A block's labels and titles are its own props.
+export const KIT_UI_KEYS: readonly string[] = ["skipLink", "menu", "readMore", "mainNav", "footerNav", "breadcrumb", "home", "locales", ...Object.keys(PART_UI_PARAMS)];
+const OPTIONAL_KIT_UI_KEYS: readonly string[] = ["locales", ...Object.keys(PART_UI_PARAMS)];
 
 const UI_KEY = /^[a-z][a-zA-Z0-9]*$/;
 const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"] as const;
@@ -625,7 +780,7 @@ function checkSiteUi(siteUi: Record<string, UiString>) {
     if (!UI_KEY.test(key)) {
       throw new Error(`Interface string "${key}" in siteUi in src/site.schema.ts must start with a lowercase letter, then letters or digits.`);
     }
-    if ((KIT_UI_KEYS as readonly string[]).includes(key)) {
+    if (KIT_UI_KEYS.includes(key)) {
       throw new Error(`Interface string "${key}" in siteUi in src/site.schema.ts is one of the kit's own. Rename it.`);
     }
   }
@@ -682,10 +837,10 @@ function checkPluralForms(siteUi: Record<string, UiString>) {
   };
 }
 
-// An interface string's own parameters stay as written in the settings:
-// site code fills them (lib/ui.ts).
+// An interface string's own parameters stay as written in the settings: site
+// code fills a site string's (lib/ui.ts), and the kit an interactive part's.
 const keepUiParams = (siteUi: Record<string, UiString>) => (path: readonly (string | number)[], name: string) =>
-  path[0] === "ui" && typeof path[1] === "string" && (siteUi[path[1]]?.params.includes(name) ?? false);
+  path[0] === "ui" && typeof path[1] === "string" && ((siteUi[path[1]]?.params.includes(name) ?? false) || (PART_UI_PARAMS[path[1]]?.includes(name) ?? false));
 
 // The settings' `language` is their locale's tag (site-kit-locales design
 // D54). A settings file doesn't write it: the kit fills it in before the
@@ -719,7 +874,7 @@ const settingsCollection = (siteUi: Record<string, UiString>, locales: Locale[])
       language: z.string(),
       logo: z.strictObject({ image: mediaPath, alt: z.string().min(1) }).optional(),
       // May be empty, and a CMS leaves an empty list out.
-      nav: z.array(navItem).default([]),
+      nav: z.array(navEntry).default([]),
       header: z.strictObject({ actions: headerActions.optional() }).optional(),
       footer: footer.optional(),
       seo: z.strictObject({ description: z.string().min(1), ogImage: mediaPath.optional() }),

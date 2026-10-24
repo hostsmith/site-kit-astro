@@ -11,8 +11,12 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace examples/basics",
-    "check:urls": "npm run check:urls --workspace examples/basics",
-    "test": "node --test --test-concurrency=4 \"tests/**/*.test.mjs\""
+    "build": "npm run build --workspaces --if-present",
+    "check:urls": "npm run check:urls --workspaces --if-present",
+    "test": "node --test --test-concurrency=4 \"tests/*.test.mjs\"",
+    "test:browser": "node --test --test-concurrency=2 \"tests/browser/*.test.mjs\""
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
   }
 }

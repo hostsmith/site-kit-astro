@@ -21,7 +21,8 @@ The repository is an npm workspace:
 | --- | --- |
 | `packages/site-kit-astro/` | the package, published to npm as TypeScript and `.astro` source, with no build step |
 | `examples/<name>/` | the example sites. Each depends on the package's released version, which npm links to the workspace, and each is also a reference site (see below) |
-| `tests/` | the kit's tests. They build every example, and copies of `basics` with the fixtures in `tests/fixtures/` |
+| `tests/` | the kit's tests. They build every example, and copies of `basics` or `webflow` with the fixtures in `tests/fixtures/` |
+| `tests/browser/` | the browser tests of the interactive parts: keyboard paths, pages without scripts, reduced motion and the network log, on the `interactive` fixture and the `webflow` example |
 | `scripts/` | the release's version hook, the license policy, and the list of examples for the reference-site workflow |
 
 The package's `exports` are part of its public API (see below). A module that sites may import needs an entry there, and a new one needs the same care as any other API change.
@@ -36,9 +37,12 @@ git config core.hooksPath .githooks
 ```
 
 ```bash
-npm run build   # build the basics example with the package from the workspace
-npm test        # run the kit's tests, including a build from the packed package
+npm run build          # build every example with the package from the workspace
+npm test               # run the kit's tests, including a build from the packed package
+npm run test:browser   # run the browser tests of the interactive parts
 ```
+
+The browser tests use [Playwright](https://playwright.dev)'s Chromium when it's installed, with `npx playwright install chromium` (about 150 MB), and the installed Google Chrome otherwise.
 
 ## Dependencies and licenses
 
@@ -54,6 +58,8 @@ Two copyleft build tools are allowed as exceptions, each only through the packag
 | `sharp` | `Apache-2.0` | astro | Astro installs it as an optional dependency, which npm can't skip. The kit sets Astro's passthrough image service, so no build loads it |
 | `lightningcss` | `MPL-2.0` | vite or @tailwindcss/node | Vite's and Tailwind's CSS transformer. The CSS it writes isn't its code |
 | `lightningcss-*` | `MPL-2.0` | lightningcss | its prebuilt binaries |
+
+The repository's own development dependency, Playwright (`Apache-2.0`), runs the browser tests. No site installs it, and neither the package nor an example reaches it.
 
 To add a dependency, add it and run `npm test`.
 

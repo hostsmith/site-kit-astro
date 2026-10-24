@@ -93,6 +93,14 @@ jobs:
         if: steps.tag.outputs.released == 'true'
         run: npm test
 
+      - name: Install Chromium for the browser tests
+        if: steps.tag.outputs.released == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Test the release in a browser
+        if: steps.tag.outputs.released == 'true'
+        run: npm run test:browser
+
       - name: Get the release App token
         if: steps.tag.outputs.released == 'true'
         id: app-token

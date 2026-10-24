@@ -4,7 +4,7 @@ import { after, before, describe, it } from "node:test";
 import { readFileSync } from "node:fs";
 import { HOOKS_FILE, parseHooks, readHooks } from "../packages/site-kit-astro/scripts/hooks-reference.mjs";
 import { VISUALLY_HIDDEN } from "../packages/site-kit-astro/src/lib/hooks.ts";
-import { buildFixture, documentedHooks, htmlFiles } from "./helpers.mjs";
+import { buildFixture, documentedHooks, EXAMPLE_NAMES, htmlFiles } from "./helpers.mjs";
 
 async function pages(build) {
   return Promise.all((await htmlFiles(build.dist)).map(async (file) => ({ file, html: await build.read(file) })));
@@ -17,25 +17,29 @@ describe("styling hooks", () => {
   // template) carries no classes, and the stylesheet is empty, so every class
   // in the output is the kit's. A second build with a logo covers the header's
   // logo, which replaces the site name, and a localized build covers the
-  // language switcher.
+  // language switcher. Every example is built too, the `webflow` example with
+  // every part, and the interactive fixture adds an embed that loads at once
+  // (site-kit-webflow-example design D109).
   let unstyled;
   let withLogo;
   let localized;
+  let interactive;
+  let examples;
   before(async () => {
-    [unstyled, withLogo, localized] = await Promise.all([
+    [unstyled, withLogo, localized, interactive, ...examples] = await Promise.all([
       buildFixture("base", { files: { "src/styles/global.css": "" } }),
       buildFixture("base", {
         edit: { "src/content/settings/site.en.yml": (text) => `${text}logo:\n  image: /assets/test/photo.svg\n  alt: Test logo\n` },
       }),
       buildFixture("locales", { files: { "src/styles/global.css": "" } }),
+      buildFixture("interactive", { example: "webflow" }),
+      ...EXAMPLE_NAMES.map((example) => buildFixture(null, { example })),
     ]);
   });
-  after(() => Promise.all([unstyled.cleanup(), withLogo.cleanup(), localized.cleanup()]));
+  after(() => Promise.all([unstyled, withLogo, localized, interactive, ...examples].map((build) => build.cleanup())));
 
   it("builds without any styles", () => {
-    assert.ok(unstyled.ok, unstyled.output);
-    assert.ok(withLogo.ok, withLogo.output);
-    assert.ok(localized.ok, localized.output);
+    for (const build of [unstyled, withLogo, localized, interactive, ...examples]) assert.ok(build.ok, build.output);
   });
 
   it("renders only sk- classes", async () => {
@@ -50,10 +54,11 @@ describe("styling hooks", () => {
     }
   });
 
+  // The examples' own markup carries Tailwind utilities, so only `sk-` classes count.
   it("renders exactly the hooks HOOKS.md lists", async () => {
     const rendered = new Set();
-    for (const build of [unstyled, withLogo, localized]) {
-      for (const { html } of await pages(build)) for (const name of classesOf(html)) rendered.add(name);
+    for (const build of [unstyled, withLogo, localized, interactive, ...examples]) {
+      for (const { html } of await pages(build)) for (const name of classesOf(html)) if (name.startsWith("sk-")) rendered.add(name);
     }
     const documented = await documentedHooks();
     const undocumented = [...rendered].filter((name) => !documented.has(name));

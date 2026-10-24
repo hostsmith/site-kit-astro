@@ -1,0 +1,37 @@
+/*
+ * The structural theme's space: the content width, the section spacing, the
+ * gutter and Webflow's three breakpoints, desktop first:
+ *
+ *   max-lg  below 62rem (992 px), Webflow's tablet, max-width 991px
+ *   max-md  below 48rem (768 px), Webflow's mobile landscape, 767px
+ *   max-sm  below 30rem (480 px), Webflow's mobile portrait, 479px
+ *
+ * The header shows its nav from `lg`, where Webflow's Navbar collapses by
+ * default. `md` is Tailwind's own 768 px, so site markup's md: and lg: mean
+ * what they mean on a Webflow site. The section spacing and the gutter shrink
+ * below `lg` and `md`, as Client-First's padding does. Tailwind's default
+ * containers are reset, so max-w-6xl renders nothing.
+ */
+
+@theme static {
+  --container-*: initial;
+
+  --container-site: 80rem;
+  --spacing-section: 5rem;
+  --spacing-gutter: 2.5rem;
+  --breakpoint-sm: 30rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 62rem;
+}
+
+:root {
+  @variant max-lg {
+    --spacing-section: 4rem;
+    --spacing-gutter: 2rem;
+  }
+
+  @variant max-md {
+    --spacing-section: 3rem;
+    --spacing-gutter: 1.25rem;
+  }
+}

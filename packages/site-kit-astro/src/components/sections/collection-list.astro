@@ -12,6 +12,7 @@ import { getEntryRoutes } from "../../lib/routes.ts";
 import { getSettings, settingsRef } from "../../lib/settings.ts";
 import { localeOfRef } from "../../lib/site-locales.ts";
 import SectionHeader from "../SectionHeader.astro";
+import Title from "../Title.astro";
 
 interface Props {
   section: Extract<Section, { type: "collection-list" }>;
@@ -61,7 +62,7 @@ const featured = section.variant === "featured";
                 )}
                 <h3 id={titleId} class="sk-card__title">
                   <a href={path} {...field(ref, "title")}>
-                    {data.title}
+                    <Title text={data.title} />
                   </a>
                 </h3>
                 {data.date && (

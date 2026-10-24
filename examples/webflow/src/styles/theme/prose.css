@@ -1,0 +1,82 @@
+/*
+ * Rendered Markdown (`sk-prose`): rich-text bodies, FAQ answers, tab and
+ * slide bodies and collection entries, as Webflow's Rich Text element lays
+ * out its content. A video link alone in a paragraph renders as an embed
+ * (sections.css). global.css imports this file into Tailwind's `components`
+ * layer.
+ */
+
+.sk-prose {
+  & > * + * {
+    margin-top: 1rem;
+  }
+
+  & h2,
+  & h3,
+  & h4,
+  & h5,
+  & h6 {
+    margin-top: 2rem;
+  }
+
+  & h2 {
+    font-size: var(--text-h3);
+    line-height: var(--text-h3--line-height);
+    letter-spacing: var(--text-h3--letter-spacing);
+    font-weight: var(--text-h3--font-weight);
+  }
+
+  & h3 {
+    font-size: var(--text-h4);
+    line-height: var(--text-h4--line-height);
+    letter-spacing: var(--text-h4--letter-spacing);
+    font-weight: var(--text-h4--font-weight);
+  }
+
+  & ul,
+  & ol {
+    margin-bottom: 0;
+  }
+
+  & li + li {
+    margin-top: 0.25rem;
+  }
+
+  & blockquote {
+    margin-bottom: 0;
+  }
+
+  & img {
+    display: block;
+  }
+
+  & code {
+    padding: 0.125rem 0.25rem;
+    border-radius: var(--radius-tag);
+    background: var(--color-tint);
+    font-size: 0.875em;
+  }
+
+  & pre {
+    padding: 1rem;
+    overflow-x: auto;
+    background: var(--color-tint);
+
+    & code {
+      padding: 0;
+      background: none;
+    }
+  }
+
+  & table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  & th,
+  & td {
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    text-align: left;
+  }
+}

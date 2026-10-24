@@ -1,0 +1,114 @@
+name: Site name
+logo:
+  image: /assets/images/logo.svg
+  alt: Site name
+# Two items with children, as Webflow's Dropdown: one without a link of its
+# own, whose button carries its label, and one with a link and a button
+# beside it.
+nav:
+  - label: Home
+    link: /
+  - label: Sections
+    children:
+      - label: Heroes
+        link: /heroes
+      - label: Text
+        link: /text
+      - label: Media
+        link: /media
+      - label: Cards
+        link: /cards
+  - label: Interactive
+    link: /interactive
+    children:
+      - label: Embeds
+        link: /interactive/embeds
+      - label: Reveal
+        link: /interactive/reveal
+  - label: News
+    link: /news
+header:
+  actions:
+    - type: phone
+      number: "+1 555 0100"
+      callLabel: Call
+    - type: link
+      label: Header link
+      link: /news
+    - type: button
+      label: Header button
+      link: /contact
+      style: primary
+    - type: locales
+footer:
+  blocks:
+    - type: brand
+      text: The footer's brand block, with its own reversed logo.
+      logo: /assets/images/logo-reversed.svg
+      logoAlt: Site name
+    - type: links
+      title: Sections
+      links:
+        - label: Heroes
+          link: /heroes
+        - label: Text
+          link: /text
+        - label: Media
+          link: /media
+        - label: Cards
+          link: /cards
+    - type: contact
+      title: Contact block
+      address: |-
+        1 Example Street
+        Example City
+      phone: "+1 555 0100"
+      email: hello@example.com
+    - type: hours
+      title: Hours block
+      rows:
+        - days: Monday to Friday
+          time: 9:00 AM - 5:00 PM
+        - days: Saturday and Sunday
+          time: Closed
+    - type: text
+      title: Text block
+      text: A paragraph in a group of its own.
+      withPrevious: false
+    - type: locales
+      withPrevious: true
+  bottom:
+    - type: copyright
+      text: The copyright block
+    - type: links
+      links:
+        - label: Contact
+          link: /contact
+        - label: News
+          link: /news
+seo:
+  description: The kit's webflow example, the starting point for porting a Webflow design onto the site kit.
+ui:
+  skipLink: Skip to content
+  menu: Menu
+  readMore: Read more
+  mainNav: Main
+  footerNav: Footer
+  breadcrumb: Breadcrumb
+  home: Home
+  sliderPrevious: Previous slide
+  sliderNext: Next slide
+  sliderPause: Stop the slides
+  sliderPlay: Play the slides
+  sliderStatus: "Slide {current} of {total}"
+  lightboxClose: Close
+  lightboxPrevious: Previous image
+  lightboxNext: Next image
+  videoPause: Pause the video
+  videoPlay: Play the video
+  embedShowMap: Show map
+  embedPlayVideo: Play video
+  embedShowContent: Show content
+  embedNotice: "Loads content from {host}"
+  embedOpen: "Open on {host}"
+  navSubmenu: "{label} submenu"

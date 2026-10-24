@@ -42,12 +42,16 @@ collections:
             widget: object
             fields:
               - &section_id { name: id, label: Section id, widget: string, pattern: ["^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$", "A lowercase letter, then 3 lowercase letters or digits, with at least one digit"], hint: "A random label that keeps pointing at this section when sections move. For a new section, run npm run section-id -- <page file> for an id this page has never used, such as k3m9. Never change it or copy it from another section." }
+              # Every section type, the site's own too, can ask the theme for an entrance animation.
+              - &section_reveal { name: reveal, label: Entrance animation, widget: select, options: [fade, fade-up, fade-down, slide-left, slide-right, scale], required: false, hint: "The theme animates the section as it scrolls into view, unless the visitor asks for reduced motion." }
               - { name: eyebrow, label: Eyebrow, widget: string, required: false }
               - { name: badge, label: Badge, widget: string, required: false }
               - { name: title, label: Title, widget: string }
               - { name: subtitle, label: Subtitle, widget: string, required: false }
               - { name: image, label: Image, widget: image, required: false }
               - { name: imageAlt, label: Image alt text, widget: string, required: false }
+              - &video_field { name: video, label: Video (MP4; the image is its poster), widget: file, required: false, hint: "A short, muted, looping clip. The hero takes one only with the background variant." }
+              - &video_webm_field { name: videoWebm, label: Video as WebM (optional), widget: file, required: false }
               - name: cta
                 label: Call to action
                 widget: object
@@ -68,6 +72,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - { name: body, label: Body, widget: markdown }
               - { name: variant, label: Variant, widget: select, options: [narrow, wide, title-aside], default: narrow, required: false }
@@ -76,6 +81,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - name: collection
                 label: Collection
@@ -89,6 +95,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - &eyebrow_field { name: eyebrow, label: Eyebrow, widget: string, required: false }
               - { name: title, label: Title, widget: string, required: false }
               - { name: intro, label: Intro, widget: text, required: false }
@@ -119,6 +126,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - name: images
                 label: Images
@@ -129,12 +137,14 @@ collections:
                   - { name: image, label: Image, widget: image }
                   - { name: alt, label: Alt text, widget: string }
                   - { name: caption, label: Caption, widget: string, required: false }
+              - { name: lightbox, label: Open images large, widget: boolean, default: false, required: false }
               - { name: variant, label: Variant, widget: select, options: [grid, masonry], default: grid, required: false }
           - name: testimonials
             label: Testimonials
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - name: items
                 label: Testimonials
@@ -154,6 +164,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - name: items
                 label: Questions
@@ -168,6 +179,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string }
               - { name: text, label: Text, widget: text, required: false }
               - { name: button, label: Button, widget: object, fields: *labeled_link }
@@ -179,6 +191,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - { name: address, label: Address, widget: text, required: false, hint: "Type {address} to use the address from Facts." }
               - name: hours
@@ -198,6 +211,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - name: items
                 label: Items
@@ -212,6 +226,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - name: items
                 label: Figures
@@ -228,6 +243,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false }
               - { name: intro, label: Intro, widget: text, required: false }
@@ -244,11 +260,14 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false }
               - { name: body, label: Body, widget: markdown, required: false }
               - { name: image, label: Image, widget: image }
               - { name: imageAlt, label: Image alt text, widget: string, required: false }
+              - *video_field
+              - *video_webm_field
               - { name: stats, label: Figures, label_singular: Figure, widget: list, required: false, max: 4, fields: *stat_fields }
               - { name: link, label: Link, widget: object, required: false, fields: *labeled_link }
               - { name: variant, label: Variant, widget: select, options: [image-left, image-right], default: image-left, required: false }
@@ -258,6 +277,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - { name: intro, label: Intro, widget: text, required: false }
               - name: items
@@ -275,6 +295,7 @@ collections:
             widget: object
             fields:
               - *section_id
+              - *section_reveal
               - { name: title, label: Title, widget: string, required: false }
               - name: items
                 label: Prices
@@ -285,6 +306,60 @@ collections:
                   - { name: label, label: Label, widget: string }
                   - { name: price, label: Price as shown, widget: string }
               - { name: note, label: Note, widget: text, required: false }
+          - name: tabs
+            label: Tabs
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: intro, label: Intro, widget: text, required: false }
+              - name: items
+                label: Tabs
+                label_singular: Tab
+                widget: list
+                min: 2
+                fields:
+                  - { name: label, label: Tab label, widget: string }
+                  - { name: title, label: Title, widget: string, required: false }
+                  - { name: body, label: Body, widget: markdown, required: false }
+                  - { name: image, label: Image, widget: image, required: false }
+                  - { name: imageAlt, label: Image alt text, widget: string, required: false }
+                  - { name: link, label: Link, widget: object, required: false, fields: *labeled_link }
+              - { name: variant, label: Variant, widget: select, options: [horizontal, vertical], default: horizontal, required: false }
+          - name: slider
+            label: Slider
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title, widget: string, required: false }
+              - { name: intro, label: Intro, widget: text, required: false }
+              - name: slides
+                label: Slides
+                label_singular: Slide
+                widget: list
+                min: 1
+                fields:
+                  - { name: image, label: Image, widget: image, required: false }
+                  - { name: imageAlt, label: Image alt text, widget: string, required: false }
+                  - { name: title, label: Title, widget: string, required: false }
+                  - { name: body, label: Body, widget: markdown, required: false }
+                  - { name: link, label: Link, widget: object, required: false, fields: *labeled_link }
+              - { name: autoplay, label: Seconds between slides (empty for no rotation), widget: number, value_type: float, min: 3, required: false }
+              - { name: variant, label: Variant, widget: select, options: [full, cards], default: full, required: false }
+          - name: embed
+            label: Map, video or other embed
+            widget: object
+            fields:
+              - *section_id
+              - *section_reveal
+              - { name: title, label: Title (also names the frame), widget: string }
+              - { name: url, label: URL (https), widget: string, pattern: ["^https://", "Starts with https://"] }
+              - { name: kind, label: Kind, widget: select, options: [map, video, other], default: other, required: false, hint: "A video is a YouTube or Vimeo link." }
+              - { name: aspect, label: Aspect ratio, widget: select, options: ["16:9", "4:3", "1:1", "21:9"], default: "16:9", required: false }
+              - { name: caption, label: Caption, widget: string, required: false }
+              - { name: load, label: Loads, widget: select, options: [click, direct], default: click, required: false, hint: "click shows a button first, so nothing loads from the provider until the visitor asks. Use direct only when the site's privacy notice names the provider." }
           # site: section types
 
   # npm run decap-config makes this a folder collection, src/content/settings,
@@ -310,9 +385,18 @@ collections:
           - name: nav
             label: Navigation
             widget: list
-            fields: &link_fields
+            fields:
               - { name: label, label: Label, widget: string }
-              - { name: link, label: Link, widget: string }
+              - { name: link, label: Link (optional with sub-items), widget: string, required: false }
+              - name: children
+                label: Sub-items
+                label_singular: Sub-item
+                widget: list
+                required: false
+                hint: "Links under this item, one level deep, shown as a dropdown in the header."
+                fields: &link_fields
+                  - { name: label, label: Label, widget: string }
+                  - { name: link, label: Link, widget: string }
           # The header's actions and the footer's blocks (site-kit-design-system
           # design D35). Business facts, such as a phone number or opening
           # hours, are props of the block that shows them.
@@ -370,6 +454,8 @@ collections:
                     widget: object
                     fields:
                       - { name: text, label: Text, widget: text, required: false }
+                      - { name: logo, label: Own logo (replaces the site's logo here), widget: image, required: false }
+                      - { name: logoAlt, label: Own logo alt text, widget: string, required: false }
                       - &with_previous { name: withPrevious, label: Same group as the block before, widget: boolean, default: false, required: false }
                   - name: contact
                     label: Contact details
@@ -453,6 +539,23 @@ collections:
               - { name: breadcrumb, label: Breadcrumb name, widget: string }
               - { name: home, label: Breadcrumb home link, widget: string }
               - { name: locales, label: Language switcher name (a site with several locales), widget: string, required: false }
+              # The interactive parts' strings: a page that shows a part needs its own.
+              - { name: sliderPrevious, label: Slider - previous button, widget: string, required: false }
+              - { name: sliderNext, label: Slider - next button, widget: string, required: false }
+              - { name: sliderPause, label: Slider - pause button, widget: string, required: false }
+              - { name: sliderPlay, label: Slider - play button, widget: string, required: false }
+              - { name: sliderStatus, label: "Slider - status, with {current} and {total}", widget: string, required: false }
+              - { name: lightboxClose, label: Gallery lightbox - close button, widget: string, required: false }
+              - { name: lightboxPrevious, label: Gallery lightbox - previous button, widget: string, required: false }
+              - { name: lightboxNext, label: Gallery lightbox - next button, widget: string, required: false }
+              - { name: videoPause, label: Video - pause button, widget: string, required: false }
+              - { name: videoPlay, label: Video - play button, widget: string, required: false }
+              - { name: embedShowMap, label: Embed - button that loads a map, widget: string, required: false }
+              - { name: embedPlayVideo, label: Embed - button that loads a video, widget: string, required: false }
+              - { name: embedShowContent, label: Embed - button that loads other content, widget: string, required: false }
+              - { name: embedNotice, label: "Embed - notice, with {host}", widget: string, required: false }
+              - { name: embedOpen, label: "Embed - link to the content on its site, with {host}", widget: string, required: false }
+              - { name: navSubmenu, label: "Navigation - submenu button of a linked item, with {label}", widget: string, required: false }
               # site: ui
 
   # site: collections

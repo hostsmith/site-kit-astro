@@ -9,6 +9,7 @@ import { getSettings, settingsRef } from "../lib/settings.ts";
 import { telHref } from "../lib/tel.ts";
 import Lines from "./Lines.astro";
 import LocaleSwitcher from "./LocaleSwitcher.astro";
+import Title from "./Title.astro";
 
 interface Props {
   block: FooterBlock;
@@ -34,7 +35,9 @@ const year = new Date().getFullYear();
 {
   block.type === "brand" && (
     <div class={rootClass}>
-      {settings.logo ? (
+      {block.logo ? (
+        <img src={block.logo} alt={block.logoAlt} class="sk-footer__logo" {...f("logo")} />
+      ) : settings.logo ? (
         <img src={settings.logo.image} alt={settings.logo.alt} class="sk-footer__logo" {...field(SETTINGS, "logo", "image")} />
       ) : (
         <span class="sk-footer__name" {...field(SETTINGS, "name")}>
@@ -54,7 +57,7 @@ const year = new Date().getFullYear();
     <nav class={rootClass} aria-labelledby={title ? id : undefined} aria-label={title ? undefined : settings.ui.footerNav}>
       {title && (
         <h2 id={id} class="sk-footer__title" {...f("title")}>
-          {title}
+          <Title text={title} />
         </h2>
       )}
       <ul class="sk-footer__links">
@@ -93,7 +96,7 @@ const year = new Date().getFullYear();
     <div class={rootClass}>
       {title && (
         <h2 id={id} class="sk-footer__title" {...f("title")}>
-          {title}
+          <Title text={title} />
         </h2>
       )}
       {block.type === "contact" && (
