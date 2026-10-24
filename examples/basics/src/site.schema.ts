@@ -17,7 +17,7 @@ export const siteSectionSchemas = {};
 
 // The labels the site's own templates show, such as the blog post's "Keep
 // reading". Their text is under `ui` in each locale's settings,
-// src/content/settings/<code>/site.yml, and each has a field under `ui` in
+// src/content/settings/site.<code>.yml, and each has a field under `ui` in
 // config.site.yml. Templates read them with getUi() from
 // "@hostsmith/site-kit-astro/ui".
 export const siteUi = {

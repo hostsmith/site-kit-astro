@@ -43,6 +43,8 @@ To change a library section for this site, copy it from the kit into `src/compon
 
 Don't edit `public/admin/config.yml`. Edit `public/admin/config.site.yml`, then run `npm run decap-config`, which assembles `config.yml` from it and the kit's part. The build fails while `config.yml` is stale.
 
+After a change to `src/site.schema.ts` or to the locales in `src/site.config.ts`, run `npx site-kit schema` and commit `.hostsmith/schema.json`. The build fails while it is stale.
+
 ## Section types
 
 Pick the library type that fits a block before writing a site-local one:
