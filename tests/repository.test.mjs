@@ -36,7 +36,7 @@ const SITE_LAYOUT = [
   "src/styles/theme/tokens/type.css",
   "src/styles/theme/tokens/shape.css",
   "src/styles/theme/tokens/space.css",
-  "src/styles/theme/presets/colors/navy.css",
+  "src/styles/theme/presets/colors",
   "src/styles/theme/fonts.css",
   "src/styles/theme/base.css",
   "src/styles/theme/layout.css",
@@ -219,11 +219,22 @@ describe("kit docs", () => {
   });
 
   it("name every section type HOOKS.md describes in the README", () => {
-    for (const [, block] of hooks.matchAll(/^### ([a-z-]+)$/gm)) {
+    const sections = hooks.slice(hooks.indexOf("\n## Sections\n"), hooks.indexOf("\n## Parts\n"));
+    for (const [, block] of sections.matchAll(/^### ([a-z-]+)$/gm)) {
       assert.ok(libraryTypes.includes(block), `HOOKS.md describes ${block}, which is no library type`);
       assert.ok(readme.includes(`\`${block}\``), `README.md misses ${block}`);
     }
-    for (const type of libraryTypes) assert.match(hooks, new RegExp(`^### ${type}$`, "m"), `HOOKS.md has no table for ${type}`);
+    for (const type of libraryTypes) assert.match(sections, new RegExp(`^### ${type}$`, "m"), `HOOKS.md has no table for ${type}`);
+  });
+
+  // site-kit-webflow-example design D109: the parts a theme lists apart from the types.
+  it("name every part HOOKS.md describes in the README and AGENTS.md", () => {
+    const parts = [...hooks.slice(hooks.indexOf("\n## Parts\n"), hooks.indexOf("\n## Deprecated\n")).matchAll(/^### ([a-z-]+)$/gm)].map((m) => m[1]);
+    assert.deepEqual(parts, ["highlight", "nested-nav", "lightbox", "video", "reveal"]);
+    for (const part of parts) {
+      assert.ok(readme.includes(`\`${part}\``), `README.md misses the part ${part}`);
+      assert.ok(agents.includes(`\`${part}\``), `AGENTS.md misses the part ${part}`);
+    }
   });
 });
 

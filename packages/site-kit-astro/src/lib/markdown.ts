@@ -5,24 +5,32 @@
 // same markdown renders the same HTML in both places. The kit's integration
 // passes `markdownOptions` and `markdownProcessor` to Astro; don't set
 // markdown options anywhere else.
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { satteri } from "@astrojs/markdown-satteri";
 import type { MarkdownRenderer } from "astro/markdown";
 import { factsPlugin } from "./facts.ts";
+import { videoLinksPlugin } from "./video-links.ts";
 
 // Syntax highlighting is off: Shiki writes raw colors into inline styles,
 // which bypasses the design tokens.
 export const markdownOptions = { syntaxHighlight: false as const };
 
 // Fills `{name}` facts in a body's text (design D35). Markdown props arrive
-// filled already, with the rest of the frontmatter.
-export const markdownProcessor = satteri({ mdastPlugins: [factsPlugin as never] });
+// filled already, with the rest of the frontmatter. A video link alone in its
+// paragraph becomes an embed placeholder (lib/video-links.ts).
+export const markdownProcessor = satteri({ mdastPlugins: [factsPlugin as never], hastPlugins: [videoLinksPlugin as never] });
 
 let renderer: Promise<MarkdownRenderer> | undefined;
 
-export async function renderMarkdown(source: string, where: string): Promise<string> {
+// `entry` is the field-attribute entry name of the content that holds the
+// markdown, such as "pages/home.en": its locale picks the strings of a video
+// link's placeholder.
+export async function renderMarkdown(source: string, where: string, entry?: string): Promise<string> {
   renderer ??= markdownProcessor.createRenderer(markdownOptions);
+  const fileURL = entry === undefined ? undefined : pathToFileURL(join(process.cwd(), "src", "content", `${entry}.md`));
   const { code, metadata } = await (await renderer)
-    .render(source)
+    .render(source, { fileURL })
     .catch((error: Error) => Promise.reject(new Error(`${where}: ${error.message}`)));
   assertNoH1(metadata.headings, where);
   return code;

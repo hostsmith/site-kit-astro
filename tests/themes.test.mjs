@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { before, describe, it } from "node:test";
 import { checkStyles, contrastPairs, contrastRatio, cssRules, presetColors } from "../packages/site-kit-astro/scripts/check-styles.mjs";
-import { deprecatedHooks, documentedHooks, EXAMPLES, PACKAGE } from "./helpers.mjs";
+import { deprecatedHooks, documentedHooks, EXAMPLES, hookReference, PACKAGE, themeCoverage } from "./helpers.mjs";
 
 const COLORS = ["bg", "fg", "surface", "tint", "muted", "border", "brand", "accent", "accent-fg", "on-dark", "error"];
 const FONTS = ["heading", "body"];
@@ -88,6 +88,100 @@ function splitTopLevel(text, separator) {
 }
 const lastCompound = (selector) => splitTopLevel(selector, /[\s>+~]/).at(-1) ?? "";
 
+const styledClasses = (styles) => new Set([...styles.matchAll(/\.(sk-[a-z0-9_-]+)/g)].map((m) => m[1]));
+
+// What a theme's styles leave out of the hooks it owes rules (design D109):
+// the classes of `groups` with no rule, the `sk-` classes it styles that the
+// reference doesn't list, and the states of `groups` with no rule on their
+// element.
+function coverageProblems(styles, rules, groups, hooks, deprecated) {
+  const styled = styledClasses(styles);
+  return {
+    unstyled: groups.flatMap((group) => [...group.classes]).filter((hook) => !deprecated.has(hook) && !styled.has(hook)),
+    unknown: [...styled].filter((name) => !hooks.has(name)),
+    states: groups
+      .flatMap((group) => group.states)
+      .filter(({ name, elements }) => !deprecated.has(name) && !stateStyled(rules, name, elements))
+      .map(({ name, elements }) => `${name} on ${elements.join(" or ") || "its element"}`),
+  };
+}
+
+// Whether a rule styles a state on the element it marks: its selector, or one
+// it is nested in, names the state and one of the element's hooks, such as
+// `.sk-tabs__tab[aria-selected="true"]`. A state of no hook, such as
+// `data-sk-ready` on html, only needs a rule that names it.
+function stateStyled(rules, state, elements) {
+  return rules.some(({ selector, ancestors }) => {
+    const text = [...ancestors, selector].join(" ").replaceAll("&", "");
+    return text.includes(`[${state}`) && (elements.length === 0 || elements.some((element) => new RegExp(`\\.${element}(?![\\w-])`).test(text)));
+  });
+}
+
+// The width and height media queries in a theme's files, each with its file
+// and line, which a theme leaves to its breakpoints' variants
+// (site-kit-webflow-example design D102). A query for reduced motion or a
+// color scheme is no layout switch.
+export function widthQueries(files) {
+  const found = [];
+  for (const { file, css } of files) {
+    const text = css.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "));
+    for (const match of text.matchAll(/@media\s+([^{]*)\{/g)) {
+      if (/\b(width|height)\b/.test(match[1])) found.push(`${file}:${text.slice(0, match.index).split("\n").length} @media ${match[1].trim()}`);
+    }
+  }
+  return found;
+}
+
+// site-kit-themes, "A theme styles every hook": coverage per example.
+describe("theme coverage per example", () => {
+  const reference = hookReference();
+  const themeOf = (example) => {
+    const dir = join(EXAMPLES, example, "src", "styles", "theme");
+    return Object.fromEntries(STYLE_FILES.map((file) => [file, readFileSync(join(dir, file), "utf8")]));
+  };
+  const problemsOf = (files, names) => {
+    const styles = Object.values(files).join("\n").replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = Object.entries(files).flatMap(([file, css]) => cssRules(css).map((rule) => ({ ...rule, file })));
+    const groups = [reference.base, ...names.map((name) => reference.groups.get(name))];
+    return coverageProblems(styles, rules, groups, reference.classes, reference.deprecated);
+  };
+
+  it("has the webflow example list every section type and part", () => {
+    const { types, parts } = themeCoverage("webflow");
+    assert.deepEqual([...types, ...parts].sort(), [...reference.groups.keys()].sort());
+  });
+
+  it("passes basics without the types and parts it doesn't list", () => {
+    const { types, parts } = themeCoverage("basics");
+    assert.ok(!types.includes("tabs") && parts.length === 0, "basics lists tabs or a part");
+    assert.deepEqual(problemsOf(themeOf("basics"), [...types, ...parts]), { unstyled: [], unknown: [], states: [] });
+    // A part sits on the layout, but basics owes it no rule: nested-nav's toggle isn't styled.
+    assert.ok(!styledClasses(Object.values(themeOf("basics")).join("\n")).has("sk-nav__toggle"));
+  });
+
+  it("fails when a listed type's rules are removed, naming the hook and the state", () => {
+    const files = themeOf("webflow");
+    // Both rules that name a tab go: the vertical variant's, then the tab's own.
+    files["sections.css"] = files["sections.css"].replace(/\.sk-tabs--vertical \.sk-tabs__tab \{[\s\S]*?\n\}\n/, "").replace(/\.sk-tabs__tab \{[\s\S]*?\n\}\n/, "");
+    assert.ok(!files["sections.css"].includes(".sk-tabs__tab"), "a rule still names the tab");
+    const { unstyled, states } = problemsOf(files, ["tabs"]);
+    assert.ok(unstyled.includes("sk-tabs__tab"), `unstyled: ${unstyled.join(", ")}`);
+    assert.ok(states.includes("aria-selected on sk-tabs__tab"), `states: ${states.join(", ")}`);
+  });
+});
+
+describe("width queries in a theme", () => {
+  it("are found, with the file and the line", () => {
+    const css = ".a { color: red; }\n@media (max-width: 767px) {\n  .b { display: none; }\n}\n@media (prefers-reduced-motion: reduce) { * { transition: none; } }\n@media (width >= 48rem) { .c { gap: 0; } }\n";
+    assert.deepEqual(widthQueries([{ file: "sections.css", css }]), ["sections.css:2 @media (max-width: 767px)", "sections.css:6 @media (width >= 48rem)"]);
+  });
+
+  it("aren't a breakpoint's variant, or a token's value under one", () => {
+    const css = ":root {\n  @variant max-lg {\n    --text-h1: 3.5rem;\n  }\n}\n.a {\n  @variant md {\n    display: grid;\n  }\n}\n";
+    assert.deepEqual(widthQueries([{ file: "tokens/type.css", css }]), []);
+  });
+});
+
 // The compounds a rule's declarations apply to, with `&` resolved through
 // the rules it is nested in.
 function subjects({ selector, ancestors }) {
@@ -119,11 +213,10 @@ for (const example of examples) {
     const rules = files.flatMap((file) => cssRules(readFileSync(join(dir, file), "utf8")).map((rule) => ({ ...rule, file })));
 
     let hooks;
-    let states;
     let deprecated;
+    const reference = hookReference();
     before(async () => {
       hooks = await documentedHooks();
-      states = await documentedHooks({ states: true });
       deprecated = await deprecatedHooks();
     });
 
@@ -202,9 +295,10 @@ for (const example of examples) {
     describe("fonts", () => {
       const fontsDir = join(root, "public", "assets", "fonts");
 
+      // A theme on system fonts, such as webflow's, loads none.
       it("loads every font from the site's /assets/fonts/", () => {
         const urls = [...read("fonts.css").matchAll(/url\(["']?([^)"']+)["']?\)/g)].map((m) => m[1]);
-        assert.ok(urls.length > 0, "fonts.css loads no font");
+        if (urls.length === 0) assert.doesNotMatch(read("fonts.css"), /@font-face/, "an @font-face without a url");
         for (const url of urls) {
           assert.match(url, /^\/assets\/fonts\/[^/]+\.woff2$/, url);
           assert.ok(existsSync(join(root, "public", url)), `${url} doesn't exist`);
@@ -217,7 +311,7 @@ for (const example of examples) {
       });
 
       it("keeps each font's license next to it", () => {
-        const fontFiles = readdirSync(fontsDir);
+        const fontFiles = existsSync(fontsDir) ? readdirSync(fontsDir) : [];
         for (const font of fontFiles.filter((file) => file.endsWith(".woff2"))) {
           const family = font.split("-latin")[0];
           assert.ok(fontFiles.includes(`${family}-OFL.txt`), `${font} has no ${family}-OFL.txt`);
@@ -225,20 +319,47 @@ for (const example of examples) {
       });
     });
 
-    // site-kit-themes, "A theme styles every hook".
-    describe("coverage", () => {
-      const styled = () => new Set([...styles.matchAll(/\.(sk-[a-z0-9_-]+)/g)].map((m) => m[1]));
+    // site-kit-themes, "Shared token roles": breakpoints and per-breakpoint
+    // values (site-kit-webflow-example design D102).
+    describe("breakpoints", () => {
+      const themeFiles = readdirSync(dir, { recursive: true }).filter((file) => file.endsWith(".css"));
 
-      it("styles every hook in HOOKS.md, and no other sk- class", () => {
-        const unstyled = [...hooks].filter((hook) => !deprecated.has(hook) && !styled().has(hook));
-        const unknown = [...styled()].filter((name) => !hooks.has(name));
+      it("switches layouts only with its breakpoints' variants, never a hand-written width query", () => {
+        assert.deepEqual(widthQueries(themeFiles.map((file) => ({ file, css: readFileSync(join(dir, file), "utf8") }))), [], `${example}'s theme has hand-written media queries`);
+      });
+
+      it("shows its header's nav from a breakpoint its space.css sets", () => {
+        const { headerNav } = themeCoverage(example);
+        assert.ok(headerNav, `${example}'s theme README doesn't say where its header shows its nav`);
+        assert.ok(defined.has(`--breakpoint-${headerNav}`), `${example}'s tokens/space.css doesn't set --breakpoint-${headerNav}`);
+      });
+    });
+
+    // site-kit-themes, "A theme styles every hook": the base layout's hooks,
+    // and those of the types and parts the theme's README lists
+    // (site-kit-webflow-example design D109).
+    describe("coverage", () => {
+      const styled = () => styledClasses(styles);
+      const coverage = themeCoverage(example);
+      const groups = () => [reference.base, ...[...coverage.types, ...coverage.parts].map((name) => reference.groups.get(name))];
+
+      it("lists the types and parts it supports, each one the hook reference has", () => {
+        assert.ok(coverage.found, `${example}'s theme README has no "Coverage" table with its section types`);
+        for (const name of [...coverage.types, ...coverage.parts]) {
+          const group = reference.groups.get(name);
+          assert.ok(group, `${example}'s theme README lists ${name}, which HOOKS.md doesn't describe`);
+          assert.equal(group.kind, coverage.types.includes(name) ? "type" : "part", `${example}'s theme README lists ${name} in the wrong row`);
+        }
+      });
+
+      it("styles every hook of the base layout and of each type and part it lists, and no other sk- class", () => {
+        const { unstyled, unknown } = coverageProblems(styles, rules, groups(), hooks, deprecated);
         assert.deepEqual(unknown, [], `${example}'s theme styles classes HOOKS.md doesn't list`);
         assert.deepEqual(unstyled, [], `${example}'s theme leaves hooks unstyled`);
       });
 
-      it("styles every state in HOOKS.md", () => {
-        const unstyled = [...states].filter((state) => !deprecated.has(state) && !styles.includes(`[${state}`));
-        assert.deepEqual(unstyled, [], `${example}'s theme leaves states unstyled`);
+      it("styles every state of those, in a rule on the hook of the element it marks", () => {
+        assert.deepEqual(coverageProblems(styles, rules, groups(), hooks, deprecated).states, [], `${example}'s theme leaves states unstyled`);
       });
 
       it("styles no deprecated hook", () => {

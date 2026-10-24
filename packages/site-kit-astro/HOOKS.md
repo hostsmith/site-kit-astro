@@ -307,6 +307,140 @@ A section type that offers a `tone` puts its modifier on the section's root, nex
 | `sk-pricing-list__price` | `dd` | The price, as the site wrote it |
 | `sk-pricing-list__note` | `p` | The note |
 
+### tabs
+
+| Hook | Element | Marks |
+| --- | --- | --- |
+| `sk-tabs` | `section` | |
+| `sk-tabs--horizontal` | `section` | The tabs in a row above the panels |
+| `sk-tabs--vertical` | `section` | The tabs in a column beside the panels. The up and down arrow keys move between them |
+| `sk-tabs__list` | `div` | The tab list, `role="tablist"`. `hidden` until the section's script runs |
+| `sk-tabs__tab` | `button` | One tab, `role="tab"`, holding its label |
+| `sk-tabs__panels` | `div` | The panels |
+| `sk-tabs__panel` | `div` | One panel. The script hides every panel but the selected one with `hidden` |
+| `sk-tabs__label` | `h3` | The panel's label, which shows without scripts. Hide it under `.sk-tabs[data-ready]`, where its tab shows it |
+| `sk-tabs__title` | `p` | The panel's title |
+| `sk-tabs__body` | `div` | The panel's body, with `sk-prose` |
+| `sk-tabs__link` | `a` | A link after the body |
+| `sk-tabs__media` | `img` | The panel's image, after its text |
+
+| State | Element | Means |
+| --- | --- | --- |
+| `data-ready` | `sk-tabs` | The script has run: the tab list shows, and one panel at a time |
+| `aria-selected` | `sk-tabs__tab` | `true` on the selected tab, `false` on the others |
+
+### slider
+
+| Hook | Element | Marks |
+| --- | --- | --- |
+| `sk-slider` | `section` | |
+| `sk-slider--full` | `section` | One slide at a time |
+| `sk-slider--cards` | `section` | Several slides in a row |
+| `sk-slider__list` | `ul` | The slides. Without scripts it's all there is, so lay it out as a row that scrolls sideways, with scroll snapping. The buttons scroll it too |
+| `sk-slider__slide` | `li` | One slide, a group named like "Slide 2 of 4" |
+| `sk-slider__media` | `img` | A slide's image |
+| `sk-slider__title` | `h3` | A slide's title |
+| `sk-slider__body` | `div` | A slide's body, with `sk-prose` |
+| `sk-slider__link` | `a` | A slide's link |
+| `sk-slider__controls` | `div` | The buttons and the status. `hidden` until the script runs |
+| `sk-slider__pause` | `button` | Pauses and restarts the rotation, only with `autoplay`. Holds a `pause` and a `play` icon: show one by `[data-playing]` on the slider |
+| `sk-slider__previous` | `button` | Shows the previous slide. Holds a `chevron-left` icon |
+| `sk-slider__next` | `button` | Shows the next slide. Holds a `chevron-right` icon |
+| `sk-slider__status` | `p` | The current slide, such as "Slide 2 of 4", announced as it changes |
+
+| State | Element | Means |
+| --- | --- | --- |
+| `data-ready` | `sk-slider` | The script has run: the controls show |
+| `data-playing` | `sk-slider` | The slider rotates by itself |
+
+### embed
+
+| Hook | Element | Marks |
+| --- | --- | --- |
+| `sk-embed` | `section` | An embed section. A video link alone in a Markdown paragraph renders the parts below without it |
+| `sk-embed__media` | `figure` | The embed: its frame and its caption |
+| `sk-embed__frame` | `div` | The box that holds the placeholder, then the frame. Its modifier gives its aspect ratio |
+| `sk-embed__frame--16-9` | `div` | 16 by 9, the default |
+| `sk-embed__frame--4-3` | `div` | 4 by 3 |
+| `sk-embed__frame--1-1` | `div` | Square |
+| `sk-embed__frame--21-9` | `div` | 21 by 9 |
+| `sk-embed__placeholder` | `div` | What shows until the frame loads: the notice, the button and the link |
+| `sk-embed__notice` | `p` | "Loads content from" the provider's host |
+| `sk-embed__button` | `button` | Loads the frame and moves focus to it. `hidden` until the script runs |
+| `sk-embed__link` | `a` | Opens the content on the provider's site |
+| `sk-embed__iframe` | `iframe` | The frame, once the button is pressed, or at once with `load: direct` |
+| `sk-embed__caption` | `figcaption` | The caption, or a video link's text |
+
+| State | Element | Means |
+| --- | --- | --- |
+| `data-ready` | `sk-embed__media` | The script has run: the button shows |
+
+## Parts
+
+Behaviors that sit on the layout or on a section type, each with its own hooks and states. A theme's `README.md` lists the types and parts it supports, and a theme that doesn't list a part leaves its hooks unstyled: `npm run check:styles -- --built` then warns about them on any page that renders the part.
+
+### highlight
+
+| Hook | Element | Marks |
+| --- | --- | --- |
+| `sk-highlight` | `span` | Words a title marks with `==`, such as "Work ==together==". Adds no meaning for assistive technology |
+
+### nested-nav
+
+| Hook | Element | Marks |
+| --- | --- | --- |
+| `sk-nav__item` | `li` | A nav item with children, as in Webflow's Dropdown |
+| `sk-nav__toggle` | `button` | Shows and hides the item's children. It holds the label and a `chevron-down` icon, or, beside the item's own `sk-nav__link`, the icon alone, named by `ui.navSubmenu`, and is then `hidden` until the layout's script runs |
+| `sk-nav__submenu` | `ul` | The children, one level deep. In the menu panel on narrow screens, a nested list |
+| `sk-nav__sublink` | `a` | A child link |
+
+| State | Element | Means |
+| --- | --- | --- |
+| `data-ready` | `sk-nav__item` | The layout's script has run. Collapse the children only while the item is `[data-ready]:not([data-open])`, so they stay usable without scripts |
+| `data-open` | `sk-nav__item` | The children show |
+| `aria-expanded` | `sk-nav__toggle` | `true` while the children show |
+| `data-current` | `sk-nav__toggle` | One of the children links to the current page |
+| `aria-current` | `sk-nav__sublink` | `page` on the link to the current page |
+
+### lightbox
+
+| Hook | Element | Marks |
+| --- | --- | --- |
+| `sk-gallery__link` | `a` | With `lightbox`, the link around each gallery image, to its file |
+| `sk-lightbox` | `dialog` | The gallery's dialog, opened as a modal |
+| `sk-lightbox__figure` | `figure` | The image and its caption |
+| `sk-lightbox__image` | `img` | The image, large |
+| `sk-lightbox__caption` | `figcaption` | Its caption, `hidden` when it has none |
+| `sk-lightbox__previous` | `button` | The previous image, with a `chevron-left` icon |
+| `sk-lightbox__next` | `button` | The next image, with a `chevron-right` icon |
+| `sk-lightbox__close` | `button` | Closes the dialog, with an `x` icon |
+
+| State | Element | Means |
+| --- | --- | --- |
+| `data-ready` | `sk-gallery` | The script has run: an image opens the dialog |
+| `data-open` | `sk-lightbox` | The dialog is open. It leaves a moment after the dialog closes, so a rule that sets `display` selects `.sk-lightbox[data-open][open]` |
+
+### video
+
+| Hook | Element | Marks |
+| --- | --- | --- |
+| `sk-video` | `div` | A `hero`'s background video, or a `split`'s, in the image's place |
+| `sk-video__media` | `video` | The video, muted and looping, with the image as its poster |
+| `sk-video__button` | `button` | Pauses and plays it. `hidden` until the script runs. Holds a `pause` and a `play` icon: show one by `[data-playing]` |
+
+| State | Element | Means |
+| --- | --- | --- |
+| `data-ready` | `sk-video` | The script has run: the button shows |
+| `data-playing` | `sk-video` | The video plays |
+
+### reveal
+
+| State | Element | Means |
+| --- | --- | --- |
+| `data-reveal` | a section's root, or any element of the site's own markup | Its entrance animation: `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`. Hide it only under `[data-sk-ready]`, and only inside `prefers-reduced-motion: no-preference` |
+| `data-revealed` | the same element | It has entered the viewport: animate it to its place |
+| `data-sk-ready` | `html` | The reveal script has run, before the page renders. Without scripts it's missing, so nothing is hidden |
+
 ## Deprecated
 
 Hooks that still render, and the hooks to use instead. A later major release removes them. Style the replacement, never both: once the old class is gone, a selector that names it matches nothing.

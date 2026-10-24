@@ -3,6 +3,7 @@
 // such as "All services". Each part renders when it is set, and the group
 // only when one is.
 import type { FieldAttrs, PathPart } from "../core/field.ts";
+import Title from "./Title.astro";
 
 interface Props {
   // The section's field-attribute helper, sectionFields(...).field.
@@ -28,7 +29,7 @@ const { field, eyebrow, title, intro, link, introProp = "intro" } = Astro.props;
       )}
       {title && (
         <h2 class="sk-section__title" {...field("title")}>
-          {title}
+          <Title text={title} />
         </h2>
       )}
       {intro && (

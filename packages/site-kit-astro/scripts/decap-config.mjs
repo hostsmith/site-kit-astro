@@ -15,18 +15,20 @@
 // - `collection options`: the names of the site's folder collections, as the
 //   options of the collection list section;
 // - `section types`: the site's `section_types`, each with the kit's id field
-//   added as its first field;
+//   added as its first field, and its reveal field after it;
 // - `ui`: the fields of the site's own interface strings, from its optional
 //   `ui` key, added to the settings' `ui` object. A plural string's fields
 //   are the kit's `*plural_forms` (site-kit-locales design D46);
 // - `collections`: the site's `collections`.
 //
 // Then Decap's i18n settings are added, for the locales in src/site.config.ts,
-// one or more (site-kit-locales design D55).
+// one or more (site-kit-locales design D55), and the site's own icons, from
+// src/icons/, to the kit's icon select (site-kit-webflow-example design D107).
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isMap, isSeq, parse, parseDocument } from "yaml";
+import { isMap, isSeq, parse, parseDocument, visit } from "yaml";
+import { siteIconNames } from "./site-icons.mjs";
 import { localeCodes } from "./site-config.mjs";
 
 // The kit's part, as messages name it, and its file in the package.
@@ -131,7 +133,8 @@ function listItems(name, { value, lines, number }, fail) {
   return items;
 }
 
-// A section type's lines, with the kit's id field added first.
+// A section type's lines, with the kit's id field added first and its reveal
+// field after it (site-kit-webflow-example design D104).
 function withIdField(item) {
   const fields = item.lines.findIndex((l) => /^ {4}fields:\s*$/.test(l.text));
   if (fields === -1) {
@@ -140,7 +143,7 @@ function withIdField(item) {
   const id = item.lines.find((l) => /^ {6}- (\{ *)?name: id\b/.test(l.text));
   if (id) throw new Error(`${SITE_PART} line ${id.number}: section type "${item.name}" has an id field. Remove it: every section type gets the kit's id field.`);
   const lines = item.lines.map((l) => l.text);
-  lines.splice(fields + 1, 0, "      - *section_id");
+  lines.splice(fields + 1, 0, "      - *section_id", "      - *section_reveal");
   return lines;
 }
 
@@ -242,6 +245,20 @@ function settingsFolder(doc, collection) {
   return folder;
 }
 
+// The kit's icon select, anchored `icon_field`, offers the site's icons after
+// the kit's own.
+function addSiteIcons(doc, icons) {
+  if (icons.length === 0) return;
+  visit(doc, {
+    Map(_, node) {
+      if (node.anchor !== "icon_field") return;
+      const options = node.get("options", true);
+      for (const name of icons) options.items.push(doc.createNode(name));
+      return visit.BREAK;
+    },
+  });
+}
+
 // Every site's config, with one locale or several (site-kit-locales design
 // D55): Decap's i18n settings, in the `multiple_files` structure, which
 // names each file's locale before its extension (D48); the pages, the
@@ -251,8 +268,9 @@ function settingsFolder(doc, collection) {
 // Only Decap's i18n options are used, which Sveltia reads too. The yaml
 // library's document keeps the assembled text's comments, anchors and flow
 // style.
-function localize(text, locales) {
+function localize(text, locales, icons) {
   const doc = parseDocument(text);
+  addSiteIcons(doc, icons);
   const seen = new Set();
   const collections = doc.get("collections", true);
   collections.items = collections.items.map((collection) => {
@@ -292,8 +310,9 @@ function localize(text, locales) {
   return doc.toString({ lineWidth: 0 });
 }
 
-// `locales` is the site's locale codes, the default first.
-export function assemble(kitText, siteText, locales) {
+// `locales` is the site's locale codes, the default first, and `icons` the
+// names of the site's own icons.
+export function assemble(kitText, siteText, locales, icons = []) {
   if (!locales?.length) {
     throw new Error(`No locales for ${ASSEMBLED}: every site lists its locales in src/site.config.ts, such as locales: [{ code: "en", tag: "en-US" }].`);
   }
@@ -331,12 +350,13 @@ export function assemble(kitText, siteText, locales) {
     lines.splice(index, 1, ...parts[marker](pad));
   }
   while (lines.at(-1) === "") lines.pop();
-  return localize(`${HEADER}${lines.join("\n")}\n`, locales);
+  return localize(`${HEADER}${lines.join("\n")}\n`, locales, icons);
 }
 
-// The kit part ships in the package. The site part is read from the site's root.
+// The kit part ships in the package. The site part and the site's icons are
+// read from the site's root.
 export function assembleFiles(root, locales, kitPartFile = KIT_PART_FILE) {
-  return assemble(readFileSync(kitPartFile, "utf8"), readFileSync(join(root, SITE_PART), "utf8"), locales);
+  return assemble(readFileSync(kitPartFile, "utf8"), readFileSync(join(root, SITE_PART), "utf8"), locales, siteIconNames(root));
 }
 
 // Why config.yml is stale, or undefined when it matches a fresh assembly.

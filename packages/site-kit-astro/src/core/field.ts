@@ -18,6 +18,8 @@ export interface FieldAttrs {
 
 export interface SectionAttrs {
   "data-section": string;
+  // The section's entrance animation, when its entry sets `reveal`.
+  "data-reveal"?: string;
 }
 
 // Joins prop names with "." and writes list indexes as "[n]".
@@ -44,10 +46,10 @@ export function fieldsFor(collection: string, entryId: string) {
   return (...path: PathPart[]): FieldAttrs => field(`${collection}/${entryId}`, ...path);
 }
 
-export function sectionFields(entry: string, section: { id: string; type: string }) {
+export function sectionFields(entry: string, section: { id: string; type: string; reveal?: string }) {
   const prefix = `sections[${section.id}]`;
   return {
-    root: { "data-section": section.type } as SectionAttrs,
+    root: (section.reveal ? { "data-section": section.type, "data-reveal": section.reveal } : { "data-section": section.type }) as SectionAttrs,
     field: (...path: PathPart[]): FieldAttrs => {
       const rest = formatPath(path);
       return { "data-field": `${entry}#${prefix}${rest.startsWith("[") ? rest : `.${rest}`}` };

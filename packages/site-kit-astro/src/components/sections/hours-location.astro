@@ -9,6 +9,7 @@ import { sectionClass } from "../../lib/hooks.ts";
 import { telHref } from "../../lib/tel.ts";
 import Icon from "../Icon.astro";
 import Lines from "../Lines.astro";
+import Title from "../Title.astro";
 
 interface Props {
   section: Extract<Section, { type: "hours-location" }>;
@@ -27,7 +28,7 @@ const f = sectionFields(entry, section);
       title && (
         <div class="sk-section__header">
           <h2 class="sk-section__title" {...f.field("title")}>
-            {title}
+            <Title text={title} />
           </h2>
         </div>
       )

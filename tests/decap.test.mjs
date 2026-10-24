@@ -8,7 +8,7 @@ import { describe, it } from "node:test";
 import { parseFrontmatter } from "astro/markdown";
 import { ASSEMBLED, assemble, SITE_PART, staleness } from "../packages/site-kit-astro/scripts/decap-config.mjs";
 import { localeCodes } from "../packages/site-kit-astro/scripts/site-config.mjs";
-import { defineKitContent } from "../packages/site-kit-astro/src/kit-content.ts";
+import { defineKitContent, PART_UI_PARAMS } from "../packages/site-kit-astro/src/kit-content.ts";
 import { CONTENT_ICONS } from "../packages/site-kit-astro/src/lib/icons.ts";
 import { siteConfig } from "../examples/basics/src/site.config.ts";
 import * as siteSchema from "../examples/basics/src/site.schema.ts";
@@ -89,6 +89,17 @@ describe("public/admin/config.yml", () => {
     for (const select of selects) {
       assert.equal(select.widget, "select");
       assert.deepEqual(select.options, [...CONTENT_ICONS]);
+    }
+  });
+
+  // site-kit-interactive-parts, "Interface strings of interactive parts".
+  it("offers every interactive part's interface string, none of them required", () => {
+    const settings = config.collections.find((c) => c.name === "settings");
+    const ui = settings.fields.find((f) => f.name === "ui").fields;
+    for (const key of Object.keys(PART_UI_PARAMS)) {
+      const field = ui.find((f) => f.name === key);
+      assert.ok(field, `no field for ${key}`);
+      assert.equal(field.required, false, `${key} is required`);
     }
   });
 
@@ -182,13 +193,14 @@ describe("npm run decap-config", () => {
     }
   });
 
-  it("adds the kit's id field to a site-local type", () => {
+  it("adds the kit's id field and reveal field to a site-local type", () => {
     const assembled = parse(assemble(kitPart, sitePart.replace("section_types: []", menuBoard), EN));
     const types = assembled.collections.find((c) => c.name === "pages").fields.find((f) => f.name === "sections").types;
     const type = types.find((t) => t.name === "menu-board");
     assert.ok(type, "menu-board is missing");
     assert.deepEqual(type.fields[0], types[0].fields[0], "the first field is the kit's id field");
-    assert.deepEqual(type.fields.map((f) => f.name), ["id", "title"]);
+    assert.deepEqual(type.fields[1], types[0].fields[1], "the second field is the kit's reveal field");
+    assert.deepEqual(type.fields.map((f) => f.name), ["id", "reveal", "title"]);
   });
 
   it("offers every folder collection, and nothing else, in the collection list", () => {

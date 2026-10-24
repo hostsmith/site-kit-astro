@@ -19,11 +19,12 @@ Each example is a complete site, and each release deploys it from this repositor
 
 | Example | What it shows | Live site |
 | --- | --- | --- |
-| [`basics`](./examples/basics) | Kestrel, a home repair and renovation business: every section type, a blog with categories and a custom page | [kit-astro-basics.us.hostsmith.link](https://kit-astro-basics.us.hostsmith.link) |
+| [`basics`](./examples/basics) | Kestrel, a home repair and renovation business: the section types its theme lists, a blog with categories and a custom page. The start for a site built from scratch | [kit-astro-basics.us.hostsmith.link](https://kit-astro-basics.us.hostsmith.link) |
+| [`webflow`](./examples/webflow) | Every section type, variant and tone, and every [interactive part](#interactive-parts), in a structural theme with Webflow's breakpoints and element defaults. The start for porting a Webflow design. The kit isn't affiliated with Webflow | [kit-astro-webflow.us.hostsmith.link](https://kit-astro-webflow.us.hostsmith.link) |
 
 ## Start a site
 
-1. Create the site from an example of a kit release. `basics` names the example, and `v0.7.0` the release: use the latest one from the [releases](https://github.com/hostsmith/site-kit-astro/releases). `--no-ai` keeps the example's `AGENTS.md`, which points agents to the kit's rules. Without it, create-astro replaces the file with its own.
+1. Create the site from an example of a kit release. `basics` names the example, and `v0.7.0` the release: use the latest one from the [releases](https://github.com/hostsmith/site-kit-astro/releases). For a port of a Webflow design, name `webflow` instead. `--no-ai` keeps the example's `AGENTS.md`, which points agents to the kit's rules. Without it, create-astro replaces the file with its own.
 
    ```bash
    npm create astro@latest my-site -- --template hostsmith/site-kit-astro/examples/basics#v0.7.0 --no-ai
@@ -46,6 +47,7 @@ Each example is a complete site, and each release deploys it from this repositor
 | `src/components/collections/` | one detail template per collection |
 | `src/components/pages/` | page templates: a `template: custom` page's markup, in every locale |
 | `src/pages/` | hand-written pages, such as `template: custom` pages |
+| `src/icons/` | the site's own icons, if it has any (see [Section types](#section-types)) |
 | `src/styles/theme/` | the site's look, taken from its example: tokens, fonts and the styles of the kit's parts (see [Themes](#themes)) |
 | `src/styles/site.css` | the site's own CSS, outside the theme |
 | `src/styles/global.css` | the site's stylesheet: imports Tailwind, the theme and `site.css` |
@@ -73,11 +75,11 @@ The library's section types. Variants change the markup's order or grouping; ton
 
 | Type | For | Props | Variants | Tones |
 | --- | --- | --- | --- | --- |
-| `hero` | the page's opening, or a page header | eyebrow, badge, title, subtitle, image, two buttons, note | `centered`, `image-left`, `image-right`, `background`, `page` | |
+| `hero` | the page's opening, or a page header | eyebrow, badge, title, subtitle, image, video (with `background`), two buttons, note | `centered`, `image-left`, `image-right`, `background`, `page` | |
 | `rich-text` | formatted text | title, markdown body | `narrow`, `wide`, `title-aside` | |
 | `collection-list` | entries of a collection, such as blog posts | title, collection, limit, link | `cards`, `list`, `featured` | |
 | `services-grid` | services or values as cards | eyebrow, title, intro, link, items with icon, image and link | `cards`, `list` | `plain`, `surface` |
-| `gallery` | photos with captions | title, images | `grid`, `masonry` | |
+| `gallery` | photos with captions | title, images, lightbox | `grid`, `masonry` | |
 | `testimonials` | customer quotes | title, items with photo, name and role | `grid`, `single` | `surface`, `dark` |
 | `faq` | questions and answers | title, items | | |
 | `cta` | a call to action | title, text, two buttons | `banner`, `card` | `accent`, `dark`, `surface` |
@@ -85,15 +87,33 @@ The library's section types. Variants change the markup's order or grouping; ton
 | `trust-bar` | short trust signals, such as "Licensed & insured" | title, items | `line`, `chips` | |
 | `stats` | two to four figures | title, items (value, label) | | `plain`, `dark` |
 | `steps` | a process or what's included, numbered | eyebrow, title, intro, items | | |
-| `split` | an image beside text | eyebrow, title, markdown body, image, figures, link | `image-left`, `image-right` | `plain`, `surface` |
+| `split` | an image beside text | eyebrow, title, markdown body, image, video, figures, link | `image-left`, `image-right` | `plain`, `surface` |
 | `team` | the people, with placeholders until the photos exist | title, intro, items (name, role, photo) | | |
 | `pricing-list` | prices as the site writes them | title, items (label, price), note | | |
+| `tabs` | panels behind a row of tabs, such as floors or plans | title, intro, items (label, title, markdown body, image, link), at least two | `horizontal`, `vertical` | |
+| `slider` | slides or cards one after another | title, intro, slides (image, title, markdown body, link), autoplay | `full`, `cards` | |
+| `embed` | a map, a YouTube or Vimeo video, or other content in a frame | title, url, kind (`map`, `video`, `other`), aspect (`16:9`, `4:3`, `1:1`, `21:9`), caption, load (`click`, `direct`) | | |
 
-An `icon` prop takes one of the kit's icons: `calendar`, `check`, `clock`, `file-text`, `hammer`, `house`, `mail`, `map-pin`, `paint-roller`, `phone`, `ruler`, `shield-check`, `sparkles`, `star`, `users`, `wrench`. They are [Lucide](https://lucide.dev) icons, drawn in the current text color.
+Every section may also set `reveal`, an entrance animation (see [Interactive parts](#interactive-parts)). Any prop named `title` may mark words for the theme to highlight with `==` on both sides, such as `Work ==together== by the river`: they render in a `span` with the class `sk-highlight`, which adds no meaning, and the marks go wherever the title isn't shown as such, such as in the page's `<title>`, `og:title` and breadcrumb. Marks pair from the left and don't nest, and a lone `==` shows as written. Site code renders such a title with `@hostsmith/site-kit-astro/components/Title.astro`, or with `titleHtml` from `@hostsmith/site-kit-astro/title`.
+
+An `icon` prop takes one of the kit's icons: `calendar`, `check`, `clock`, `file-text`, `hammer`, `house`, `mail`, `map-pin`, `paint-roller`, `phone`, `ruler`, `shield-check`, `sparkles`, `star`, `users`, `wrench`. They are [Lucide](https://lucide.dev) icons, drawn in the current text color. It also takes one of the site's own icons, an SVG file in `src/icons/` named after it, such as `src/icons/phone-booth.svg` for `icon: phone-booth`, which the CMS offers after the kit's once `npm run decap-config` has run. A site icon renders inline as the kit's do, so the build fails, naming the file and the reason, on one that has a kit icon's name or a name other than lowercase letters, digits and hyphens, that has no `viewBox`, that sets a color other than `currentColor` or `none`, or that holds a `script`, `foreignObject` or `style` element, a `style` or event handler attribute, or a link to anything but an element in the same file. Without a `fill` of its own, it fills in the current text color.
 
 ## Header and footer
 
 The layout owns the frame of every page: the skip link, the brand link, the main nav (`nav`), the menu and the breadcrumb. The rest of the header and the footer are blocks that the site lists in its settings, like a page's sections. The kit defines no business facts: a phone number, an address or opening hours are props of the block that shows them, usually written as a [fact](#facts).
+
+A `nav` item is a `label` with a `link`, `children`, or both. `children` are label and link pairs, one level deep, as in Webflow's Dropdown: the item gets a button that shows and hides them, which holds the item's label, or, when the item has a link of its own, sits beside it, named by `ui.navSubmenu`. It closes on Escape, a click outside or focus leaving it. The current page's link carries `aria-current="page"`, and its parent's button `data-current`. In the menu on narrow screens, the children are a nested list.
+
+```yaml
+nav:
+  - label: Spaces
+    link: /spaces
+    children:
+      - label: Desks
+        link: /spaces/desks
+      - label: Rooms
+        link: /spaces/rooms
+```
 
 `header.actions` come after the nav, in the menu:
 
@@ -108,7 +128,7 @@ The layout owns the frame of every page: the skip link, the brand link, the main
 
 | Type | Props | Shows |
 | --- | --- | --- |
-| `brand` | text | the logo or the site name, and a line of text |
+| `brand` | text, logo, logoAlt | the logo or the site name, and a line of text. Its own `logo`, such as a reversed one for a dark footer, replaces the settings' logo there |
 | `contact` | title, address, phone, email | the contact details, with `tel:` and `mailto:` links |
 | `links` | title, links | a nav of links, named by its title, or by `ui.footerNav` without one. At most one `links` block goes without a title |
 | `hours` | title, rows (days, time) | rows such as opening hours |
@@ -161,7 +181,7 @@ A name starts with a lowercase letter, then letters or digits. An unknown name f
 
 ## Interface strings
 
-The settings' `ui` holds the text that isn't content: the kit's skip link, menu button, nav names, breadcrumb, "Read more" link and language switcher name, and the labels of the site's own templates, such as a blog post's "Keep reading". No visible text is written into a template, so the owner can change it in the CMS, and a site with several [locales](#locales) translates it with the rest of the settings.
+The settings' `ui` holds the text that isn't content: the kit's skip link, menu button, nav names, breadcrumb, "Read more" link and language switcher name, the controls of its [interactive parts](#interactive-parts), and the labels of the site's own templates, such as a blog post's "Keep reading". No visible text is written into a template, so the owner can change it in the CMS, and a site with several [locales](#locales) translates it with the rest of the settings.
 
 A site declares its own keys as `siteUi` in `src/site.schema.ts`, each with the parameters its template fills in, and the parameter that picks its plural form, if any:
 
@@ -208,6 +228,54 @@ const ui = await getUi(Astro.props.locale);
 ```
 
 `text` formats a number parameter for the locale. An unknown key fails the build, naming the keys that exist.
+
+## Interactive parts
+
+The kit's interactive parts replace the built-in elements of site builders such as Webflow, which run on the builder's own script that a kit site never loads:
+
+| Part | Replaces Webflow's | Where |
+| --- | --- | --- |
+| `tabs` | Tabs | a section type |
+| `slider` | Slider | a section type, which rotates only with `autoplay`, a number of seconds, at least 3 |
+| `lightbox` | Lightbox | `lightbox: true` on a `gallery` |
+| `video` | Background video | `video`, an MP4 under `/assets/`, and an optional `videoWebm` on a `hero` with the variant `background` or on a `split`. The section's `image` is the poster |
+| `embed` | Map, Embed, Video and YouTube | a section type, and a video link alone in a Markdown paragraph |
+| `nested-nav` | Dropdown in a Navbar | `children` on a `nav` item |
+| `reveal` | simple scroll interactions | `reveal` on any section entry, or `data-reveal` on an element of the site's own markup |
+| `highlight` | a span that colors a heading's words | `==` marks in a title |
+
+Each part follows the WAI-ARIA Authoring Practices pattern of its kind, and works by keyboard: the tabs with the arrow keys, Home and End; the slider with previous and next buttons, a status line and, when it rotates, a pause button; the lightbox as a modal dialog that Escape closes, returning focus to the image; a submenu as a disclosure button. Without scripts, every part's content is there: every tab panel under its label, the slides as a list that scrolls sideways, the images as links to their files, the video's poster, the embed's placeholder with its link, the children under their parent, and every revealed section. A part's script runs only on the pages that render the part, and marks it `data-ready`, under which a theme hides or collapses what the script controls.
+
+Nothing moves unless the content asks: a slider rotates only with `autoplay`, and pauses while hovered or focused. A video plays only when the visitor hasn't asked for reduced motion, and its HTML has no `autoplay`. Under reduced motion, both can still be played with their buttons. `reveal` takes `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`. The kit sets `data-sk-ready` on `<html>` before the page renders, and `data-revealed` on an element as it scrolls into view, and the theme animates on those, without reduced motion only.
+
+An embed shows a placeholder until the visitor presses its button, so the page sends nothing to the provider before that: no thumbnail, and no early connection. The placeholder names the host the frame loads from and links to the content on the provider's site. YouTube loads from `youtube-nocookie.com`, and Vimeo with `dnt=1`. The `url` must use `https`, and a `video` embed must be a YouTube or Vimeo video. `load: direct` loads the frame at once: use it only when the site's privacy notice names the provider. In a Markdown body, a paragraph that holds only a link to a YouTube or Vimeo video renders as the same placeholder, with the link's text as the frame's title. These two are the only external URLs the content holds.
+
+```yaml
+- id: m4p1
+  type: embed
+  title: How to find us
+  url: https://www.openstreetmap.org/export/embed.html?bbox=-0.13%2C51.50%2C-0.12%2C51.51&layer=mapnik
+  kind: map
+  aspect: "4:3"
+```
+
+Each part's fixed text comes from kit keys in the settings' `ui`. They are optional, so a site that uses no part needs none of them. A page that renders a part fails the build when its locale's settings lack one of the part's keys, naming the key and the file:
+
+| Part | Keys |
+| --- | --- |
+| `slider` | `sliderPrevious`, `sliderNext`, `sliderStatus` with `{current}` and `{total}`, and, with `autoplay`, `sliderPause` and `sliderPlay` |
+| `lightbox` | `lightboxClose`, `lightboxPrevious`, `lightboxNext` |
+| `video` | `videoPause`, `videoPlay` |
+| `embed` | `embedShowMap`, `embedPlayVideo` or `embedShowContent` for its kind, `embedNotice` and `embedOpen`, both with `{host}` |
+| `nested-nav` | `navSubmenu` with `{label}`, for an item with a link and children |
+
+```yaml
+ui:
+  sliderStatus: "Slide {current} of {total}"
+  embedNotice: "Loads content from {host}"
+```
+
+A theme's `README.md` lists the section types and the parts it styles (see [Themes](#themes)). `tabs`, `slider` and `embed` are section types. The others are parts, whose hooks `HOOKS.md` lists under "Parts". The `webflow` example's theme styles all of them, and `basics`' none.
 
 ## Locales
 
@@ -365,12 +433,12 @@ Every example carries its look as a theme, in one folder. A site takes the theme
 src/styles/
   global.css             imports Tailwind, the theme and site.css, in their layers
   theme/
-    README.md            the design's roles, color schemes and contrast pairs
+    README.md            the design's roles, color schemes, contrast pairs and coverage
     tokens/
       colors.css         the active color scheme: one @import of a preset
       type.css           fonts and the text scale
       shape.css          radii and shadows
-      space.css          content width, section spacing, gutter, breakpoint
+      space.css          content width, section spacing, gutter, breakpoints
     presets/
       colors/
         navy.css         a color scheme
@@ -398,11 +466,11 @@ What goes where:
   }
   ```
 
-  No `@apply`, and no hand-written media queries: layouts switch with `@variant md` and `@variant max-md`.
+  No `@apply`, and no hand-written media queries: layouts switch with `@variant` on the theme's breakpoints, such as `@variant md` or `@variant max-lg`. A token that changes per breakpoint, as a Webflow site's variables do, changes in a `:root` rule under the variant in its token file, and the utilities that read it follow.
 - **The site's own markup**, its custom pages, collection templates and site sections, uses Tailwind utilities built from the tokens, such as `bg-surface`, `text-h2` or `md:grid-cols-2`. The token files reset Tailwind's default colors, fonts, text sizes, radii, shadows and containers, so only the theme's roles exist: `bg-red-500`, `text-4xl` or `max-w-6xl` render nothing. The spacing scale stays.
 - **Raw values:** colors appear only in `tokens/colors.css` and the color presets, and font names only in `tokens/type.css` and `fonts.css`. Any other color, such as a shadow's, is mixed from a color role, so it follows the scheme. A value the site's markup shouldn't use goes in plain `:root`, not in `@theme`, so it makes no utility.
-- **A theme styles every hook** in `HOOKS.md`, the variants and tones its own example doesn't use included, so any site content looks right with any theme.
-- **A theme meets the accessibility duties** only CSS can: contrast of at least 4.5:1 (3:1 for large text) in every color scheme, a visible focus style, a skip link that shows on focus, buttons and header controls of at least 44 by 44 pixels, a menu hidden only while it is `[data-ready]:not([data-open])`, a `display` rule on the menu button only with `:not([hidden])`, and no motion under `prefers-reduced-motion: reduce`.
+- **A theme styles every hook it covers.** Its `README.md` lists, in a "Coverage" table, the section types and the [parts](#interactive-parts) it supports, and the breakpoint where its header shows its nav. It styles every hook of the base layout and of each of those in `HOOKS.md`, the variants and tones its own example doesn't use included, and each state in a rule on its element's hook. `basics` covers the section types it shows, and `webflow` every type and part. A site that uses a type or part its theme doesn't cover gets a warning from `npm run check:styles -- --built` for each hook to style.
+- **A theme meets the accessibility duties** only CSS can: contrast of at least 4.5:1 (3:1 for large text) in every color scheme, highlighted words included, a visible focus style, a skip link that shows on focus, buttons, header controls and the parts' controls of at least 44 by 44 pixels, a menu hidden only while it is `[data-ready]:not([data-open])`, a part's content hidden or collapsed only under its `data-ready`, a reveal element hidden only under `[data-sk-ready]`, a `display` rule on an element the kit hides with `hidden` only with `:not([hidden])`, and no motion under `prefers-reduced-motion: reduce`.
 
 ### Color schemes
 
@@ -427,7 +495,7 @@ The kit owns no list of token roles: a site's design may rename, add or drop the
 | `--radius-tag`, `--radius-input`, `--radius-card`, `--radius-panel`, `--radius-button` | radii by element |
 | `--shadow-raised`, `--shadow-overlay` | shadows |
 | `--container-site`, `--spacing-section`, `--spacing-gutter` | the content width, section spacing and side gutter |
-| `--breakpoint-md` | the width where the header's nav appears, and where `md:` switches |
+| `--breakpoint-md` | where `md:` switches. A theme may add `--breakpoint-sm` and `--breakpoint-lg`, and its `README.md` names the one where the header shows its nav: `md` (820 px) in `basics`, and `lg` (992 px) in `webflow`, whose `sm`, `md` and `lg` are Webflow's 480, 768 and 992 px |
 
 ### Swapping a theme
 
@@ -443,7 +511,7 @@ The kit's public API is what a minor release keeps working:
 
 - the integration and its options, `siteKit({ url, collections, locales })` in `astro.config.mjs`;
 - the exports of `src/site.schema.ts`, `siteSectionSchemas`, `siteCollections`, each collection as its schema alone, and the optional `siteUi`;
-- the paths the kit reads from the site: `src/site.config.ts`, `src/site.schema.ts`, `src/components/sections/site/*.astro`, `src/components/collections/<collection>.astro`, `src/components/pages/<page>.astro`, `src/pages/**/*.astro`, `src/styles/global.css`, and the content in `src/content/`, one file per page, entry or settings and locale, such as `pages/about.en.md`;
+- the paths the kit reads from the site: `src/site.config.ts`, `src/site.schema.ts`, `src/components/sections/site/*.astro`, `src/components/collections/<collection>.astro`, `src/components/pages/<page>.astro`, `src/pages/**/*.astro`, `src/icons/*.svg`, which a site without icons of its own doesn't have, `src/styles/global.css`, and the content in `src/content/`, one file per page, entry or settings and locale, such as `pages/about.en.md`;
 - the styling hooks and state attributes in [`HOOKS.md`](./packages/site-kit-astro/HOOKS.md);
 - the format of the [schema export](#schema-export), `.hostsmith/schema.json`;
 - the package's exports:
@@ -462,7 +530,9 @@ The kit's public API is what a minor release keeps working:
 | `@hostsmith/site-kit-astro/locales` | `locales`, `localized`, `localeOfPath(path)` and `localizedPath(path, locale)`, for the site's [locales](#locales) |
 | `@hostsmith/site-kit-astro/routes` | `getEntryRoutes(collection, locale)` |
 | `@hostsmith/site-kit-astro/custom-page` | `customPage(entry)`, for `template: custom` pages and page templates |
+| `@hostsmith/site-kit-astro/title` | `titleHtml(title)`, the title as HTML with its highlighted words in spans, `plainTitle(title)` without its marks, and `titleParts(title)` |
 | `@hostsmith/site-kit-astro/components/Sections.astro` | renders a list of sections |
+| `@hostsmith/site-kit-astro/components/Title.astro` | renders a title's text with its highlighted words: `<Title text={title} />` |
 | `@hostsmith/site-kit-astro/layouts/Base.astro` | the base layout |
 
 Anything else in the package can change in any release, and the package doesn't let a site import it.
@@ -508,7 +578,7 @@ Anything else in the package can change in any release, and the package doesn't 
 
 A collection's `type` is `folder`, for entries in `path` whose files match `pattern` and share `fields`, or `files`, for files that each have their own `path` and `fields`. `format` is `markdown`, for front matter with a Markdown body, `yaml` or `json`. `locales` is `null` for a collection in one language, or the default locale's code, all the site's codes and the `structure` of its files, in Decap's words: `multiple_files` (`about.de.md`), `multiple_folders` (`de/about.md`) or `single_file` (every locale in one file, under its code). `fields` describe one locale's content in an entry.
 
-Each field's CMS widget is its `x-widget`. The schema helpers set theirs: `mediaPath` is `image`, `isoDate` is `datetime`, and `link` is `link`. Every other field takes its widget from its type: `string`, `select` for an enum, `boolean`, `number`, `list` or `object`. A site may set a field's widget, its label and its hint with Zod's metadata, which the export keeps:
+Each field's CMS widget is its `x-widget`. The schema helpers set theirs: `mediaPath` is `image`, `isoDate` is `datetime`, and `link` is `link`. A video file, such as a `hero`'s `video`, is `file`. Every other field takes its widget from its type: `string`, `select` for an enum, `boolean`, `number`, `list` or `object`. A site may set a field's widget, its label and its hint with Zod's metadata, which the export keeps:
 
 ```ts
 intro: z.string().meta({ "x-widget": "text", title: "Introduction", description: "Two sentences at most." }),
@@ -812,7 +882,7 @@ The token is a fine-grained personal access token for that repository only, with
 
 ## Working on the kit
 
-This repository is an npm workspace: the package in `packages/site-kit-astro/` and the examples in `examples/`, which use the package from the workspace. `npm ci` installs them, `npm run build` builds the `basics` example, and `npm test` runs the kit's tests. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+This repository is an npm workspace: the package in `packages/site-kit-astro/` and the examples in `examples/`, which use the package from the workspace. `npm ci` installs them, `npm run build` builds every example, `npm test` runs the kit's tests, and `npm run test:browser` runs its browser tests of the interactive parts, with [Playwright](https://playwright.dev), a development dependency of the repository and never of a site. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 Every example is also a reference site: each release deploys it to its production site, and each branch of this repository to its preview site.
 

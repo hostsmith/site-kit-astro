@@ -1,15 +1,20 @@
 ---
-// hero: eyebrow, badge, title, subtitle, image + imageAlt, cta,
-// secondaryCta, note. Variants: centered (default), image-left, image-right,
-// background, page. The first hero on a page renders its title as h1
-// (`primary`), later ones as h2.
+// hero: eyebrow, badge, title, subtitle, image + imageAlt, video, videoWebm,
+// cta, secondaryCta, note. Variants: centered (default), image-left,
+// image-right, background, page. The first hero on a page renders its title
+// as h1 (`primary`), later ones as h2.
 //
 // The text comes first in reading order in every variant. The variant's
 // modifier class tells the theme where the image goes: beside the text, behind
-// it, or below it at full width (`page`, a page header).
+// it, or below it at full width (`page`, a page header). With `video`, only
+// on `background`, a decorative video with the image as its poster takes the
+// image's place (site-kit-webflow-example design D103).
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
+import { localeOfRef } from "../../lib/site-locales.ts";
+import Title from "../Title.astro";
+import Video from "../Video.astro";
 
 interface Props {
   section: Extract<Section, { type: "hero" }>;
@@ -18,7 +23,7 @@ interface Props {
 }
 
 const { section, entry, primary } = Astro.props;
-const { eyebrow, badge, title, subtitle, image, imageAlt, cta, secondaryCta, note } = section;
+const { eyebrow, badge, title, subtitle, image, imageAlt, video, videoWebm, cta, secondaryCta, note } = section;
 const f = sectionFields(entry, section);
 const Heading = primary ? "h1" : "h2";
 ---
@@ -40,7 +45,7 @@ const Heading = primary ? "h1" : "h2";
           </p>
         )
       }
-      <Heading class="sk-hero__title" {...f.field("title")}>{title}</Heading>
+      <Heading class="sk-hero__title" {...f.field("title")}><Title text={title} /></Heading>
       {
         subtitle && (
           <p class="sk-hero__subtitle" {...f.field("subtitle")}>
@@ -72,6 +77,12 @@ const Heading = primary ? "h1" : "h2";
         )
       }
     </div>
-    {image && <img src={image} alt={imageAlt} class="sk-hero__media" {...f.field("image")} />}
+    {
+      video && image ? (
+        <Video mp4={video} webm={videoWebm} poster={image} locale={localeOfRef(entry)?.code} field={f.field("video")} />
+      ) : (
+        image && <img src={image} alt={imageAlt} class="sk-hero__media" {...f.field("image")} />
+      )
+    }
   </div>
 </section>

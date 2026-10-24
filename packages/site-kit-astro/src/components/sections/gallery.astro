@@ -1,10 +1,18 @@
 ---
-// gallery: title, images (image, alt, caption). Variants: grid (default),
-// masonry. A theme lays out masonry with CSS columns, so images run down each
-// column: use grid when their order matters. No lightbox and no carousel.
+// gallery: title, images (image, alt, caption), lightbox. Variants: grid
+// (default), masonry. A theme lays out masonry with CSS columns, so images run
+// down each column: use grid when their order matters. No carousel.
+//
+// With `lightbox`, each image links to its file and, with the script, opens
+// in a dialog (Lightbox.astro, site-kit-webflow-example design D104). Without
+// the script, the link opens the file. Without `lightbox`, images aren't
+// links, and the page has no lightbox script.
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
+import { localeOfRef } from "../../lib/site-locales.ts";
+import Lightbox from "../Lightbox.astro";
+import Title from "../Title.astro";
 
 interface Props {
   section: Extract<Section, { type: "gallery" }>;
@@ -13,7 +21,7 @@ interface Props {
 }
 
 const { section, entry } = Astro.props;
-const { title, images } = section;
+const { title, images, lightbox } = section;
 const f = sectionFields(entry, section);
 ---
 
@@ -23,7 +31,7 @@ const f = sectionFields(entry, section);
       title && (
         <div class="sk-section__header">
           <h2 class="sk-section__title" {...f.field("title")}>
-            {title}
+            <Title text={title} />
           </h2>
         </div>
       )
@@ -33,7 +41,13 @@ const f = sectionFields(entry, section);
         images.map((item, i) => (
           <li class="sk-gallery__item">
             <figure>
-              <img src={item.image} alt={item.alt} loading="lazy" decoding="async" class="sk-gallery__image" {...f.field("images", i, "image")} />
+              {lightbox ? (
+                <a href={item.image} class="sk-gallery__link">
+                  <img src={item.image} alt={item.alt} loading="lazy" decoding="async" class="sk-gallery__image" {...f.field("images", i, "image")} />
+                </a>
+              ) : (
+                <img src={item.image} alt={item.alt} loading="lazy" decoding="async" class="sk-gallery__image" {...f.field("images", i, "image")} />
+              )}
               {item.caption && (
                 <figcaption class="sk-gallery__caption" {...f.field("images", i, "caption")}>
                   {item.caption}
@@ -44,5 +58,6 @@ const f = sectionFields(entry, section);
         ))
       }
     </ul>
+    {lightbox && <Lightbox image={images[0].image} alt={images[0].alt!} locale={localeOfRef(entry)?.code} />}
   </div>
 </section>

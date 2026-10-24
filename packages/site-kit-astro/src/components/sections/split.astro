@@ -1,14 +1,18 @@
 ---
-// split: eyebrow, title, body (markdown), image + imageAlt, stats, link.
-// Variants: image-left (default), image-right. Tones: plain (default),
-// surface. The image comes first in reading order; the variant tells the
-// theme which side to show it on.
+// split: eyebrow, title, body (markdown), image + imageAlt, video,
+// videoWebm, stats, link. Variants: image-left (default), image-right. Tones:
+// plain (default), surface. The image comes first in reading order; the
+// variant tells the theme which side to show it on. With `video`, the media
+// is a video with the image as its poster and `imageAlt` as its text
+// alternative (site-kit-webflow-example design D103).
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
 import { renderMarkdown } from "../../lib/markdown.ts";
+import { localeOfRef } from "../../lib/site-locales.ts";
 import SectionHeader from "../SectionHeader.astro";
 import Stat from "../Stat.astro";
+import Video from "../Video.astro";
 
 interface Props {
   section: Extract<Section, { type: "split" }>;
@@ -17,14 +21,20 @@ interface Props {
 }
 
 const { section, entry } = Astro.props;
-const { eyebrow, title, body, image, imageAlt, stats, link } = section;
+const { eyebrow, title, body, image, imageAlt, video, videoWebm, stats, link } = section;
 const f = sectionFields(entry, section);
-const html = body === undefined ? undefined : await renderMarkdown(body, `${entry} section "${section.id}" (split) body`);
+const html = body === undefined ? undefined : await renderMarkdown(body, `${entry} section "${section.id}" (split) body`, entry);
 ---
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    <img src={image} alt={imageAlt} class="sk-split__media" {...f.field("image")} />
+    {
+      video ? (
+        <Video mp4={video} webm={videoWebm} poster={image} alt={imageAlt} locale={localeOfRef(entry)?.code} field={f.field("video")} />
+      ) : (
+        <img src={image} alt={imageAlt} class="sk-split__media" {...f.field("image")} />
+      )
+    }
     <div class="sk-split__content">
       <SectionHeader field={f.field} eyebrow={eyebrow} title={title} />
       {html && <div class="sk-split__body sk-prose" {...f.field("body")} set:html={html} />}

@@ -1,0 +1,16 @@
+# Paths of the old site that this site keeps, one per line.
+# `npm run check:urls` fails when one of them has no page in the build output.
+# These are the example's pages; a port replaces the list with the Webflow
+# site's own.
+/
+/heroes
+/text
+/media
+/cards
+/interactive
+/interactive/embeds
+/interactive/reveal
+/news
+/news/collection-entry
+/news/another-entry
+/contact

@@ -1,0 +1,22 @@
+/* The site's stylesheet, which the kit's layout loads. The kit ships no CSS:
+   the theme in theme/ styles the kit's hooks
+   (node_modules/@hostsmith/site-kit-astro/HOOKS.md). To take another
+   example's look, replace theme/ and public/assets/fonts/ with that example's;
+   site.css, the site's own CSS, stays.
+
+   The order sets the cascade. Tokens and fonts first. The theme's element
+   defaults go into Tailwind's base layer, after its preflight, and its rules
+   for the kit's hooks into the components layer, so utilities in the site's
+   own markup still win over them. site.css stays outside a layer, so it wins
+   over the theme. */
+@import "tailwindcss";
+@import "./theme/tokens/colors.css";
+@import "./theme/tokens/type.css";
+@import "./theme/tokens/shape.css";
+@import "./theme/tokens/space.css";
+@import "./theme/fonts.css";
+@import "./theme/base.css" layer(base);
+@import "./theme/layout.css" layer(components);
+@import "./theme/sections.css" layer(components);
+@import "./theme/prose.css" layer(components);
+@import "./site.css";

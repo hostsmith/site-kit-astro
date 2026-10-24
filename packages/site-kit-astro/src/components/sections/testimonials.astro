@@ -6,6 +6,7 @@
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
+import Title from "../Title.astro";
 
 interface Props {
   section: Extract<Section, { type: "testimonials" }>;
@@ -24,7 +25,7 @@ const f = sectionFields(entry, section);
       title && (
         <div class="sk-section__header">
           <h2 class="sk-section__title" {...f.field("title")}>
-            {title}
+            <Title text={title} />
           </h2>
         </div>
       )

@@ -1,0 +1,25 @@
+/*
+ * webflow/neutral: grays only, the structural theme's one scheme. A port
+ * adds the Webflow site's colors as a preset of its own, with these names,
+ * and points tokens/colors.css at it (README.md).
+ *
+ * Every preset in this folder defines the same color roles, and passes the
+ * contrast pairs listed in README.md (npm run check:styles). Tailwind's
+ * default palette is reset, so bg-red-500 renders nothing.
+ */
+
+@theme static {
+  --color-*: initial;
+
+  --color-bg: #ffffff;
+  --color-fg: #1f1f1f;
+  --color-surface: #f4f4f4;
+  --color-tint: #e4e4e4;
+  --color-muted: #595959;
+  --color-border: #c4c4c4;
+  --color-brand: #3a3a3a;
+  --color-accent: #1f1f1f;
+  --color-accent-fg: #ffffff;
+  --color-on-dark: #cccccc;
+  --color-error: #b3261e;
+}

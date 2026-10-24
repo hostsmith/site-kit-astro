@@ -1,0 +1,28 @@
+---
+// Loads an embed's frame when its button is pressed, and moves focus to it
+// (site-kit-webflow-example design D105). Without it, the placeholder's link
+// still opens the content on the provider's site. The base layout renders it
+// once, after the page's content, when the content has a placeholder: an
+// `embed` section's, or a video link's in a Markdown body.
+---
+
+<script is:inline>
+  for (const button of document.querySelectorAll(".sk-embed__media:not([data-ready]) .sk-embed__button")) {
+    const media = button.closest(".sk-embed__media");
+    const placeholder = button.closest(".sk-embed__placeholder");
+    button.addEventListener("click", () => {
+      const frame = document.createElement("iframe");
+      frame.className = "sk-embed__iframe";
+      frame.src = button.dataset.src;
+      frame.title = button.dataset.title;
+      if (button.dataset.kind === "video") {
+        frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+        frame.allowFullscreen = true;
+      }
+      placeholder.replaceWith(frame);
+      frame.focus();
+    });
+    button.hidden = false;
+    media.setAttribute("data-ready", "");
+  }
+</script>

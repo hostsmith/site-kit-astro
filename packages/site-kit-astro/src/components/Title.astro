@@ -1,0 +1,15 @@
+---
+// A title's text, with its highlighted words in `sk-highlight` spans
+// (site-kit-webflow-example design D106). The element that holds it, such as
+// an h2, keeps the title's field attribute, so the CMS edits the whole string
+// with its marks. Without marks it renders the text as `{title}` would.
+import { titleParts } from "../lib/title.ts";
+
+interface Props {
+  text: string;
+}
+
+const parts = titleParts(Astro.props.text);
+---
+
+{parts.map((part) => (part.highlight ? <span class="sk-highlight">{part.text}</span> : part.text))}

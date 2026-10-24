@@ -1,0 +1,66 @@
+---
+// A muted, looping video with a pause and play button, for `hero` (variant
+// `background`) and `split` (site-kit-webflow-example design D103, D104). Its
+// HTML has no `autoplay`: the script starts it only when the visitor hasn't
+// asked for reduced motion, and the button plays it either way. Without the
+// script, the poster shows. With `alt`, the video is the section's media and
+// carries its text alternative; without, it's decorative and hidden from
+// assistive technology.
+import type { FieldAttrs } from "../core/field.ts";
+import { partUi } from "../lib/part-ui.ts";
+import Icon from "./Icon.astro";
+
+interface Props {
+  mp4: string;
+  webm?: string;
+  poster: string;
+  alt?: string;
+  // The page's locale code, for the button's strings.
+  locale?: string;
+  field: FieldAttrs;
+}
+
+const { mp4, webm, poster, alt, locale, field } = Astro.props;
+const ui = await partUi(locale, "video", ["videoPause", "videoPlay"]);
+---
+
+<div class="sk-video">
+  <video
+    class="sk-video__media"
+    muted
+    loop
+    playsinline
+    preload="none"
+    poster={poster}
+    aria-label={alt}
+    aria-hidden={alt ? undefined : "true"}
+    {...field}
+  >
+    {webm && <source src={webm} type="video/webm" />}
+    <source src={mp4} type="video/mp4" />
+  </video>
+  <button type="button" class="sk-video__button" aria-label={ui("videoPlay")} data-pause={ui("videoPause")} data-play={ui("videoPlay")} hidden>
+    <Icon name="pause" />
+    <Icon name="play" />
+  </button>
+</div>
+
+<script is:inline>
+  // Inline, so it runs where the video is, and only on pages that have one.
+  for (const wrapper of document.querySelectorAll(".sk-video:not([data-ready])")) {
+    const video = wrapper.querySelector("video");
+    const button = wrapper.querySelector(".sk-video__button");
+    if (!video || !button) continue;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    const playing = (on) => {
+      wrapper.toggleAttribute("data-playing", on);
+      button.setAttribute("aria-label", on ? button.dataset.pause : button.dataset.play);
+    };
+    video.addEventListener("play", () => playing(true));
+    video.addEventListener("pause", () => playing(false));
+    button.addEventListener("click", () => (video.paused ? video.play().catch(() => playing(false)) : video.pause()));
+    button.hidden = false;
+    wrapper.setAttribute("data-ready", "");
+    if (!reduced.matches) video.play().catch(() => playing(false));
+  }
+</script>

@@ -35,7 +35,9 @@
     "./custom-page": "./src/lib/custom-page.ts",
     "./ui": "./src/lib/ui.ts",
     "./locales": "./src/lib/localize.ts",
+    "./title": "./src/lib/title.ts",
     "./components/Sections.astro": "./src/components/Sections.astro",
+    "./components/Title.astro": "./src/components/Title.astro",
     "./layouts/Base.astro": "./src/layouts/Base.astro"
   },
   "bin": {

@@ -16,6 +16,7 @@
 // one locale, gets `dir`, alternates and `og:locale` (D51).
 import "/src/styles/global.css";
 import Breadcrumb from "../components/Breadcrumb.astro";
+import EmbedScript from "../components/EmbedScript.astro";
 import FooterBlock from "../components/FooterBlock.astro";
 import Icon from "../components/Icon.astro";
 import LocaleSwitcher from "../components/LocaleSwitcher.astro";
@@ -23,12 +24,14 @@ import type { FooterBlock as Block } from "../kit-content.ts";
 import { field } from "../core/field.ts";
 import { getTranslations, routeOf } from "../lib/routes.ts";
 import { absoluteUrl, isNoindexBuild } from "../lib/seo.ts";
+import { partUi } from "../lib/part-ui.ts";
 import { getSettings, settingsRef } from "../lib/settings.ts";
 import { localeOfCode, localeOfPath, localized } from "../lib/site-locales.ts";
 import { telHref } from "../lib/tel.ts";
+import { plainTitle } from "../lib/title.ts";
 
 interface Props {
-  // Used verbatim as the document title.
+  // The document title, as written but for its highlight marks (lib/title.ts).
   title: string;
   description?: string;
   // Public media path of the Open Graph image.
@@ -41,7 +44,8 @@ interface Props {
   locale?: string;
 }
 
-const { title, description, image, path } = Astro.props;
+const { description, image, path } = Astro.props;
+const title = plainTitle(Astro.props.title);
 const locale = Astro.props.locale !== undefined || path === undefined ? localeOfCode(Astro.props.locale) : localeOfPath(path);
 const settings = await getSettings(locale?.code);
 const SETTINGS = settingsRef(locale?.code);
@@ -62,6 +66,13 @@ const actions = settings.header?.actions ?? [];
 // The icon-only call button comes from the phone action that sets callLabel.
 const call = actions.find((action) => action.type === "phone" && action.callLabel !== undefined);
 const hasMenu = nav.length > 0 || actions.length > 0;
+// Nested nav items (site-kit-webflow-example design D108): an item with
+// children gets a disclosure button, which holds its label, or, when the
+// item has a link of its own, sits beside the link, named by ui.navSubmenu.
+const submenus = nav.some((item) => item.children);
+const submenuName = nav.some((item) => item.children && item.link)
+  ? await partUi(locale?.code, "nav item with a link and children", ["navSubmenu"])
+  : undefined;
 
 // footer.blocks in groups: each block starts one unless it sets withPrevious.
 const groups: { block: Block; index: number }[][] = [];
@@ -70,6 +81,14 @@ const groups: { block: Block; index: number }[][] = [];
   else groups.push([{ block, index }]);
 });
 const bottom = settings.footer?.bottom ?? [];
+
+// The page's content, rendered before the head, so the layout adds a part's
+// script only when the content uses it (site-kit-webflow-example design D104):
+// the reveal script for an element with `data-reveal`, and the embed script
+// for a placeholder, such as a video link's in a Markdown body.
+const content = await Astro.slots.render("default");
+const reveal = / data-reveal="/.test(content);
+const embeds = content.includes('class="sk-embed__placeholder"');
 ---
 
 <!doctype html>
@@ -94,6 +113,42 @@ const bottom = settings.footer?.bottom ?? [];
     }
     {alternates.map((translation) => <link rel="alternate" hreflang={translation.locale.tag} href={absoluteUrl(translation.path, Astro.site)} />)}
     {xDefault && <link rel="alternate" hreflang="x-default" href={absoluteUrl(xDefault.path, Astro.site)} />}
+    {
+      /*
+        Reveal (site-kit-webflow-example design D104): runs before the page
+        renders and sets `data-sk-ready` on <html>, so a theme can hide a reveal
+        element under it without a flash. Then it sets `data-revealed` on each
+        element with `data-reveal` once it enters the viewport. A theme animates
+        on that, only without reduced motion. Without scripts, nothing is hidden.
+      */
+      reveal && (
+        <script is:inline>
+          (() => {
+            document.documentElement.setAttribute("data-sk-ready", "");
+            const start = () => {
+              const elements = document.querySelectorAll("[data-reveal]");
+              if (!("IntersectionObserver" in window)) {
+                elements.forEach((element) => element.setAttribute("data-revealed", ""));
+                return;
+              }
+              const observer = new IntersectionObserver(
+                (entries) => {
+                  for (const entry of entries) {
+                    if (!entry.isIntersecting) continue;
+                    entry.target.setAttribute("data-revealed", "");
+                    observer.unobserve(entry.target);
+                  }
+                },
+                { rootMargin: "0px 0px -10% 0px" },
+              );
+              elements.forEach((element) => observer.observe(element));
+            };
+            if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+            else start();
+          })();
+        </script>
+      )
+    }
   </head>
   <body>
     <a href="#main" class="sk-skip-link" {...field(SETTINGS, "ui", "skipLink")}>{ui.skipLink}</a>
@@ -133,18 +188,66 @@ const bottom = settings.footer?.bottom ?? [];
                 {nav.length > 0 && (
                   <nav class="sk-nav" aria-label={ui.mainNav}>
                     <ul class="sk-nav__list">
-                      {nav.map((item, i) => (
-                        <li>
-                          <a
-                            href={item.link}
-                            aria-current={item.link === path ? "page" : undefined}
-                            class="sk-nav__link"
-                            {...field(SETTINGS, "nav", i, "label")}
-                          >
-                            {item.label}
-                          </a>
-                        </li>
-                      ))}
+                      {nav.map((item, i) =>
+                        item.children ? (
+                          <li class="sk-nav__item">
+                            {item.link ? (
+                              <>
+                                <a href={item.link} aria-current={item.link === path ? "page" : undefined} class="sk-nav__link" {...field(SETTINGS, "nav", i, "label")}>
+                                  {item.label}
+                                </a>
+                                <button
+                                  type="button"
+                                  class="sk-nav__toggle"
+                                  aria-expanded="true"
+                                  aria-controls={`sk-submenu-${i}`}
+                                  aria-label={submenuName!("navSubmenu", { label: item.label })}
+                                  data-current={item.children.some((child) => child.link === path) ? "" : undefined}
+                                  hidden
+                                >
+                                  <Icon name="chevron-down" />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                class="sk-nav__toggle"
+                                aria-expanded="true"
+                                aria-controls={`sk-submenu-${i}`}
+                                data-current={item.children.some((child) => child.link === path) ? "" : undefined}
+                              >
+                                <span {...field(SETTINGS, "nav", i, "label")}>{item.label}</span>
+                                <Icon name="chevron-down" />
+                              </button>
+                            )}
+                            <ul id={`sk-submenu-${i}`} class="sk-nav__submenu">
+                              {item.children.map((child, j) => (
+                                <li>
+                                  <a
+                                    href={child.link}
+                                    aria-current={child.link === path ? "page" : undefined}
+                                    class="sk-nav__sublink"
+                                    {...field(SETTINGS, "nav", i, "children", j, "label")}
+                                  >
+                                    {child.label}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </li>
+                        ) : (
+                          <li>
+                            <a
+                              href={item.link}
+                              aria-current={item.link === path ? "page" : undefined}
+                              class="sk-nav__link"
+                              {...field(SETTINGS, "nav", i, "label")}
+                            >
+                              {item.label}
+                            </a>
+                          </li>
+                        ),
+                      )}
                     </ul>
                   </nav>
                 )}
@@ -195,6 +298,41 @@ const bottom = settings.footer?.bottom ?? [];
                   });
                 })();
               </script>
+              {/*
+                Nested nav items: each item with children closes its list and marks
+                itself `data-ready`; `data-open` marks it open. A theme collapses a
+                list only while its item is `[data-ready]:not([data-open])`. Escape,
+                a click outside or focus leaving the item closes it.
+              */}
+              {submenus && (
+                <script is:inline>
+                  (() => {
+                    for (const item of document.querySelectorAll(".sk-nav__item")) {
+                      const button = item.querySelector(".sk-nav__toggle");
+                      const setOpen = (open) => {
+                        button.setAttribute("aria-expanded", String(open));
+                        item.toggleAttribute("data-open", open);
+                      };
+                      button.hidden = false;
+                      setOpen(false);
+                      item.setAttribute("data-ready", "");
+                      button.addEventListener("click", () => setOpen(button.getAttribute("aria-expanded") !== "true"));
+                      item.addEventListener("keydown", (event) => {
+                        if (event.key !== "Escape" || button.getAttribute("aria-expanded") !== "true") return;
+                        event.stopPropagation();
+                        setOpen(false);
+                        button.focus();
+                      });
+                      item.addEventListener("focusout", (event) => {
+                        if (!item.contains(event.relatedTarget)) setOpen(false);
+                      });
+                      document.addEventListener("click", (event) => {
+                        if (!item.contains(event.target)) setOpen(false);
+                      });
+                    }
+                  })();
+                </script>
+              )}
             </>
           )
         }
@@ -203,7 +341,8 @@ const bottom = settings.footer?.bottom ?? [];
 
     <main id="main" tabindex="-1" class="sk-main">
       {path && <Breadcrumb path={path} locale={locale?.code} />}
-      <slot />
+      <Fragment set:html={content} />
+      {embeds && <EmbedScript />}
     </main>
 
     {

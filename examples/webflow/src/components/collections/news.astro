@@ -1,0 +1,45 @@
+---
+// Detail template of the news collection: one entry at <base path>/<slug>,
+// as a Webflow CMS template page shows a collection item. The layout puts the
+// breadcrumb before it. This is the site's own markup, so it's styled with
+// utilities on the theme's tokens, and the body uses the theme's sk-prose. A
+// video link alone in a paragraph of the body renders as an embed.
+import Title from "@hostsmith/site-kit-astro/components/Title.astro";
+import { field } from "@hostsmith/site-kit-astro/field";
+import { assertNoH1 } from "@hostsmith/site-kit-astro/markdown";
+import { getSettings } from "@hostsmith/site-kit-astro/settings";
+import { render, type CollectionEntry } from "astro:content";
+
+interface Props {
+  entry: CollectionEntry<"news">;
+  locale?: string;
+}
+
+const { entry, locale } = Astro.props;
+const { title, date, description, image, imageAlt } = entry.data;
+const ref = `news/${entry.id}`;
+const settings = await getSettings(locale);
+const { Content, headings } = await render(entry);
+assertNoH1(headings, entry.filePath ?? ref);
+const dateFormat = new Intl.DateTimeFormat(settings.language, { dateStyle: "long", timeZone: "UTC" });
+---
+
+<article class="mx-auto max-w-site px-gutter py-section">
+  <header class="max-w-prose">
+    <h1 class="text-h1" {...field(ref, "title")}><Title text={title} /></h1>
+    {
+      description && (
+        <p class="mt-4 text-large text-muted" {...field(ref, "description")}>
+          {description}
+        </p>
+      )
+    }
+    <p class="mt-4 text-small text-muted">
+      <time datetime={date} {...field(ref, "date")}>{dateFormat.format(new Date(date))}</time>
+    </p>
+  </header>
+  {image && <img src={image} alt={imageAlt} class="mt-8 w-full" {...field(ref, "image")} />}
+  <div class="sk-prose mt-8 max-w-prose" {...field(ref, "body")}>
+    <Content />
+  </div>
+</article>

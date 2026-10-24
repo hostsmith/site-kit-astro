@@ -1,0 +1,114 @@
+---
+// tabs: title, intro, items (label, title, body, image + imageAlt, link), at
+// least two. Variants: horizontal (default), vertical. With its script, the
+// WAI-ARIA tabs pattern: a tab list, automatic activation, the arrow keys,
+// Home and End. Without it, every panel shows under its label, and the tab
+// list stays hidden (site-kit-webflow-example design D104).
+import type { Section } from "../../kit-content.ts";
+import { sectionFields } from "../../core/field.ts";
+import { sectionClass } from "../../lib/hooks.ts";
+import { renderMarkdown } from "../../lib/markdown.ts";
+import SectionHeader from "../SectionHeader.astro";
+import Title from "../Title.astro";
+
+interface Props {
+  section: Extract<Section, { type: "tabs" }>;
+  entry: string;
+  primary: boolean;
+}
+
+const { section, entry } = Astro.props;
+const { title, intro, items, variant } = section;
+const f = sectionFields(entry, section);
+const bodies = await Promise.all(
+  items.map((item, i) => (item.body === undefined ? undefined : renderMarkdown(item.body, `${entry} section "${section.id}" (tabs) items[${i}].body`, entry))),
+);
+const tab = (i: number) => `${section.id}-tab-${i}`;
+const panel = (i: number) => `${section.id}-panel-${i}`;
+---
+
+<section {...f.root} class={sectionClass(section)}>
+  <div class="sk-container">
+    <SectionHeader field={f.field} title={title} intro={intro} />
+    <div class="sk-tabs__list" role="tablist" aria-orientation={variant === "vertical" ? "vertical" : undefined} hidden>
+      {
+        items.map((item, i) => (
+          <button
+            type="button"
+            role="tab"
+            id={tab(i)}
+            aria-controls={panel(i)}
+            aria-selected={i === 0 ? "true" : "false"}
+            tabindex={i === 0 ? undefined : "-1"}
+            class="sk-tabs__tab"
+            {...f.field("items", i, "label")}
+          >
+            {item.label}
+          </button>
+        ))
+      }
+    </div>
+    <div class="sk-tabs__panels">
+      {
+        items.map((item, i) => (
+          <div id={panel(i)} class="sk-tabs__panel">
+            <h3 class="sk-tabs__label" {...f.field("items", i, "label")}>
+              {item.label}
+            </h3>
+            {item.title && (
+              <p class="sk-tabs__title" {...f.field("items", i, "title")}>
+                <Title text={item.title} />
+              </p>
+            )}
+            {bodies[i] && <div class="sk-tabs__body sk-prose" {...f.field("items", i, "body")} set:html={bodies[i]} />}
+            {item.link && (
+              <a href={item.link.link} class="sk-tabs__link" {...f.field("items", i, "link", "label")}>
+                {item.link.label}
+              </a>
+            )}
+            {item.image && <img src={item.image} alt={item.imageAlt} loading="lazy" decoding="async" class="sk-tabs__media" {...f.field("items", i, "image")} />}
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+  // The tabs pattern on each tabs section not set up yet: the tab list shows,
+  // one panel at a time, and the section gets `data-ready`, under which a
+  // theme hides the panels' own labels. Inline, so it runs where the section
+  // is, and only on pages that have one.
+  for (const tabs of document.querySelectorAll(".sk-tabs:not([data-ready])")) {
+    const list = tabs.querySelector(".sk-tabs__list");
+    if (!list) continue;
+    const buttons = [...list.querySelectorAll(".sk-tabs__tab")];
+    const panels = buttons.map((button) => document.getElementById(button.getAttribute("aria-controls")));
+    const [next, previous] = list.getAttribute("aria-orientation") === "vertical" ? ["ArrowDown", "ArrowUp"] : ["ArrowRight", "ArrowLeft"];
+    const select = (index, focus) => {
+      buttons.forEach((button, i) => {
+        button.setAttribute("aria-selected", String(i === index));
+        button.tabIndex = i === index ? 0 : -1;
+        panels[i].hidden = i !== index;
+      });
+      if (focus) buttons[index].focus();
+    };
+    panels.forEach((panel, i) => {
+      panel.setAttribute("role", "tabpanel");
+      panel.setAttribute("aria-labelledby", buttons[i].id);
+      panel.tabIndex = 0;
+    });
+    buttons.forEach((button, i) => {
+      button.addEventListener("click", () => select(i, false));
+      button.addEventListener("keydown", (event) => {
+        const to = { [next]: i + 1, [previous]: i - 1, Home: 0, End: buttons.length - 1 }[event.key];
+        if (to === undefined) return;
+        event.preventDefault();
+        select((to + buttons.length) % buttons.length, true);
+      });
+    });
+    list.hidden = false;
+    select(0, false);
+    tabs.setAttribute("data-ready", "");
+  }
+</script>

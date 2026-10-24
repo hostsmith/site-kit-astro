@@ -13,7 +13,7 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -206,6 +206,22 @@ export async function documentedHooks({ states = false } = {}) {
 
 export async function deprecatedHooks() {
   return readHooks(join(PACKAGE, "HOOKS.md")).deprecated;
+}
+
+// The whole hook reference, with its base hooks and its groups.
+export function hookReference() {
+  return readHooks(join(PACKAGE, "HOOKS.md"));
+}
+
+// What an example's theme covers, from the "Coverage" table of its
+// src/styles/theme/README.md (site-kit-webflow-example design D109): the
+// library section types and the parts it supports, and the breakpoint from
+// which its header shows its nav, such as "md".
+export function themeCoverage(example) {
+  const readme = readFileSync(join(EXAMPLES, example, "src", "styles", "theme", "README.md"), "utf8");
+  const row = (label) => readme.match(new RegExp(`^\\| ${label} \\| ([^\\n]*) \\|$`, "m"))?.[1];
+  const names = (label) => [...(row(label) ?? "").matchAll(/`([a-z0-9-]+)`/g)].map((m) => m[1]);
+  return { types: names("Section types"), parts: names("Parts"), headerNav: names("Header nav from")[0], found: row("Section types") !== undefined };
 }
 
 // Fails with the build output when a build that should pass doesn't.

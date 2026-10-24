@@ -1,0 +1,103 @@
+# Builds the site and deploys it to Hostsmith.
+#
+# - A push to main deploys to the production site (`site.id` in hostsmith.json).
+# - A push to another branch deploys to the preview site
+#   (variable HOSTSMITH_PREVIEW_SITE_ID), or only builds without one.
+# - A manual run deploys to the target chosen when starting it.
+#
+# The job runs in the GitHub environment named after its target, "production"
+# or "preview", and links the deployment to the site's address.
+#
+# Settings:
+# - secret HOSTSMITH_TOKEN in each environment: a Hostsmith API token
+#   restricted to that target's site, with "Custom" permissions sites:read and
+#   files:write. Limit the production environment to the main branch, so other
+#   branches can't use its token. On GitHub Free, private repositories have no
+#   environment secrets: use one repository secret restricted to both sites.
+# - variable HOSTSMITH_PREVIEW_SITE_ID: the preview site (optional), in the
+#   repository or the preview environment
+# - variable HOSTSMITH_PARTITION: "us" or "eu", when the sites aren't in the
+#   account's home partition (optional)
+# - variable SITE_NOINDEX: "true" until the DNS switch. Previews are always no-index.
+name: Hostsmith
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Where to deploy
+        type: choice
+        options: [preview, production]
+        default: preview
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # The target's secrets and branch rules come from this environment.
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.target || (github.ref_name == 'main' && 'production' || 'preview') }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      HOSTSMITH_TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || (github.ref_name == 'main' && 'production' || 'preview') }}
+    # One deploy per target at a time. A running deploy finishes; a newer push
+    # replaces the one waiting, so the site ends on the newest commit.
+    concurrency:
+      group: hostsmith-${{ github.event_name == 'workflow_dispatch' && inputs.target || (github.ref_name == 'main' && 'production' || 'preview') }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read hostsmith.json
+        id: manifest
+        run: |
+          {
+            echo "node=$(jq -er '.build.node' hostsmith.json)"
+            echo "command=$(jq -er '.build.command' hostsmith.json)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.manifest.outputs.node }}
+          cache: npm
+
+      # The deploy command comes with the kit package, so it runs after npm ci.
+      - run: npm ci
+
+      - name: Check configuration
+        id: check
+        env:
+          HOSTSMITH_TOKEN: ${{ secrets.HOSTSMITH_TOKEN }}
+          HOSTSMITH_PREVIEW_SITE_ID: ${{ vars.HOSTSMITH_PREVIEW_SITE_ID }}
+          HOSTSMITH_PARTITION: ${{ vars.HOSTSMITH_PARTITION }}
+        run: npx site-kit deploy check
+
+      # Raw colors, font names and arbitrary values belong in the theme's tokens,
+      # and the theme styles only hooks the installed kit lists.
+      - name: Check styles
+        run: npx site-kit check-styles
+
+      - name: Build
+        env:
+          SITE_NOINDEX: ${{ env.HOSTSMITH_TARGET == 'preview' && 'true' || vars.SITE_NOINDEX }}
+          BUILD_COMMAND: ${{ steps.manifest.outputs.command }}
+        run: $BUILD_COMMAND
+
+      # Warns about hooks the built pages carry and the theme doesn't style.
+      - name: Check built styles
+        run: npx site-kit check-styles --built
+
+      - name: Deploy
+        id: deploy
+        if: steps.check.outputs.deploy == 'true'
+        env:
+          HOSTSMITH_TOKEN: ${{ secrets.HOSTSMITH_TOKEN }}
+          HOSTSMITH_PREVIEW_SITE_ID: ${{ vars.HOSTSMITH_PREVIEW_SITE_ID }}
+          HOSTSMITH_PARTITION: ${{ vars.HOSTSMITH_PARTITION }}
+        run: npx site-kit deploy deploy

@@ -5,10 +5,11 @@
 // Every page, the sitemap and robots.txt must match, apart from the hashed
 // names of built assets and field attributes, which name the locale.
 //
-// site-kit-core-split design D83: a site on 0.6.2 that takes this release by
-// its update steps builds byte for byte the same files, hashed asset names
-// included. The `basics` example of v0.6.2 is built with that release's
-// published package and with the workspace's, after the update steps.
+// site-kit-core-split design D83 and site-kit-webflow-example design D110: a
+// site on 0.6.2 or 0.7.0 that takes this release by its update steps builds
+// byte for byte the same files, hashed asset names included. The `basics`
+// example of each release is built with that release's published package and
+// with the workspace's, after the update steps.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readdir, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
@@ -139,9 +140,11 @@ describe(`a single-locale site from ${TAG}`, () => {
   });
 });
 
-// The release that sites update from to this one (site-kit-core-split design
-// D83). A fixed tag, like TAG above.
-const UPDATE_FROM = "v0.6.2";
+// The releases that sites update from to this one (site-kit-core-split design
+// D83). Fixed tags, like TAG above: a release adds its own once npm serves it.
+const UPDATE_FROM = ["v0.6.2", "v0.7.0"];
+// The site files an update writes: the generated Decap config and schema export.
+const GENERATED = [".hostsmith/schema.json", "public/admin/config.yml"];
 
 // The update steps from 0.6.2 (the README's "Kit updates"), after npm has
 // installed the release. Here the workspace's package is linked instead.
@@ -154,37 +157,39 @@ async function takeUpdate(site) {
 // A site's own files, without what installs, syncs and builds write.
 const siteFiles = async (site) => Object.fromEntries(Object.entries(await fileHashes(site)).filter(([path]) => !/^(node_modules|dist|\.astro)\//.test(path)));
 
-describe(`a site from ${UPDATE_FROM}`, () => {
-  let dir;
-  let released;
-  let current;
-  let changed;
-  before(async () => {
-    dir = await mkdtemp(join(tmpdir(), "site-kit-unchanged-"));
-    released = await fileHashes(join(await buildReleased(UPDATE_FROM, join(dir, "released")), "dist"));
+for (const tag of UPDATE_FROM) {
+  describe(`a site from ${tag}`, () => {
+    let dir;
+    let released;
+    let current;
+    let changed;
+    before(async () => {
+      dir = await mkdtemp(join(tmpdir(), "site-kit-unchanged-"));
+      released = await fileHashes(join(await buildReleased(tag, join(dir, "released")), "dist"));
 
-    const site = await withWorkspace(UPDATE_FROM, join(dir, "current"));
-    const before = await siteFiles(site);
-    await takeUpdate(site);
-    const after = await siteFiles(site);
-    changed = Object.keys(after).filter((path) => after[path] !== before[path]);
-    const build = await astroBuild(site);
-    assert.equal(build.code, 0, build.output);
-    current = await fileHashes(join(site, "dist"));
-  });
-  after(() => rm(dir, { recursive: true, force: true }));
+      const site = await withWorkspace(tag, join(dir, "current"));
+      const before = await siteFiles(site);
+      await takeUpdate(site);
+      const after = await siteFiles(site);
+      changed = Object.keys(after).filter((path) => after[path] !== before[path]);
+      const build = await astroBuild(site);
+      assert.equal(build.code, 0, build.output);
+      current = await fileHashes(join(site, "dist"));
+    });
+    after(() => rm(dir, { recursive: true, force: true }));
 
-  // package.json and package-lock.json change too, when npm installs the release.
-  it("changes no site file but the new schema export", () => {
-    assert.deepEqual(changed, [".hostsmith/schema.json"]);
-  });
+    // package.json and package-lock.json change too, when npm installs the release.
+    it("changes no site file but the generated ones", () => {
+      assert.deepEqual(changed.filter((path) => !GENERATED.includes(path)), []);
+    });
 
-  it("builds the same files", () => {
-    assert.ok("index.html" in released, `${UPDATE_FROM} built no index.html`);
-    assert.deepEqual(Object.keys(current), Object.keys(released));
-  });
+    it("builds the same files", () => {
+      assert.ok("index.html" in released, `${tag} built no index.html`);
+      assert.deepEqual(Object.keys(current), Object.keys(released));
+    });
 
-  it("builds every file byte for byte the same", () => {
-    for (const [file, hash] of Object.entries(released)) assert.equal(current[file], hash, `${file} differs from ${UPDATE_FROM}`);
+    it("builds every file byte for byte the same", () => {
+      for (const [file, hash] of Object.entries(released)) assert.equal(current[file], hash, `${file} differs from ${tag}`);
+    });
   });
-});
+}

@@ -1,0 +1,47 @@
+name: Interactive parts
+# Nested nav items: one with a link of its own and one without.
+nav:
+  - label: Home
+    link: /
+  - label: Spaces
+    link: /spaces
+    children:
+      - label: Desks
+        link: /spaces/desks
+      - label: Rooms
+        link: /spaces/rooms
+  - label: Parts
+    children:
+      - label: Tabs
+        link: /tabs
+      - label: Slider
+        link: /slider
+footer:
+  bottom:
+    - type: copyright
+seo:
+  description: The kit's interactive parts, for its browser tests.
+ui:
+  skipLink: Skip to content
+  menu: Menu
+  readMore: Read more
+  mainNav: Main
+  footerNav: Footer
+  breadcrumb: Breadcrumb
+  home: Home
+  sliderPrevious: Previous slide
+  sliderNext: Next slide
+  sliderPause: Stop the slides
+  sliderPlay: Play the slides
+  sliderStatus: "Slide {current} of {total}"
+  lightboxClose: Close
+  lightboxPrevious: Previous image
+  lightboxNext: Next image
+  videoPause: Pause the video
+  videoPlay: Play the video
+  embedShowMap: Show map
+  embedPlayVideo: Play video
+  embedShowContent: Show content
+  embedNotice: "Loads content from {host}"
+  embedOpen: "Open on {host}"
+  navSubmenu: "{label} submenu"

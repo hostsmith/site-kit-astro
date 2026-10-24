@@ -1,0 +1,7 @@
+/*
+ * The theme's fonts. The structural theme uses system fonts, so it loads
+ * none. A port adds the Webflow site's fonts here as @font-face rules for
+ * files in public/assets/fonts/, each with its license next to it, and names
+ * them in tokens/type.css. Never load a font from a third-party CDN: that
+ * sends visitor IP addresses to its host.
+ */

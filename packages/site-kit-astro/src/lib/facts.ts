@@ -66,7 +66,7 @@ export function unknownFact(name: string, facts: Facts, locale?: string, root = 
 
 // The locale of a content file: the code before its extension, such as "de"
 // for news/fresh-rye.de.md.
-function localeOfFile(file: string): string | undefined {
+export function localeOfFile(file: string): string | undefined {
   return splitId(basename(file).replace(/\.[^.]+$/, "")).code;
 }
 

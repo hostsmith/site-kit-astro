@@ -1,0 +1,84 @@
+---
+// The dialog of a gallery with `lightbox` (site-kit-webflow-example design
+// D104): a native dialog, opened as a modal, so the browser keeps focus in it
+// and Escape closes it, with the image large, its caption, and previous, next
+// and close buttons. Focus then goes back to the image's link. Its script is
+// on a page only when a gallery there has a lightbox.
+import { partUi } from "../lib/part-ui.ts";
+import Icon from "./Icon.astro";
+
+interface Props {
+  // The first image, which the dialog shows until the script sets another.
+  image: string;
+  alt: string;
+  // The page's locale code, for the buttons' strings.
+  locale?: string;
+}
+
+const { image, alt, locale } = Astro.props;
+const ui = await partUi(locale, "gallery lightbox", ["lightboxClose", "lightboxPrevious", "lightboxNext"]);
+---
+
+<dialog class="sk-lightbox" aria-label={alt}>
+  <figure class="sk-lightbox__figure">
+    <img src={image} alt={alt} loading="lazy" decoding="async" class="sk-lightbox__image" />
+    <figcaption class="sk-lightbox__caption"></figcaption>
+  </figure>
+  <button type="button" class="sk-lightbox__previous" aria-label={ui("lightboxPrevious")}>
+    <Icon name="chevron-left" />
+  </button>
+  <button type="button" class="sk-lightbox__next" aria-label={ui("lightboxNext")}>
+    <Icon name="chevron-right" />
+  </button>
+  <button type="button" class="sk-lightbox__close" aria-label={ui("lightboxClose")}>
+    <Icon name="x" />
+  </button>
+</dialog>
+
+<script is:inline>
+  // Inline, so it runs where the gallery is, and only on pages with a lightbox.
+  for (const gallery of document.querySelectorAll(".sk-gallery:not([data-ready])")) {
+    const dialog = gallery.querySelector(".sk-lightbox");
+    if (!dialog) continue;
+    const links = [...gallery.querySelectorAll(".sk-gallery__link")];
+    const image = dialog.querySelector(".sk-lightbox__image");
+    const caption = dialog.querySelector(".sk-lightbox__caption");
+    let current = 0;
+    let opener;
+    const show = (index) => {
+      current = (index + links.length) % links.length;
+      const link = links[current];
+      const alt = link.querySelector("img")?.alt ?? "";
+      image.src = link.href;
+      image.alt = alt;
+      caption.textContent = link.closest("figure")?.querySelector("figcaption")?.textContent?.trim() ?? "";
+      caption.hidden = caption.textContent === "";
+      dialog.setAttribute("aria-label", alt);
+    };
+    links.forEach((link, i) =>
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        opener = link;
+        show(i);
+        dialog.showModal();
+        dialog.setAttribute("data-open", "");
+      }),
+    );
+    dialog.querySelector(".sk-lightbox__previous")?.addEventListener("click", () => show(current - 1));
+    dialog.querySelector(".sk-lightbox__next")?.addEventListener("click", () => show(current + 1));
+    dialog.querySelector(".sk-lightbox__close")?.addEventListener("click", () => dialog.close());
+    dialog.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") show(current - 1);
+      else if (event.key === "ArrowRight") show(current + 1);
+    });
+    // A click on the backdrop, outside the dialog's box, closes it too.
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener("close", () => {
+      dialog.removeAttribute("data-open");
+      opener?.focus();
+    });
+    gallery.setAttribute("data-ready", "");
+  }
+</script>
