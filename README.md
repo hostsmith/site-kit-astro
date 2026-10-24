@@ -55,8 +55,9 @@ Each example is a complete site, and each release deploys it from this repositor
 | `public/admin/config.site.yml` | the site's part of the Decap config |
 | `public/admin/config.yml` | the Decap config, assembled by `npm run decap-config` |
 | `astro.config.mjs`, `src/content.config.ts` | wire the kit and Tailwind in. They rarely change |
-| `AGENTS.md`, `CLAUDE.md`, `.claude/skills/` | agent rules: the kit's rules come from the package |
-| `.hostsmith/` | the site's brief, the old site's URLs, and the [schema export](#schema-export), `schema.json`, written by `npx site-kit schema` |
+| `AGENTS.md`, `CLAUDE.md` | agent rules: the kit's rules come from the package |
+| `.claude/skills/migrate-webflow/` | in a site from the `webflow` example: a pointer to the package's skill for migrating a Webflow site |
+| `.hostsmith/` | the site's brief, the old site's URLs, and the [schema export](#schema-export), `schema.json`, written by `npx site-kit schema`. In a site from the `webflow` example, also the migration report, and Webflow's exports in `snapshot/` during a migration, which git ignores |
 | `.github/workflows/hostsmith.yml` | the deploy workflow |
 
 Every file in a site repository is the site's. The kit's code is in `node_modules/@hostsmith/site-kit-astro/`, and no kit update changes the site's files, apart from `package.json`, `package-lock.json`, the generated `public/admin/config.yml` and the generated `.hostsmith/schema.json`.
@@ -678,6 +679,25 @@ Variables, in the repository or the environment:
 | `HOSTSMITH_PREVIEW_SITE_ID` | variable | The preview site. Without it, branch pushes only build. |
 | `HOSTSMITH_PARTITION` | variable | `us` or `eu`, when the sites aren't in your account's home partition |
 | `SITE_NOINDEX` | variable | `true` until the site's domain points to Hostsmith. Previews are always no-index. |
+
+## Without Hostsmith
+
+A kit site builds to static files, so any static host can serve it. To take Hostsmith out of a site, remove:
+
+- `hostsmith.json`, the manifest Hostsmith's deploys and CMS read;
+- `.github/workflows/hostsmith.yml`, the deploy workflow;
+- `.hostsmith/`. It also holds the site's brief, `brief.md`, which agents read before changing copy, and the old site's URLs, `old-urls.txt`, which `npm run check:urls` checks. Keep those two files if the site uses them, and delete the rest.
+
+Then `npm install && npm run build` still writes the site to `dist/`. What keeps working:
+
+- `npm run dev` and `npm run build`, with `SITE_NOINDEX=true` for a build that search engines shouldn't index;
+- the CMS: `public/admin/config.yml` saves to the GitHub repository in `public/admin/config.site.yml`, with Decap CMS or Sveltia CMS;
+- `npm run check:styles`, `npm run decap-config`, `npm run section-id` and `npx site-kit check-fields`;
+- kit updates through `npm install`, the agent rules in `AGENTS.md` and `CLAUDE.md`, and the Webflow migration skill.
+
+What stops: `npx site-kit deploy`, which deploys to Hostsmith, and `npx site-kit schema`, which reads `hostsmith.json`. The build then warns that `.hostsmith/schema.json` is missing: only Hostsmith's CMS reads it, so the warning can be ignored. `npm run check:urls` needs `.hostsmith/old-urls.txt`.
+
+The host serves the build as it is: each page as `<page>/index.html`, such as `about/index.html` for `/about`, and a missing page from `404.html`, with a `404.html` under each other locale's path.
 
 ## Core for existing Astro sites
 

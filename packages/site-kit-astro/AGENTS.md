@@ -1,8 +1,22 @@
 # Kit rules
 
-The rules of the Hostsmith site kit, for any agent working in a site built on it. The site's own `AGENTS.md` points here and adds the site's notes.
+The rules of the Hostsmith site kit, for any agent working in a site built on it. The site's own `AGENTS.md` points here and adds the site's notes, and the site's `CLAUDE.md` imports both.
 
-> The full rules for content edits, section types and the owner request workflow come in a later kit release.
+## The rules
+
+- **Kit sections only.** A page is built from library sections and the site's own section types. A layout that no library type covers becomes a variant of a site-local type, or a new site-local type with its component, Zod schema and Decap type (see [Section types](#section-types)). Never write one-off markup into a page.
+- **Kit parts first.** Tabs, sliders, lightboxes, background video, embeds, entrance animations and dropdowns in the nav come from the kit (see [Interactive parts](#interactive-parts)). Make a custom version, as a site-local type, only when the person asks for one.
+- **The theme's tokens only.** Raw colors only in the theme's `tokens/colors.css` and `presets/colors/`, font names only in `tokens/type.css` and `fonts.css`, and no arbitrary Tailwind values, such as `p-[13px]`. Style the kit's parts through their hooks in the theme, never in the kit, and the site's own markup with utilities built from the theme's roles (see [Styling](#styling)).
+- **No hardcoded text.** Visible text comes from content or settings. A label in the site's own markup is an interface string (see [Interface strings](#interface-strings)).
+- **Keep old URLs.** Never rename or move the file of a published page or entry, change its `localSlug`, or change a collection's base path. Each is part of a URL, and Hostsmith has no redirects (see [Content](#content)).
+- **Keep configs in sync.** The site's Decap part (`public/admin/config.site.yml`), its Zod schemas (`src/site.schema.ts`) and its components change together, in the same commit. Then `npm run decap-config` assembles `public/admin/config.yml` from the parts.
+- **Kit code stays in the package.** Use it only through its exports, and never edit `node_modules`. To change a library section for one site, copy it under a new name (see [The site's files](#the-sites-files)). Kit releases come in through `npm install` on a `kit-update/v<version>` branch (see [Kit updates](#kit-updates)).
+- **Section ids.** Get every new id from `npm run section-id -- <page file>`. Never edit, copy or reuse an id, except that a translation keeps its source's ids.
+- **Content dialect.** Write content in the portable dialect, and never replace a media file in place (see [Content](#content)).
+- **Dependencies.** Only the packages in [Dependencies](#dependencies), pinned exactly.
+- **Before pushing.** `npm run check:styles`, `npm run build` and `npm run check:urls` pass, and `npm run check:styles -- --built` warns about nothing (see [Before pushing](#before-pushing)).
+- **Owner requests.** Handle them as [Owner requests](#owner-requests) says.
+- **Migrating a Webflow site.** The migration skill is in `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/SKILL.md`. Read and follow it when asked to move a site from Webflow.
 
 ## Where the kit is
 
@@ -47,6 +61,18 @@ Don't edit `public/admin/config.yml`. Edit `public/admin/config.site.yml`, then 
 
 After a change to `src/site.schema.ts` or to the locales in `src/site.config.ts`, run `npx site-kit schema` and commit `.hostsmith/schema.json`. The build fails while it is stale.
 
+## Content
+
+Read `.hostsmith/brief.md` before writing or changing copy: it holds the business's facts, its audience, its voice and what to avoid.
+
+Write every content file in the portable dialect, which any CMS and any Markdown tool can read:
+
+- Frontmatter is YAML. Dates are quoted ISO 8601, such as `date: "2026-10-24"`. Booleans are only `true` or `false`. Quote a value YAML could read as something else, such as `"yes"`, `"12:30"` or a value that starts with a brace. Leave an empty optional field out: never write `null` or `''`.
+- Bodies are CommonMark, with GFM tables as the only extension: no MDX, no Markdoc tags and no raw HTML. A page's body stays empty, since its content is its sections.
+- Media is under `public/assets/`, and content refers to it as `/assets/<file>`. Never replace a media file in place: a changed image gets a new file name, every reference moves to it, and the old file is deleted once nothing refers to it.
+
+A page's or entry's URL comes from its file's path, its `localSlug` in a translation, and its collection's base path in `src/site.config.ts`. Hostsmith has no redirects, so once a page is published, changing any of these breaks its old URL for visitors, links and search engines. `.hostsmith/old-urls.txt` lists the URLs the site keeps, and `npm run check:urls` fails when one of them has no page. When a request needs a published URL to change, say so to the developer before making the change, and never edit `.hostsmith/old-urls.txt` to make the check pass.
+
 ## Section types
 
 Pick the library type that fits a block before writing a site-local one:
@@ -70,13 +96,15 @@ Pick the library type that fits a block before writing a site-local one:
 - address, hours, phone, email and a map link: `hours-location`;
 - a call to action: `cta`. Keep one accent call to action per screen.
 
+When no library type fits a block, try a library type's other variants, or a new variant of a site-local type. Otherwise add a site-local type, in one commit: its component in `src/components/sections/site/<type>.astro`, its schema with `section` in `siteSectionSchemas` in `src/site.schema.ts`, and its Decap type under `section_types` in `public/admin/config.site.yml`. Then add it to the page as a section entry, with an id from `npm run section-id`. Never write a block's markup into a page template or a hand-written page instead: the CMS can't edit it there, and no other page can use it.
+
 `icon` takes one of the kit's icons, `calendar`, `check`, `clock`, `file-text`, `hammer`, `house`, `mail`, `map-pin`, `paint-roller`, `phone`, `ruler`, `shield-check`, `sparkles`, `star`, `users`, `wrench`, or one of the site's own, named after its file in `src/icons/`. Any other name fails the build. A site icon is drawn in `currentColor`, with a `viewBox` and no script, style, event handler or outside link, or the build fails. After adding one, run `npm run decap-config`, so the CMS offers it. List a third-party icon in `CREDITS.md`.
 
 A section's `title`, and any other prop named `title`, may mark words for the theme to highlight with `==` on both sides, such as `Work ==together==`. The kit removes the marks wherever the title isn't shown, such as in the page's `<title>`. Site code renders such a title with `Title.astro` or `titleHtml`.
 
 ## Interactive parts
 
-The kit's parts replace the interactive elements of site builders, such as Webflow's, which ran on their own scripts. Use them, never a script or a package of your own:
+The kit's parts replace the interactive elements of site builders, such as Webflow's, which ran on their own scripts. Use them, never a script or a package of your own. Make a custom version of one, such as a slider with thumbnails, only when the person asks for it, and then as a site-local type:
 
 - Webflow's Tabs: `tabs`. Its Slider: `slider`. Its Lightbox: `lightbox: true` on `gallery`. Its Dropdown: `children` on a nav item, one level deep.
 - A background video: `video` (an MP4 under `/assets/`, and an optional `videoWebm`) on a `hero` with the variant `background`, or on a `split`, with `image` as its poster. Keep the clip short and small.
@@ -131,7 +159,7 @@ The site's look is its theme, in `src/styles/theme/`. Its `README.md` lists the 
 - Switch layouts in theme CSS with `@variant` on the theme's breakpoints, such as `@variant md` or `@variant max-lg`, never a hand-written media query. A token that changes per breakpoint changes in a `:root` rule under the variant, in its token file.
 - A rule that sets `display` on an element the kit or a part's script hides with `hidden`, such as `.sk-header__menu-button` or a tab panel, needs `:not([hidden])` in its selector. Hide or collapse a part's content only under its `data-ready`, and a reveal element only under `[data-sk-ready]` and without reduced motion.
 - When a page uses a type or part the theme's `README.md` doesn't list, style its hooks in the theme, and add it to the list. The parts are `highlight`, `nested-nav`, `lightbox`, `video` and `reveal`, each with its hooks under "Parts" in `HOOKS.md`.
-- The site's own markup (custom pages, collection templates, site sections) uses Tailwind utilities built from the tokens, such as `bg-surface`, `text-h2` or `md:grid-cols-2`. Tailwind's default colors, text sizes, radii, shadows and containers don't exist.
+- The site's own markup (custom pages, collection templates, site sections) uses Tailwind utilities built from the tokens, such as `bg-surface`, `text-h2` or `md:grid-cols-2`. Tailwind's default colors, text sizes, radii, shadows and containers don't exist. Never write an arbitrary value, such as `p-[13px]` or `text-[#333]`.
 - Colors belong only in `tokens/colors.css` and `presets/colors/`, and font names only in `tokens/type.css` and `fonts.css`. Any other color is mixed from a color role, such as `color-mix(in oklch, var(--color-fg) 8%, transparent)`. Run `npm run check:styles` after a style change: it fails on a raw value anywhere else.
 - To change the site's colors, add a preset in `presets/colors/` with the same color names as the others and point `tokens/colors.css` at it. Don't edit a shipped preset. A new text and background pair gets a row in the theme's contrast table.
 - Site CSS that isn't part of the theme goes in `src/styles/site.css`.
@@ -160,6 +188,34 @@ Every dependency is pinned to an exact version, and `package-lock.json` is commi
 - `@astrojs/react`, `react` and `react-dom`, only for the DevLink experiment
 
 Don't add a package that isn't on this list. If a change seems to need one, stop and raise it with the developer instead.
+
+## Before pushing
+
+Run these, in this order, and fix what they report before you push:
+
+```bash
+npm run check:styles
+npm run build
+npm run check:urls
+npm run check:styles -- --built
+```
+
+`check:styles` and the build pass, `check:urls` finds a page for every path in `.hostsmith/old-urls.txt`, and `check:styles -- --built` warns about nothing. The deploy workflow runs the style checks and the build, but not `check:urls`.
+
+## Owner requests
+
+The site's owner sends change requests, such as "add our Saturday hours", by email or a messaging app. `.hostsmith/brief.md` says how requests arrive and who approves changes. Handle each request the same way:
+
+1. Make the change on a new branch, such as `request/saturday-hours`, following these rules. Name the request in the commit message, with who asked and when, such as `Add Saturday hours (owner's email of 2026-10-24)`.
+2. Run the checks in [Before pushing](#before-pushing), then push the branch. The deploy workflow deploys it to the preview site.
+3. Send the owner the preview address, or give it to whoever sends it. The deploy run's summary and the repository's deployments list link to it.
+4. Once the owner approves, merge the branch to `main`. The deploy workflow deploys it to production.
+
+The preview site is optional, and a site has one only when its repository sets the variable `HOSTSMITH_PREVIEW_SITE_ID`. Without one, a pushed branch only builds, and there's no approval step: merge the change to `main` once `npm run build` and `npm run check:urls` pass. A site whose owner approves changes needs a preview site. If the brief names an approver and the site has no preview site, tell the developer before merging.
+
+## Migrating a Webflow site
+
+The kit's skill for moving a Webflow site into a kit site is `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/SKILL.md`. When asked to move, port or migrate a site from Webflow, read that file and follow it, step by step. It works from Webflow's code export and CMS CSV exports, never from the live site, and runs only in a site created from the kit's `webflow` example.
 
 ## In a core site
 
