@@ -1,11 +1,11 @@
 ---
-// cta: title, text, button, secondaryButton. Variants: banner (default), a
+// cta: eyebrow, title, text, button, secondaryButton. Variants: banner (default), a
 // full-width band; card, a box within the page. Tones: accent (default),
 // dark, surface. Both buttons are links, the main one first.
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
-import Title from "../Title.astro";
+import SectionHeader from "../SectionHeader.astro";
 
 interface Props {
   section: Extract<Section, { type: "cta" }>;
@@ -20,16 +20,7 @@ const f = sectionFields(entry, section);
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    <div class="sk-section__header">
-      <h2 class="sk-section__title" {...f.field("title")}><Title text={title} /></h2>
-      {
-        text && (
-          <p class="sk-section__intro" {...f.field("text")}>
-            {text}
-          </p>
-        )
-      }
-    </div>
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={title} intro={text} introProp="text" />
     <div class="sk-buttons">
       <a href={button.link} class="sk-button sk-button--primary" {...f.field("button", "label")}>
         {button.label}

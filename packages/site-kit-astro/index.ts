@@ -28,8 +28,12 @@ export type SiteConfig = {
   // language lists one.
   locales: readonly LocaleConfig[];
   // Each site collection's base path, such as { news: { basePath: "/news" } },
-  // or an object with a base path per locale code.
-  collections: Record<string, { basePath: string | Record<string, string> }>;
+  // or an object with a base path per locale code, and its own `breadcrumb`
+  // switch, which wins over the site's.
+  collections: Record<string, { basePath: string | Record<string, string>; breadcrumb?: boolean }>;
+  // Whether pages whose path has more than one segment show the breadcrumb:
+  // on unless false (site-kit-webflow-migration design D132).
+  breadcrumb?: boolean;
 };
 
 const CONFIG_MODULE = "virtual:site-kit/config";

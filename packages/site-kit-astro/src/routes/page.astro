@@ -10,6 +10,7 @@ import Sections from "../components/Sections.astro";
 import Base from "../layouts/Base.astro";
 import type { Locale } from "../lib/locales.ts";
 import { assertBodyRendered } from "../lib/markdown.ts";
+import { entryHead } from "../lib/patterns.ts";
 import { detailTemplate, getNotFoundPages, getRoutes, pageTemplate, type Route } from "../lib/routes.ts";
 
 export async function getStaticPaths() {
@@ -30,6 +31,9 @@ type Props =
 
 const { route, notFound } = Astro.props;
 if (route?.kind === "entry") await assertBodyRendered(route.entry, `${route.collection}/${route.entry.id}`);
+// An entry's title and description from its collection's patterns, where the
+// site has them (lib/patterns.ts).
+const head = route?.kind === "entry" ? await entryHead(route.collection, route.entry.data as Record<string, unknown>, route.locale?.code) : {};
 ---
 
 {
@@ -52,7 +56,15 @@ if (route?.kind === "entry") await assertBodyRendered(route.entry, `${route.coll
       const Detail = detailTemplate(route.collection);
       const data = route.entry.data as { title: string; description?: string; image?: string };
       return (
-        <Base title={data.title} description={data.description} image={data.image} path={route.path} locale={route.locale?.code}>
+        <Base
+          title={head.title ?? data.title}
+          description={head.description ?? data.description}
+          image={data.image}
+          ogTitle={head.ogTitle}
+          ogDescription={head.ogDescription}
+          path={route.path}
+          locale={route.locale?.code}
+        >
           <Detail entry={route.entry} locale={route.locale?.code} />
         </Base>
       );

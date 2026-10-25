@@ -36,6 +36,10 @@ interface Props {
   description?: string;
   // Public media path of the Open Graph image.
   image?: string;
+  // The Open Graph title and description, when they differ from the title
+  // and the description, such as from a collection's patterns (lib/patterns.ts).
+  ogTitle?: string;
+  ogDescription?: string;
   // The page's URL path, such as "/about". Omitted on the 404 page, which
   // has no canonical URL and is never indexed.
   path?: string;
@@ -101,8 +105,8 @@ const embeds = content.includes('class="sk-embed__placeholder"');
     {robots && <meta name="robots" content={robots} />}
     {canonical && <link rel="canonical" href={canonical} />}
     <meta property="og:type" content="website" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={metaDescription} />
+    <meta property="og:title" content={Astro.props.ogTitle ?? title} />
+    <meta property="og:description" content={Astro.props.ogDescription ?? metaDescription} />
     {canonical && <meta property="og:url" content={canonical} />}
     {ogImage && <meta property="og:image" content={absoluteUrl(ogImage, Astro.site)} />}
     {localized && <meta property="og:locale" content={ogLocale(settings.language)} />}

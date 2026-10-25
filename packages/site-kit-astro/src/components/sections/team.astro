@@ -19,7 +19,7 @@ const f = sectionFields(entry, section);
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    <SectionHeader field={f.field} title={section.title} intro={section.intro} />
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={section.title} intro={section.intro} />
     <ul class="sk-team__list">
       {
         section.items.map((item, i) => (

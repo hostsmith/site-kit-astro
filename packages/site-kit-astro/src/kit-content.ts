@@ -115,6 +115,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     }),
 
   "rich-text": section("rich-text", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     body: z.string().min(1),
     // title-aside: the title beside the body, stacked on narrow screens.
@@ -122,6 +123,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   }),
 
   "collection-list": section("collection-list", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     // Parsed as { name }: Astro reads any object with string `id` and
     // `collection` keys as a content reference, and a section has an id.
@@ -156,6 +158,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   }),
 
   gallery: section("gallery", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     images: itemList(
       z
@@ -174,6 +177,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   }),
 
   testimonials: section("testimonials", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(
       z
@@ -192,11 +196,13 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // One layout, so no variant. Answers are markdown, rendered like rich-text.
   faq: section("faq", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ question: z.string().min(1), answer: z.string().min(1) })),
   }),
 
   cta: section("cta", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1),
     text: z.string().min(1).optional(),
     button: labeledLink,
@@ -208,6 +214,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // One layout, so no variant. Links to a map and never embeds one: an embed
   // loads the provider's scripts and sends visitor data to it.
   "hours-location": section("hours-location", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     address: z.string().min(1).optional(),
     hours: itemList(z.strictObject({ days: z.string().min(1), time: z.string().min(1) })).optional(),
@@ -224,6 +231,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // Short trust signals in a row, such as "Licensed & insured", or as chips.
   "trust-bar": section("trust-bar", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ text: z.string().min(1) })),
     variant: z.enum(["line", "chips"]).default("line"),
@@ -231,6 +239,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // Two to four figures, such as "500+ projects completed".
   stats: section("stats", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: statList.min(2, { error: "needs at least 2 items" }),
     tone: z.enum(["plain", "dark"]).default("plain"),
@@ -267,6 +276,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // Panels behind a row of tabs, such as floors or plans (site-kit-webflow-example
   // design D103). Without scripts, each panel shows under its label.
   tabs: section("tabs", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     intro: z.string().min(1).optional(),
     items: z
@@ -290,6 +300,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // (site-kit-webflow-example design D103). It rotates only with `autoplay`,
   // the seconds between slides. Without scripts, a list that scrolls sideways.
   slider: section("slider", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     intro: z.string().min(1).optional(),
     slides: itemList(
@@ -314,6 +325,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // The people behind the business. A member without a photo gets a placeholder.
   team: section("team", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     intro: z.string().min(1).optional(),
     items: itemList(
@@ -330,6 +342,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // Prices as the site writes them, such as "from $4,800".
   "pricing-list": section("pricing-list", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ label: z.string().min(1), price: z.string().min(1) })),
     note: z.string().min(1).optional(),
@@ -340,6 +353,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // names the frame. `direct` loads it at once: only for a site whose privacy
   // notice names the provider.
   embed: section("embed", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1),
     url: httpsUrl,
     kind: z.enum(["map", "video", "other"]).default("other"),
@@ -380,6 +394,7 @@ export function defineKitContent(siteConfig: SiteConfig, { siteSectionSchemas, s
       throw new Error(`Collection "${name}" in src/site.schema.ts has the name of a kit collection. Rename it.`);
     }
   }
+  checkPatterns(siteCollections, siteUi);
 
   // The section registry: library types, then site-local types.
   const sectionSchemas: Record<string, SectionSchema> = { ...library, ...siteSectionSchemas };
@@ -775,6 +790,35 @@ const UI_KEY = /^[a-z][a-zA-Z0-9]*$/;
 const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"] as const;
 
 // The site's declared keys (site-kit-locales design D46).
+// A collection's title, description and Open Graph patterns are site
+// interface strings named after it, such as postsPageTitle, whose parameters
+// are its entries' fields (site-kit-webflow-migration design D134). The same
+// suffixes as PATTERNS in lib/patterns.ts, which fills them.
+const PATTERN_SUFFIXES = ["PageTitle", "PageDescription", "OgTitle", "OgDescription"];
+
+function checkPatterns(siteCollections: Record<string, unknown>, siteUi: Record<string, UiString>) {
+  for (const [name, collection] of Object.entries(siteCollections)) {
+    const fields = fieldNames((collection as { schema?: unknown } | undefined)?.schema);
+    if (!fields) continue;
+    for (const key of PATTERN_SUFFIXES.map((suffix) => `${name}${suffix}`)) {
+      const param = (siteUi[key]?.params ?? []).find((param) => param !== "title" && !fields.includes(param));
+      if (param) {
+        throw new Error(
+          `Interface string "${key}" in siteUi in src/site.schema.ts has the parameter {${param}}, which isn't a field of the collection "${name}". Its fields are ${fields.map((field) => `{${field}}`).join(", ")}.`,
+        );
+      }
+    }
+  }
+}
+
+// The fields of a collection's object schema, called with a stand-in for
+// Astro's schema context when it's a function, or undefined when it isn't an
+// object.
+function fieldNames(schema: unknown): string[] | undefined {
+  const site = typeof schema === "function" ? (schema as (context: unknown) => unknown)({ image: () => z.string() }) : schema;
+  return site instanceof z.ZodObject ? Object.keys(site.shape) : undefined;
+}
+
 function checkSiteUi(siteUi: Record<string, UiString>) {
   for (const key of Object.keys(siteUi)) {
     if (!UI_KEY.test(key)) {

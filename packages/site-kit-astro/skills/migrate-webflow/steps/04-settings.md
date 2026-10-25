@@ -13,6 +13,7 @@ In `src/site.config.ts`:
 - **`url`:** the site's production URL, the domain the old site is served on, such as `https://www.acme.com`, which the site keeps once the domain moves. Never the `webflow.io` address. If the old site has no domain of its own yet, ask the person.
 - **`locales`:** the primary locale, with its `code`, such as `en`, and its `tag`. The tag is the code export's `<html lang>`, with the region that the site's spelling, dates and phone numbers show, such as `en-US` for US spelling, or `en-GB` for British. Ask when you can't tell.
 - **A localized site's other locales:** from the sitemap's alternates, each with its tag, its `hreflang`, and its `path`, the folder its URLs start with, such as `/de`. Confirm the list with the person before you write it.
+- **`breadcrumb`:** the kit's layout shows a breadcrumb on every page whose path has more than one segment, such as a page in a Webflow folder, `/services/painting`. Webflow has no breadcrumb element, so set `breadcrumb: false` unless one of those pages has a trail of links home its designer built. Step 6 sets each collection's own switch. Record it in the report's "Collections".
 
 Run `npx site-kit schema` after a change to the locales.
 
@@ -37,11 +38,9 @@ Write `src/content/settings/site.<code>.yml` from the export's navbar and footer
 
 ## The head
 
-The kit has no setting for a title pattern or for icons:
-
 - **Titles:** each page's `<title>` becomes its page entry's `title` in step 5, and its meta description its `description`.
-- **Templates:** a collection template's title, such as `| Acme Blog` in `detail_blog.html`, shows its pattern with the bound field left out. The kit titles an entry's page with its `title` alone, so record the pattern, such as `{Name} | Acme Blog`, in the report's "Answers", where the owner sees what changes. A description pattern that is one field, such as the summary, maps that field onto `description` in step 6.
-- **The favicon:** Webflow's favicon becomes `public/favicon.ico`, and its touch icon, the "webclip" in the `apple-touch-icon` link, becomes `public/apple-touch-icon.png`. Browsers ask for both at these paths.
+- **Templates:** a collection template's title, such as `| Acme Blog` in `detail_blog.html`, shows its SEO title pattern with its fields left out, and its meta description and Open Graph tags do the same. The export doesn't say which fields, so ask for each template's SEO title and description patterns, and its Open Graph ones when they differ, unless they were given in advance. Record each in the report's "Answers". Step 6 writes them as interface strings, once the collection's fields exist.
+- **The favicon and touch icon:** the favicon becomes `public/favicon.ico`, and the touch icon, the "webclip" in the `apple-touch-icon` link, becomes `public/apple-touch-icon.png`, where browsers ask for them. But a site that never set its own exports Webflow's defaults, `images/favicon.ico` and `images/webclip.png`, which show Webflow's logo: as of 2026-10, their SHA-1 hashes are `743a2c39f538650d53664d19ab5079cfc9ba55d2` and `8f20cc5b884b7c2642558d11d7cf79e416ea4a7f` (`shasum`), and a look at the image confirms it. Never carry a default. Ask the person for the owner's icons, and until they arrive list them in the report's "Missing pieces".
 
 ## Other locales
 

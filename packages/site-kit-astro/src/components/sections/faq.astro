@@ -6,7 +6,7 @@ import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
 import { renderMarkdown } from "../../lib/markdown.ts";
-import Title from "../Title.astro";
+import SectionHeader from "../SectionHeader.astro";
 
 interface Props {
   section: Extract<Section, { type: "faq" }>;
@@ -24,15 +24,7 @@ const answers = await Promise.all(
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    {
-      title && (
-        <div class="sk-section__header">
-          <h2 class="sk-section__title" {...f.field("title")}>
-            <Title text={title} />
-          </h2>
-        </div>
-      )
-    }
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={title} />
     <div class="sk-faq__list">
       {
         items.map((item, i) => (

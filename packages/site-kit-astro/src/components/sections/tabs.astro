@@ -29,7 +29,7 @@ const panel = (i: number) => `${section.id}-panel-${i}`;
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    <SectionHeader field={f.field} title={title} intro={intro} />
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={title} intro={intro} />
     <div class="sk-tabs__list" role="tablist" aria-orientation={variant === "vertical" ? "vertical" : undefined} hidden>
       {
         items.map((item, i) => (

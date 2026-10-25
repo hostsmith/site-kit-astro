@@ -72,6 +72,8 @@ Compare each page of the build with the same page of the export, as screenshots 
 
    Leave out `--fonts` and `--font-files` while the site has no font files of its own. With them, the export's pages get the site's fonts, so a font the export lacks isn't a difference.
 
+   **In a sandbox,** the script may fail to serve on `localhost`, such as with `EPERM` on `listen`, or its browser may fail to start. Never work around a sandbox. Say what it must allow: in Claude Code, `sandbox.network.allowLocalBinding: true` lets it serve on `localhost`. If the browser still can't start, as Google Chrome can't inside Claude Code's sandbox on macOS, say that the person can run the command above outside the sandbox, or skip the check. Record the check as not run, and why, in the report's "Fidelity check", and go on to the person's comparison.
+
 4. **Review each pair:** `.hostsmith/snapshot/fidelity/shots/<page>/<width>-export.png` beside `<width>-build.png`. Look at the layout, the order, the spacing, the type, the colors, the images and what shows at each width. `fidelity.json` lists a page that answered 404 on either side, which usually means a wrong line in `pages.txt`.
    - **CMS areas:** a collection list, and a template's bound fields, are empty in the export. Check those areas against the collection's entries instead of the picture.
    - **Fonts:** while the site uses a fallback, its type differs from the export's in every picture. Note it once.

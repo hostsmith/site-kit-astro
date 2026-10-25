@@ -43,7 +43,7 @@ const featured = section.variant === "featured";
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    <SectionHeader field={f.field} title={section.title} link={section.link} />
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={section.title} link={section.link} />
     <ul class="sk-collection-list__list">
       {
         items.map(({ path, key, entry: item }, i) => {

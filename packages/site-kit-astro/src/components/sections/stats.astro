@@ -19,7 +19,7 @@ const f = sectionFields(entry, section);
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    <SectionHeader field={f.field} title={section.title} />
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={section.title} />
     <ul class="sk-stats__list">
       {section.items.map((item, i) => <Stat field={f.field} at={["items", i]} value={item.value} label={item.label} />)}
     </ul>

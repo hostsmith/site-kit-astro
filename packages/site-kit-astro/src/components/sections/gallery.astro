@@ -12,7 +12,7 @@ import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
 import { localeOfRef } from "../../lib/site-locales.ts";
 import Lightbox from "../Lightbox.astro";
-import Title from "../Title.astro";
+import SectionHeader from "../SectionHeader.astro";
 
 interface Props {
   section: Extract<Section, { type: "gallery" }>;
@@ -27,15 +27,7 @@ const f = sectionFields(entry, section);
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    {
-      title && (
-        <div class="sk-section__header">
-          <h2 class="sk-section__title" {...f.field("title")}>
-            <Title text={title} />
-          </h2>
-        </div>
-      )
-    }
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={title} />
     <ul class="sk-gallery__list">
       {
         images.map((item, i) => (

@@ -102,15 +102,25 @@ export async function routeOf(path: string): Promise<Route | undefined> {
 
 export type Crumb = { path: string; title: string; ref: string };
 
+// Whether a page shows the breadcrumb (site-kit-webflow-migration design
+// D132): its collection's own `breadcrumb` in the site config, or else the
+// site's, on unless false.
+function breadcrumbOn(route: Route | undefined): boolean {
+  const own = route?.kind === "entry" ? siteConfig.collections[route.collection]?.breadcrumb : undefined;
+  return own ?? siteConfig.breadcrumb ?? true;
+}
+
 // The breadcrumb of a page whose path, after its locale's prefix, has more
 // than one segment (site-kit-design-system design D38): each ancestor path
 // that has a page, then the page itself, each by its entry's title. Undefined
-// for a top-level page. The layout adds the home link before it.
+// for a top-level page, and where the site config turns it off. The layout
+// adds the home link before it.
 export async function breadcrumbTrail(path: string): Promise<Crumb[] | undefined> {
   const prefix = localeOfPath(path).path;
   const segments = path.slice(prefix.length).split("/").filter(Boolean);
   if (segments.length < 2) return undefined;
   const byPath = new Map((await getRoutes()).map((route) => [route.path, route]));
+  if (!breadcrumbOn(byPath.get(path))) return undefined;
   const crumb = (route: Route): Crumb => ({
     path: route.path,
     title: (route.entry.data as { title: string }).title,

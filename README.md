@@ -95,13 +95,27 @@ The library's section types. Variants change the markup's order or grouping; ton
 | `slider` | slides or cards one after another | title, intro, slides (image, title, markdown body, link), autoplay | `full`, `cards` | |
 | `embed` | a map, a YouTube or Vimeo video, or other content in a frame | title, url, kind (`map`, `video`, `other`), aspect (`16:9`, `4:3`, `1:1`, `21:9`), caption, load (`click`, `direct`) | | |
 
-Every section may also set `reveal`, an entrance animation (see [Interactive parts](#interactive-parts)). Any prop named `title` may mark words for the theme to highlight with `==` on both sides, such as `Work ==together== by the river`: they render in a `span` with the class `sk-highlight`, which adds no meaning, and the marks go wherever the title isn't shown as such, such as in the page's `<title>`, `og:title` and breadcrumb. Marks pair from the left and don't nest, and a lone `==` shows as written. Site code renders such a title with `@hostsmith/site-kit-astro/components/Title.astro`, or with `titleHtml` from `@hostsmith/site-kit-astro/title`.
+Every section may also set `reveal`, an entrance animation (see [Interactive parts](#interactive-parts)), and every section with a title may set `eyebrow`, a short label above it, such as "About us", as Webflow's section headers often have. Any prop named `title` may mark words for the theme to highlight with `==` on both sides, such as `Work ==together== by the river`: they render in a `span` with the class `sk-highlight`, which adds no meaning, and the marks go wherever the title isn't shown as such, such as in the page's `<title>`, `og:title` and breadcrumb. Marks pair from the left and don't nest, and a lone `==` shows as written. Site code renders such a title with `@hostsmith/site-kit-astro/components/Title.astro`, or with `titleHtml` from `@hostsmith/site-kit-astro/title`.
 
 An `icon` prop takes one of the kit's icons: `calendar`, `check`, `clock`, `file-text`, `hammer`, `house`, `mail`, `map-pin`, `paint-roller`, `phone`, `ruler`, `shield-check`, `sparkles`, `star`, `users`, `wrench`. They are [Lucide](https://lucide.dev) icons, drawn in the current text color. It also takes one of the site's own icons, an SVG file in `src/icons/` named after it, such as `src/icons/phone-booth.svg` for `icon: phone-booth`, which the CMS offers after the kit's once `npm run decap-config` has run. A site icon renders inline as the kit's do, so the build fails, naming the file and the reason, on one that has a kit icon's name or a name other than lowercase letters, digits and hyphens, that has no `viewBox`, that sets a color other than `currentColor` or `none`, or that holds a `script`, `foreignObject` or `style` element, a `style` or event handler attribute, or a link to anything but an element in the same file. Without a `fill` of its own, it fills in the current text color.
 
 ## Header and footer
 
 The layout owns the frame of every page: the skip link, the brand link, the main nav (`nav`), the menu and the breadcrumb. The rest of the header and the footer are blocks that the site lists in its settings, like a page's sections. The kit defines no business facts: a phone number, an address or opening hours are props of the block that shows them, usually written as a [fact](#facts).
+
+The breadcrumb shows on every page whose path has more than one segment, such as `/services/painting` or a blog post, unless `src/site.config.ts` turns it off: `breadcrumb: false` on the site config for its pages and every collection, or on one collection for its entries, where it wins over the site's.
+
+```ts
+export const siteConfig = {
+  url: "https://www.example.com",
+  breadcrumb: false, // pages in folders
+  locales: [{ code: "en", tag: "en-US" }],
+  collections: {
+    posts: { basePath: "/blog" }, // follows the site: off
+    docs: { basePath: "/docs", breadcrumb: true },
+  },
+} as const;
+```
 
 A `nav` item is a `label` with a `link`, `children`, or both. `children` are label and link pairs, one level deep, as in Webflow's Dropdown: the item gets a button that shows and hides them, which holds the item's label, or, when the item has a link of its own, sits beside it, named by `ui.navSubmenu`. It closes on Escape, a click outside or focus leaving it. The current page's link carries `aria-current="page"`, and its parent's button `data-current`. In the menu on narrow screens, the children are a nested list.
 
@@ -166,7 +180,7 @@ footer:
 
 ### Facts
 
-A fact that appears in several places, such as the phone number, is written once in the settings' `facts`, with a name the site picks. Any text in the content uses it as `{name}`: a block's or section's prop, a page's or entry's frontmatter, or a Markdown body. The build fills in the value before checking the content, so `email: "{email}"` is checked as an email address and a `phone` action builds its `tel:` link from the number. Markdown code stays as written.
+A fact that appears in several places, such as the phone number, is written once in the settings' `facts`, with a name the site picks. Any text in the content uses it as `{name}`: a block's or section's prop, a page's or entry's frontmatter, or a Markdown body. The build fills in the value before checking the content, so `email: "{email}"` is checked as an email address and a `phone` action builds its `tel:` link from the number. In a Markdown body, a link's address is filled too, so `[{email}](mailto:{email})` and `[call us](tel:{phone})` follow the settings, with a `tel:` address keeping only the number's digits. Markdown code stays as written.
 
 ```yaml
 facts:
@@ -229,6 +243,29 @@ const ui = await getUi(Astro.props.locale);
 ```
 
 `text` formats a number parameter for the locale. An unknown key fails the build, naming the keys that exist.
+
+### Title and description patterns
+
+A collection's entry pages take their `<title>` and meta description from the entry's `title` and `description`, unless the site declares patterns for them, as Webflow's Collection templates have. A pattern is an interface string named after the collection, whose parameters are the entry's fields:
+
+| Key | Sets |
+| --- | --- |
+| `<collection>PageTitle` | the `<title>` |
+| `<collection>PageDescription` | the meta description |
+| `<collection>OgTitle`, `<collection>OgDescription` | the Open Graph title and description, which otherwise follow the two above |
+
+```ts
+export const siteUi = {
+  postsPageTitle: uiString({ params: ["title"] }),
+};
+```
+
+```yaml
+ui:
+  postsPageTitle: "{title} | Acme Blog"
+```
+
+`{title}` fills as the plain title, a date field as the locale writes it, and an empty field as nothing. A parameter that isn't a field of the collection fails the build, naming the key and the fields. Pages, and a collection without patterns, keep their own title and description.
 
 ## Interactive parts
 

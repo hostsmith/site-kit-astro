@@ -42,6 +42,7 @@ describe("facts", () => {
           ].join("\n"),
         ),
         "src/content/news/facts.en.md": post("Call {phone}. In a template, write `{phone}`."),
+        "src/content/news/links.en.md": post("Write to [{email}](mailto:{email}), [call us](tel:{phone}), or use [the reference][r].\n\n[r]: mailto:{email}"),
       },
     });
   });
@@ -60,6 +61,13 @@ describe("facts", () => {
     assert.match(html, /<a href="tel:\+15550100" class="sk-hours-location__contact-link"/);
   });
 
+  it("fill a body's link addresses, inline and by reference, with a tel: address as digits", async () => {
+    const html = await build.read("news/links/index.html");
+    assert.match(html, /<a href="mailto:test@example\.com">test@example\.com<\/a>/);
+    assert.match(html, /<a href="tel:\+15550100">call us<\/a>/);
+    assert.match(html, /<a href="mailto:test@example\.com">the reference<\/a>/);
+  });
+
   it("leave code as written", async () => {
     assert.match(await build.read("news/facts/index.html"), /<code>\{phone\}<\/code>/);
   });
@@ -75,6 +83,9 @@ describe("facts", () => {
 
   it("fail on an unknown fact in a Markdown body, naming the file", () =>
     expectFailure({ "src/content/news/facts.en.md": post("Call {phnoe}.") }, withFacts, "src/content/news/facts.en.md", 'unknown fact "{phnoe}"'));
+
+  it("fail on an unknown fact in a link's address, naming the file", () =>
+    expectFailure({ "src/content/news/facts.en.md": post("[Email us](mailto:{emial})") }, withFacts, "src/content/news/facts.en.md", 'unknown fact "{emial}"'));
 
   it("fail on an unknown fact without any facts", () =>
     expectFailure({}, (text) => text.replace('      number: "+1 555 0100"\n', '      number: "{phone}"\n'), 'unknown fact "{phone}". The settings have no facts.'));

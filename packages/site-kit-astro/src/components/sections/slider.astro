@@ -36,7 +36,7 @@ const status = (current: number) => ui("sliderStatus", { current, total: slides.
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    <SectionHeader field={f.field} title={title} intro={intro} />
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={title} intro={intro} />
     <ul id={list} class="sk-slider__list">
       {
         slides.map((slide, i) => (

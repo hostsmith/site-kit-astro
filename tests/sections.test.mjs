@@ -518,3 +518,51 @@ describe("invalid sections fail the build", () => {
       'section "k7h2" (hours-location): needs an "address", "hours", "phone" or "email"',
     ));
 });
+
+// "An eyebrow on every titled section" (site-kit-webflow-migration design
+// D130): each type that gained one renders it right before its title, in the
+// shared section header.
+describe("an eyebrow on every titled section", () => {
+  // Each type with the least it needs besides its eyebrow and title.
+  const SECTIONS = [
+    ["rich-text", "body: Text"],
+    ["collection-list", "collection: news"],
+    ["gallery", "images: [{ image: /assets/test/photo.svg, alt: A loaf }]"],
+    ["testimonials", "items: [{ quote: Good bread., name: Ana }]"],
+    ["faq", "items: [{ question: Open on Sunday?, answer: No. }]"],
+    ["cta", "button: { label: Visit, link: /about }"],
+    ["hours-location", "address: 1 Mill Lane"],
+    ["trust-bar", "items: [{ text: Local flour }]"],
+    ["stats", 'items: [{ value: "20", label: Years }, { value: "3", label: Ovens }]'],
+    ["team", "items: [{ name: Ana }]"],
+    ["pricing-list", "items: [{ label: Loaf, price: $5 }]"],
+  ];
+  // The interactive parts need their interface strings, which the interactive fixture has.
+  const PARTS = [
+    ["tabs", "items: [{ label: One, body: First }, { label: Two, body: Second }]"],
+    ["slider", "slides: [{ title: One }]"],
+    ["embed", "url: https://example.com/"],
+  ];
+  const sectionsOf = (list) => list.map(([type, props], i) => `  - { id: y${String(i).padStart(2, "0")}a, type: ${type}, eyebrow: Eyebrow ${type}, title: Title ${type}, ${props} }\n`).join("");
+
+  async function expectEyebrows(fixture, list, options = {}) {
+    const build = await buildFixture(fixture, { ...options, files: { "src/content/pages/test.en.md": page(sectionsOf(list)) } });
+    try {
+      assert.ok(build.ok, build.output);
+      const html = await build.read("test/index.html");
+      list.forEach(([type], i) => {
+        const id = `y${String(i).padStart(2, "0")}a`;
+        assert.match(
+          sectionHtml(html, "pages/test.en", id),
+          new RegExp(`<div class="sk-section__header">\\s*<p class="sk-eyebrow" data-field="pages/test\\.en#sections\\[${id}\\]\\.eyebrow">\\s*Eyebrow ${type}\\s*</p>\\s*<h2 class="sk-section__title"`),
+          type,
+        );
+      });
+    } finally {
+      await build.cleanup();
+    }
+  }
+
+  it("renders it in the eleven types without a script", () => expectEyebrows("base", SECTIONS));
+  it("renders it in tabs, slider and embed", () => expectEyebrows("interactive", PARTS, { example: "webflow" }));
+});
