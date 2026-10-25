@@ -43,7 +43,7 @@ const html = embedHtml({
 
 <section {...f.root} class={sectionClass(section)}>
   <div class="sk-container">
-    <SectionHeader field={f.field} title={title} />
+    <SectionHeader field={f.field} eyebrow={section.eyebrow} title={title} />
     <Fragment set:html={html} />
   </div>
 </section>

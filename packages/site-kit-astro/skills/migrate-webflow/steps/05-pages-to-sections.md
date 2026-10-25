@@ -30,7 +30,7 @@ Expect a call to action band repeated on several pages, and cards repeated in a 
 
 For each section, in this order:
 
-1. **A library type** whose structure matches: the same parts, in the same order. The kit's README, "Section types", lists each type's props, variants and tones. The theme then restyles it to the old look. A hero, a call to action, questions and answers, prices, a numbered process or a list of entries often match.
+1. **A library type** whose structure matches: the same parts, in the same order. The kit's README, "Section types", lists each type's props, variants and tones. The theme then restyles it to the old look. A hero, a call to action, questions and answers, prices, a numbered process or a list of entries often match. Every library type with a title also takes an `eyebrow`, so Client-First's section header, a small label above the heading, never makes a section site-local by itself.
 2. **A variant** of a site-local type you've already made, when only the layout differs.
 3. **A new site-local type,** otherwise. This is the usual case for a section with a layout of its own.
 

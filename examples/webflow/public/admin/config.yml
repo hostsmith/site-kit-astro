@@ -53,7 +53,7 @@ collections:
               - &section_id { name: id, label: Section id, widget: string, pattern: [ "^[a-z](?=[a-z0-9]*[0-9])[a-z0-9]{3}$", "A lowercase letter, then 3 lowercase letters or digits, with at least one digit" ], hint: "A random label that keeps pointing at this section when sections move. For a new section, run npm run section-id -- <page file> for an id this page has never used, such as k3m9. Never change it or copy it from another section.", i18n: true }
               # Every section type, the site's own too, can ask the theme for an entrance animation.
               - &section_reveal { name: reveal, label: Entrance animation, widget: select, options: [ fade, fade-up, fade-down, slide-left, slide-right, scale ], required: false, hint: "The theme animates the section as it scrolls into view, unless the visitor asks for reduced motion.", i18n: true }
-              - { name: eyebrow, label: Eyebrow, widget: string, required: false, i18n: true }
+              - &eyebrow_field { name: eyebrow, label: Eyebrow, widget: string, required: false, i18n: true }
               - { name: badge, label: Badge, widget: string, required: false, i18n: true }
               - { name: title, label: Title, widget: string, i18n: true }
               - { name: subtitle, label: Subtitle, widget: string, required: false, i18n: true }
@@ -83,6 +83,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: body, label: Body, widget: markdown, i18n: true }
               - { name: variant, label: Variant, widget: select, options: [ narrow, wide, title-aside ], default: narrow, required: false, i18n: true }
@@ -92,6 +93,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: collection
                 label: Collection
@@ -107,7 +109,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
-              - &eyebrow_field { name: eyebrow, label: Eyebrow, widget: string, required: false, i18n: true }
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
               - { name: link, label: Link beside the title, widget: object, required: false, fields: *labeled_link, i18n: true }
@@ -139,6 +141,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: images
                 label: Images
@@ -158,6 +161,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Testimonials
@@ -179,6 +183,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Questions
@@ -195,6 +200,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, i18n: true }
               - { name: text, label: Text, widget: text, required: false, i18n: true }
               - { name: button, label: Button, widget: object, fields: *labeled_link, i18n: true }
@@ -207,6 +213,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: address, label: Address, widget: text, required: false, hint: "Type {address} to use the address from Facts.", i18n: true }
               - name: hours
@@ -228,6 +235,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Items
@@ -244,6 +252,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Figures
@@ -297,6 +306,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
               - name: items
@@ -316,6 +326,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
                 label: Prices
@@ -333,6 +344,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
               - name: items
@@ -355,6 +367,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
               - name: slides
@@ -377,6 +390,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *eyebrow_field
               - { name: title, label: Title (also names the frame), widget: string, i18n: true }
               - { name: url, label: URL (https), widget: string, pattern: [ "^https://", "Starts with https://" ], i18n: true }
               - { name: kind, label: Kind, widget: select, options: [ map, video, other ], default: other, required: false, hint: "A video is a YouTube or Vimeo link.", i18n: true }

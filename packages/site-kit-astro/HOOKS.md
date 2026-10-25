@@ -97,7 +97,7 @@ Attributes that name something rather than a state. A theme may select on them, 
 | --- | --- | --- |
 | `sk-container` | `div` | The content width inside the header, the footer and every section |
 | `sk-section` | `section` | The root of every section, next to its type's block class |
-| `sk-section__header` | `div` | A section's heading group: title and intro |
+| `sk-section__header` | `div` | A section's heading group: eyebrow, title and intro |
 | `sk-section__title` | `h2` | A section's title |
 | `sk-section__intro` | `p` | The text under a section's title |
 | `sk-section__link` | `a` | A link after the title, such as "All services" |

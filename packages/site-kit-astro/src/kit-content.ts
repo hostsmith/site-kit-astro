@@ -115,6 +115,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     }),
 
   "rich-text": section("rich-text", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     body: z.string().min(1),
     // title-aside: the title beside the body, stacked on narrow screens.
@@ -122,6 +123,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   }),
 
   "collection-list": section("collection-list", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     // Parsed as { name }: Astro reads any object with string `id` and
     // `collection` keys as a content reference, and a section has an id.
@@ -156,6 +158,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   }),
 
   gallery: section("gallery", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     images: itemList(
       z
@@ -174,6 +177,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   }),
 
   testimonials: section("testimonials", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(
       z
@@ -192,11 +196,13 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // One layout, so no variant. Answers are markdown, rendered like rich-text.
   faq: section("faq", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ question: z.string().min(1), answer: z.string().min(1) })),
   }),
 
   cta: section("cta", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1),
     text: z.string().min(1).optional(),
     button: labeledLink,
@@ -208,6 +214,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // One layout, so no variant. Links to a map and never embeds one: an embed
   // loads the provider's scripts and sends visitor data to it.
   "hours-location": section("hours-location", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     address: z.string().min(1).optional(),
     hours: itemList(z.strictObject({ days: z.string().min(1), time: z.string().min(1) })).optional(),
@@ -224,6 +231,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // Short trust signals in a row, such as "Licensed & insured", or as chips.
   "trust-bar": section("trust-bar", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ text: z.string().min(1) })),
     variant: z.enum(["line", "chips"]).default("line"),
@@ -231,6 +239,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // Two to four figures, such as "500+ projects completed".
   stats: section("stats", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: statList.min(2, { error: "needs at least 2 items" }),
     tone: z.enum(["plain", "dark"]).default("plain"),
@@ -267,6 +276,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // Panels behind a row of tabs, such as floors or plans (site-kit-webflow-example
   // design D103). Without scripts, each panel shows under its label.
   tabs: section("tabs", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     intro: z.string().min(1).optional(),
     items: z
@@ -290,6 +300,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // (site-kit-webflow-example design D103). It rotates only with `autoplay`,
   // the seconds between slides. Without scripts, a list that scrolls sideways.
   slider: section("slider", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     intro: z.string().min(1).optional(),
     slides: itemList(
@@ -314,6 +325,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // The people behind the business. A member without a photo gets a placeholder.
   team: section("team", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     intro: z.string().min(1).optional(),
     items: itemList(
@@ -330,6 +342,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
 
   // Prices as the site writes them, such as "from $4,800".
   "pricing-list": section("pricing-list", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ label: z.string().min(1), price: z.string().min(1) })),
     note: z.string().min(1).optional(),
@@ -340,6 +353,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // names the frame. `direct` loads it at once: only for a site whose privacy
   // notice names the provider.
   embed: section("embed", {
+    eyebrow: z.string().min(1).optional(),
     title: z.string().min(1),
     url: httpsUrl,
     kind: z.enum(["map", "video", "other"]).default("other"),

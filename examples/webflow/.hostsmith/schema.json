@@ -257,6 +257,11 @@
                       ],
                       "x-widget": "select"
                     },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
                     "title": {
                       "type": "string",
                       "minLength": 1,
@@ -308,6 +313,11 @@
                         "scale"
                       ],
                       "x-widget": "select"
+                    },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
                     },
                     "title": {
                       "type": "string",
@@ -536,6 +546,11 @@
                       ],
                       "x-widget": "select"
                     },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
                     "title": {
                       "type": "string",
                       "minLength": 1,
@@ -615,6 +630,11 @@
                         "scale"
                       ],
                       "x-widget": "select"
+                    },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
                     },
                     "title": {
                       "type": "string",
@@ -712,6 +732,11 @@
                       ],
                       "x-widget": "select"
                     },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
                     "title": {
                       "type": "string",
                       "minLength": 1,
@@ -774,6 +799,11 @@
                         "scale"
                       ],
                       "x-widget": "select"
+                    },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
                     },
                     "title": {
                       "type": "string",
@@ -876,6 +906,11 @@
                         "scale"
                       ],
                       "x-widget": "select"
+                    },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
                     },
                     "title": {
                       "type": "string",
@@ -980,6 +1015,11 @@
                       ],
                       "x-widget": "select"
                     },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
                     "title": {
                       "type": "string",
                       "minLength": 1,
@@ -1045,6 +1085,11 @@
                         "scale"
                       ],
                       "x-widget": "select"
+                    },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
                     },
                     "title": {
                       "type": "string",
@@ -1323,6 +1368,11 @@
                       ],
                       "x-widget": "select"
                     },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
                     "title": {
                       "type": "string",
                       "minLength": 1,
@@ -1434,6 +1484,11 @@
                       ],
                       "x-widget": "select"
                     },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
                     "title": {
                       "type": "string",
                       "minLength": 1,
@@ -1542,6 +1597,11 @@
                       ],
                       "x-widget": "select"
                     },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
                     "title": {
                       "type": "string",
                       "minLength": 1,
@@ -1619,6 +1679,11 @@
                       ],
                       "x-widget": "select"
                     },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
+                    },
                     "title": {
                       "type": "string",
                       "minLength": 1,
@@ -1686,6 +1751,11 @@
                         "scale"
                       ],
                       "x-widget": "select"
+                    },
+                    "eyebrow": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-widget": "string"
                     },
                     "title": {
                       "type": "string",
