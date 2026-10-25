@@ -103,6 +103,20 @@ An `icon` prop takes one of the kit's icons: `calendar`, `check`, `clock`, `file
 
 The layout owns the frame of every page: the skip link, the brand link, the main nav (`nav`), the menu and the breadcrumb. The rest of the header and the footer are blocks that the site lists in its settings, like a page's sections. The kit defines no business facts: a phone number, an address or opening hours are props of the block that shows them, usually written as a [fact](#facts).
 
+The breadcrumb shows on every page whose path has more than one segment, such as `/services/painting` or a blog post, unless `src/site.config.ts` turns it off: `breadcrumb: false` on the site config for its pages and every collection, or on one collection for its entries, where it wins over the site's.
+
+```ts
+export const siteConfig = {
+  url: "https://www.example.com",
+  breadcrumb: false, // pages in folders
+  locales: [{ code: "en", tag: "en-US" }],
+  collections: {
+    posts: { basePath: "/blog" }, // follows the site: off
+    docs: { basePath: "/docs", breadcrumb: true },
+  },
+} as const;
+```
+
 A `nav` item is a `label` with a `link`, `children`, or both. `children` are label and link pairs, one level deep, as in Webflow's Dropdown: the item gets a button that shows and hides them, which holds the item's label, or, when the item has a link of its own, sits beside it, named by `ui.navSubmenu`. It closes on Escape, a click outside or focus leaving it. The current page's link carries `aria-current="page"`, and its parent's button `data-current`. In the menu on narrow screens, the children are a nested list.
 
 ```yaml

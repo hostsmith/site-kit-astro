@@ -239,6 +239,39 @@ describe("breadcrumb", () => {
   });
 });
 
+// site-kit-routing, "Base layout": the switches in the site config
+// (site-kit-webflow-migration design D132).
+describe("breadcrumb switches", () => {
+  const SITE_CONFIG = "src/site.config.ts";
+  const has = async (build, file) => (await build.read(file)).includes('class="sk-breadcrumb"');
+
+  it("turns off for one collection, and stays on elsewhere", async () => {
+    const build = await buildFixture("base", { edit: { [SITE_CONFIG]: (text) => text.replace('news: { basePath: "/news" }', 'news: { basePath: "/news", breadcrumb: false }') } });
+    try {
+      assert.ok(build.ok, build.output);
+      assert.equal(await has(build, "news/fresh-rye/index.html"), false, "a news entry has a breadcrumb");
+      assert.equal(await has(build, "services/plumbing/index.html"), true, "the nested page lost its breadcrumb");
+    } finally {
+      await build.cleanup();
+    }
+  });
+
+  it("turns off for the site, with a collection's own switch winning", async () => {
+    const build = await buildFixture("base", {
+      edit: {
+        [SITE_CONFIG]: (text) => text.replace("  locales:", "  breadcrumb: false,\n  locales:").replace('news: { basePath: "/news" }', 'news: { basePath: "/news", breadcrumb: true }'),
+      },
+    });
+    try {
+      assert.ok(build.ok, build.output);
+      assert.equal(await has(build, "services/plumbing/index.html"), false, "the nested page has a breadcrumb");
+      assert.equal(await has(build, "news/fresh-rye/index.html"), true, "the news entry lost its breadcrumb");
+    } finally {
+      await build.cleanup();
+    }
+  });
+});
+
 describe("interface strings follow the site language", () => {
   it("shows the Estonian strings", async () => {
     const build = await buildFixture("base", {
