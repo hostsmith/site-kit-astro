@@ -380,6 +380,7 @@ export function defineKitContent(siteConfig: SiteConfig, { siteSectionSchemas, s
       throw new Error(`Collection "${name}" in src/site.schema.ts has the name of a kit collection. Rename it.`);
     }
   }
+  checkPatterns(siteCollections, siteUi);
 
   // The section registry: library types, then site-local types.
   const sectionSchemas: Record<string, SectionSchema> = { ...library, ...siteSectionSchemas };
@@ -775,6 +776,35 @@ const UI_KEY = /^[a-z][a-zA-Z0-9]*$/;
 const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"] as const;
 
 // The site's declared keys (site-kit-locales design D46).
+// A collection's title, description and Open Graph patterns are site
+// interface strings named after it, such as postsPageTitle, whose parameters
+// are its entries' fields (site-kit-webflow-migration design D134). The same
+// suffixes as PATTERNS in lib/patterns.ts, which fills them.
+const PATTERN_SUFFIXES = ["PageTitle", "PageDescription", "OgTitle", "OgDescription"];
+
+function checkPatterns(siteCollections: Record<string, unknown>, siteUi: Record<string, UiString>) {
+  for (const [name, collection] of Object.entries(siteCollections)) {
+    const fields = fieldNames((collection as { schema?: unknown } | undefined)?.schema);
+    if (!fields) continue;
+    for (const key of PATTERN_SUFFIXES.map((suffix) => `${name}${suffix}`)) {
+      const param = (siteUi[key]?.params ?? []).find((param) => param !== "title" && !fields.includes(param));
+      if (param) {
+        throw new Error(
+          `Interface string "${key}" in siteUi in src/site.schema.ts has the parameter {${param}}, which isn't a field of the collection "${name}". Its fields are ${fields.map((field) => `{${field}}`).join(", ")}.`,
+        );
+      }
+    }
+  }
+}
+
+// The fields of a collection's object schema, called with a stand-in for
+// Astro's schema context when it's a function, or undefined when it isn't an
+// object.
+function fieldNames(schema: unknown): string[] | undefined {
+  const site = typeof schema === "function" ? (schema as (context: unknown) => unknown)({ image: () => z.string() }) : schema;
+  return site instanceof z.ZodObject ? Object.keys(site.shape) : undefined;
+}
+
 function checkSiteUi(siteUi: Record<string, UiString>) {
   for (const key of Object.keys(siteUi)) {
     if (!UI_KEY.test(key)) {

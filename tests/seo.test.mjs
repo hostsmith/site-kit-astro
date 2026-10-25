@@ -5,6 +5,16 @@ import { buildFixture, htmlFiles } from "./helpers.mjs";
 
 const SITE = "https://www.example.com";
 
+// A collection's patterns are site interface strings (site-kit-webflow-migration
+// design D134): declared in siteUi, written in the settings' ui, with a Decap field.
+const SCHEMA = "src/site.schema.ts";
+const SETTINGS = "src/content/settings/site.en.yml";
+const SITE_PART = "public/admin/config.site.yml";
+const withSiteUi = (declarations) => (schema) =>
+  `${schema.replace(/import \{ ([^}]*) \} from "@hostsmith\/site-kit-astro\/schema";/, 'import { $1, uiString } from "@hostsmith/site-kit-astro/schema";')}\nexport const siteUi = {\n${declarations}\n};\n`;
+const withUi = (lines) => (settings) => settings.replace(/^ui:\n/m, `ui:\n${lines}\n`);
+const withDecapUi = (keys) => (part) => `${part}\nui:\n${keys.map((key) => `  - { name: ${key}, label: ${key}, widget: string }`).join("\n")}\n`;
+
 describe("SEO output", () => {
   let build;
   before(async () => {
@@ -50,6 +60,55 @@ describe("SEO output", () => {
     for (const file of await htmlFiles(build.dist)) {
       const robots = (await build.read(file)).match(/<meta name="robots" content="([^"]+)">/)?.[1];
       assert.equal(robots, file === "404.html" ? "noindex" : undefined, file);
+    }
+  });
+});
+
+describe("a collection's patterns", () => {
+  let build;
+  before(async () => {
+    build = await buildFixture("base", {
+      edit: {
+        [SCHEMA]: withSiteUi(
+          ['  newsPageTitle: uiString({ params: ["title"] }),', '  newsPageDescription: uiString({ params: ["description", "date"] }),', '  newsOgTitle: uiString({ params: ["title", "category"] }),'].join(
+            "\n",
+          ),
+        ),
+        [SETTINGS]: withUi(['  newsPageTitle: "{title} | Bakery"', '  newsPageDescription: "{description}, from {date}."', '  newsOgTitle: "{title} ({category})"'].join("\n")),
+        [SITE_PART]: withDecapUi(["newsPageTitle", "newsPageDescription", "newsOgTitle"]),
+      },
+    });
+  });
+  after(() => build.cleanup());
+
+  it("fills an entry's title, description and Open Graph title from them", async () => {
+    assert.ok(build.ok, build.output);
+    const html = await build.read("news/fresh-rye/index.html");
+    assert.match(html, /<title>Fresh rye \| Bakery<\/title>/);
+    assert.match(html, /<meta name="description" content="The newest post, from April 1, 2026\.">/);
+    assert.match(html, /<meta property="og:title" content="Fresh rye \(Shop news\)">/);
+    assert.match(html, /<meta property="og:description" content="The newest post, from April 1, 2026\.">/);
+  });
+
+  it("leaves pages and the list page their own titles", async () => {
+    assert.match(await build.read("about/index.html"), /<title>About us \| Bakery<\/title>/);
+    assert.match(await build.read("news/index.html"), /<title>News<\/title>/);
+  });
+
+  it("fails on a parameter that isn't a field, naming the key and the fields", async () => {
+    const failed = await buildFixture("base", {
+      edit: {
+        [SCHEMA]: withSiteUi('  newsPageTitle: uiString({ params: ["name"] }),'),
+        [SETTINGS]: withUi('  newsPageTitle: "{name} | Bakery"'),
+        [SITE_PART]: withDecapUi(["newsPageTitle"]),
+      },
+    });
+    try {
+      assert.equal(failed.ok, false, "the build succeeded");
+      assert.match(failed.output, /Interface string "newsPageTitle" in siteUi in src\/site\.schema\.ts has the parameter \{name\}, which isn't a field of the collection "news"/);
+      assert.match(failed.output, /\{title\}, \{date\}/);
+    } finally {
+      await failed.cleanup();
     }
   });
 });

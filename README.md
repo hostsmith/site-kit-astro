@@ -244,6 +244,29 @@ const ui = await getUi(Astro.props.locale);
 
 `text` formats a number parameter for the locale. An unknown key fails the build, naming the keys that exist.
 
+### Title and description patterns
+
+A collection's entry pages take their `<title>` and meta description from the entry's `title` and `description`, unless the site declares patterns for them, as Webflow's Collection templates have. A pattern is an interface string named after the collection, whose parameters are the entry's fields:
+
+| Key | Sets |
+| --- | --- |
+| `<collection>PageTitle` | the `<title>` |
+| `<collection>PageDescription` | the meta description |
+| `<collection>OgTitle`, `<collection>OgDescription` | the Open Graph title and description, which otherwise follow the two above |
+
+```ts
+export const siteUi = {
+  postsPageTitle: uiString({ params: ["title"] }),
+};
+```
+
+```yaml
+ui:
+  postsPageTitle: "{title} | Acme Blog"
+```
+
+`{title}` fills as the plain title, a date field as the locale writes it, and an empty field as nothing. A parameter that isn't a field of the collection fails the build, naming the key and the fields. Pages, and a collection without patterns, keep their own title and description.
+
 ## Interactive parts
 
 The kit's interactive parts replace the built-in elements of site builders such as Webflow, which run on the builder's own script that a kit site never loads:
