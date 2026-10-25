@@ -16,6 +16,8 @@ Read the CSVs with a parser that handles quoted fields holding commas, quotes an
 - **Decap:** a folder collection in `public/admin/config.site.yml`, with a field for each schema field, as the example's `news` has.
 - **Detail template:** `src/components/collections/<name>.astro`, ported from `detail_<collection>.html` as step 5 ports a page, in site markup styled by the theme, with each field bound by `fieldsFor("<name>", entry.id)` from `@hostsmith/site-kit-astro/field`. Start from the example's `src/components/collections/news.astro`. A Component the template shares with pages, such as a call to action band, keeps that type's markup and classes, with its text from interface strings (below).
 
+- **Breadcrumb:** Webflow has no breadcrumb element, so a template has one only if its designer built it: a trail of links home, often with a `breadcrumb` class or `aria-label="Breadcrumb"`. The kit's layout shows its own breadcrumb on every entry's page, so set `breadcrumb: false` on the collection in `src/site.config.ts` when its template has none, which is the usual case for a blog whose template has only a "Back" link. When it has one, leave the switch out, and port the template without its trail, since the kit's replaces it. Record the switch in the report's "Collections".
+
 The example's `news` collection stays until step 11. Run `npm run decap-config` and `npx site-kit schema` after adding each collection.
 
 ## Fields
@@ -71,6 +73,8 @@ Turn each rich text field's HTML into Markdown in the kit's portable dialect: Co
 
 A YouTube frame's `https://www.youtube.com/embed/<id>` is the video page `https://www.youtube.com/watch?v=<id>`, and a Vimeo frame's `https://player.vimeo.com/video/<id>` is `https://vimeo.com/<id>`. Drop Webflow's figure classes, such as `w-richtext-align-fullwidth`: the theme's prose styles decide how a figure shows. Drop every inline style.
 
+The owner's contact details that step 4 made facts, such as the email and the phone number, become their placeholders wherever a body shows them, in its text and in a link's address: `hello@acme.com` linked to `mailto:hello@acme.com` becomes `[{email}](mailto:{email})`, and a `tel:` link `tel:{phone}`. So a change in the settings reaches the bodies too.
+
 ## Images in the CMS
 
 Each image URL in a CSV, in an image field or in a rich text body, is a file on Webflow's CDN, which step 7 downloads. Write its local path into the entry now: `/assets/images/<name>`, from the file's name after the CDN's ids, lowercase, with the image's own extension, so `64f1a2b3c4d5e6f708192a3c_64f1a2b3c4d5e6f708192a3d_acme-laptops-coffee.jpeg` becomes `acme-laptops-coffee.jpg`. List each URL with its local name in `.hostsmith/snapshot/work/cms-images.txt`, for step 7.
@@ -81,11 +85,24 @@ An empty image field is allowed: the entry has no image there. List the entries 
 
 The fixed text of a template page, such as "Related posts", "min read", "Written by" or a call to action band's text, becomes interface strings of its detail template, as the kit's rules say: declared in `siteUi`, with a field under `ui` in `public/admin/config.site.yml`, and its text in every locale's settings.
 
-Ask the person for what the export doesn't hold, and record each answer in the report's "Answers":
+Ask the person for what the export doesn't hold, unless it was given in advance, and record each answer in the report's "Answers":
 
-- the template's title pattern, as step 4 says, and its description pattern;
 - which field a reference shows;
 - each collection list's limit, sort order and filters (below).
+
+## Title and description patterns
+
+Write the template's patterns from step 4 as interface strings named after the collection (the kit's README, "Title and description patterns"): `<name>PageTitle` and `<name>PageDescription`, and `<name>OgTitle` and `<name>OgDescription` only when the Open Graph ones differ. Each is declared in `siteUi` with the fields it shows as its parameters, with a field under `ui` in `public/admin/config.site.yml`, and its text in every locale's settings. Webflow's `{Name}` is `{title}`, and each other field is its entry field's name. For `{Name} | Acme Blog` on Blog Posts:
+
+```ts
+postsPageTitle: uiString({ params: ["title"] }),   // siteUi in src/site.schema.ts
+```
+
+```yaml
+postsPageTitle: "{title} | Acme Blog"   # ui in src/content/settings/site.<code>.yml
+```
+
+A description pattern that is one field alone, such as the summary, needs no key: map that field onto `description`. Record each pattern in the report's "Collections".
 
 ## Collection lists
 

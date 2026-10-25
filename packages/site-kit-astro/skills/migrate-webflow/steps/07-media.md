@@ -33,7 +33,7 @@ Check every SVG before you copy it. Remove nothing silently: an SVG that has a `
 
 ## The head's icons
 
-Copy the favicon to `public/favicon.ico` and the touch icon to `public/apple-touch-icon.png`, as step 4 says.
+Copy the favicon to `public/favicon.ico` and the touch icon to `public/apple-touch-icon.png`, as step 4 says, unless they're Webflow's defaults: those never reach the site, and the owner's own go there when they arrive.
 
 ## Credits
 

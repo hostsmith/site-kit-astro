@@ -16,6 +16,7 @@ Ask the person for whatever is missing:
 - **The code export:** Webflow's code export of the site, as a ZIP or its unzipped `<site>.webflow` folder. Code export needs a paid Workspace plan, Core or higher, in the workspace that holds the site.
 - **The CMS exports:** a CSV export of each CMS collection, under the names Webflow gave them, such as `acme - Blog Posts - 64f1a2b3c4d5e6f708192a3b.csv`, as files or a folder. A site with Webflow Localization exports each collection once per locale.
 - **The live site's address,** such as `https://www.acme.com`, if it has one. The skill reads only its `sitemap.xml` from it.
+- **Answers given in advance,** if the person has them: answers to the questions the steps ask, in the prompt or in a Markdown file of questions and answers kept with the exports. Step 1 copies the file into `.hostsmith/snapshot/answers.md`, so a rerun has it.
 
 The exports stay where the person keeps them, outside the site, and step 1 copies them into `.hostsmith/snapshot/`, which git ignores. Never ask for them anywhere else in the site, where git would see them.
 
@@ -44,6 +45,7 @@ Then run `npm ci` if `node_modules` is missing, and `npm run build`, to see that
 - **One branch.** Work on a branch, `migrate-webflow`, and commit after each step, naming it, such as `Migrate from Webflow: theme`. The person merges it to `main` once they've approved the report.
 - **The report as you go.** Step 1 starts `.hostsmith/migration-report.md` from the template, and every step adds its findings and the person's answers to it. A rerun, or a new session after a break, reads it to see where the migration stands.
 - **Questions together.** Ask only what the exports can't tell. Collect a step's questions and ask them at once, and record each answer in the report.
+- **Answers given in advance.** Before asking a question, look for its answer in the prompt and in `.hostsmith/snapshot/answers.md`. Use an answer you find without asking, and record it in the report's "Answers" as given in advance. Ask only what's left. When no one can answer, such as in an unattended run, stop at the first question nothing answers, and say exactly what you need.
 - **The text as it is.** Copy the old site's text exactly. Don't rewrite, shorten or correct it, apart from what a step names. List a typo you notice in the report, for the owner.
 - **Your own scripts.** A script you write for the migration, such as a CSV reader, goes in `.hostsmith/snapshot/work/`, which git ignores, and uses only Node's built-in modules. Never add a package to the site.
 - **Webflow's code stays out.** Read `webflow.js` and Webflow's CSS as text, and never run, import or copy them. No `w-` class, Webflow class name, `data-wf-` attribute or Webflow host reaches the site.

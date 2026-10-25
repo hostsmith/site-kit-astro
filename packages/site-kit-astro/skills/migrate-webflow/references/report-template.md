@@ -32,7 +32,7 @@ The snapshot is in `.hostsmith/snapshot/`, which git ignores. It can be deleted 
 
 ## Collections
 
-<!-- Step 6. Each collection, with its base path, its number of entries, its drafts, and its fields. -->
+<!-- Step 6. Each collection, with its base path, its number of entries, its drafts, its fields, its title and description patterns, and its breadcrumb switch. Then the site-wide breadcrumb switch, for the pages in folders. -->
 
 ## Interactions
 
@@ -54,17 +54,23 @@ The snapshot is in `.hostsmith/snapshot/`, which git ignores. It can be deleted 
 
 <!-- Step 3. Each role changed to pass a contrast pair: the role, the pair, the old value and the new one. -->
 
+## Builder defaults kept
+
+<!-- Step 3. Each default of Webflow's own CSS that showed on the old site, because the site's CSS never set it, kept in `src/styles/theme/builder-defaults.css`: where it shows, such as the selected tab on About, and its old value. Otherwise: "None showed." -->
+
+To use the theme's own styles instead, delete `src/styles/theme/builder-defaults.css`, its import in `src/styles/global.css`, and the `--color-builder-*` colors in the site's preset.
+
 ## Not carried over
 
 <!-- Each thing that didn't move, with its page or item: custom code, interactions not ported, pagination, the password and search pages, archived items, color fields, embeds with code. -->
 
 ## Missing pieces
 
-<!-- Steps 1, 5 and 6. Fonts the export lacked, the 404 page when the export had none or a default one, missing Open Graph images, empty image fields such as entries without a photo. -->
+<!-- Steps 1, 4, 5 and 6. Fonts the export lacked, the favicon and touch icon when the export had only Webflow's defaults, the 404 page when the export had none or a default one, missing Open Graph images, empty image fields such as entries without a photo. -->
 
 ## Answers
 
-<!-- Every answer the person gave: base paths, collection list settings, title and description patterns, which field a reference shows, the default Open Graph image. -->
+<!-- Every answer the person gave: base paths, collection list settings, title and description patterns, which field a reference shows, the default Open Graph image. Mark each answer that was given in advance, in the prompt or in `.hostsmith/snapshot/answers.md`, as given in advance. -->
 
 ## Alt text written
 
@@ -76,7 +82,7 @@ The snapshot is in `.hostsmith/snapshot/`, which git ignores. It can be deleted 
 
 ## Fidelity check
 
-<!-- Step 9. The differences between the build and the export, per page and width, and what the person found comparing the site with the old one in a browser. -->
+<!-- Step 9. The differences between the build and the export, per page and width, and what the person found comparing the site with the old one in a browser. When the check couldn't run, such as in a sandbox, say so, why, and what would let it run. -->
 
 | Page | Width | Difference |
 | --- | --- | --- |

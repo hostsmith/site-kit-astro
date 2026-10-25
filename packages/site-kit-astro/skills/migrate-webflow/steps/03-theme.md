@@ -92,6 +92,26 @@ Step 5 styles each section as it ports it, with the same rules as below.
 - **Kit parts:** style a library type or the layout through its hooks in `node_modules/@hostsmith/site-kit-astro/HOOKS.md`, such as `.sk-hero__title`, never through its elements' nesting.
 - **Site-local types,** from step 5: give their elements class names of their own, after the type, such as `.amenities` and `.amenities__icon`, and style them in `src/styles/theme/sections.css`, or with utilities in their markup. Every class needs a rule or is a utility: `npm run check:styles -- --built` warns about one with neither.
 - **Client-First utilities:** see the Client-First mapping.
+- **Focus styles:** a `:focus-visible` rule stays `:focus-visible`, so its ring shows for the keyboard and not on a click. When the old element was a link and the port puts the link inside it, such as a card whose title's link covers the whole card, ring the card with `:has(:focus-visible)`, such as `.entry-cards__item:has(.entry-cards__link:focus-visible)`. Never draw a ring with `:focus-within`, which also matches a click.
+
+## Builder defaults
+
+`webflow.css` gives each of Webflow's elements a default look, and the old site shows a default wherever its own stylesheet never sets that property or state. A Tabs element's selected tab, for example, is `#C8C8C8` grey from `.w-tab-link.w--current` when the site has no rule for its current state. These defaults are part of the old site's look, so the port keeps them, apart from the theme, where the owner can drop them:
+
+1. **Find them.** For each element in the export's pages with a `w-` class, such as `w-tab-link`, `w-button`, `w-nav-link`, `w-dropdown-link` or `w-slider-dot`, read the rules for that class in `.hostsmith/snapshot/code/css/webflow.css`, its states included (`w--current`, `w--open`, `w--active`). A property one of them sets, which none of the site's own rules for the element's classes sets in the same state, shows on the old site.
+2. **Keep each one** in `src/styles/theme/builder-defaults.css`, written anew on the hook of the kit part or site-local type that replaced the element, with the value the old site showed, never `webflow.css`'s rule. Its colors become site colors named `--color-builder-*` in the site's preset, such as `--color-builder-tab-current: #c8c8c8`. For the selected tab:
+
+   ```css
+   /* Webflow's defaults the old site showed (the report, "Builder defaults kept"). */
+   .sk-tabs__tab[aria-selected="true"] {
+     background-color: var(--color-builder-tab-current);
+   }
+   ```
+
+3. **Import it** in `src/styles/global.css`, after the theme's rules and before `site.css`: `@import "./theme/builder-defaults.css" layer(components);`. Write the file and its import only when a default shows.
+4. **List each one** in the report's "Builder defaults kept": where it shows and its old value. When one puts text on a background, add the pair to the README's contrast table, as for any other pair.
+
+Webflow's default favicon and touch icon aren't styles: they're Webflow's logo, and step 4 never carries them.
 
 ## Check
 

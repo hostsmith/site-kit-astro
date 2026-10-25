@@ -21,6 +21,7 @@ If it exits with anything but 0, stop before copying anything. Say that `.gitign
 | `.hostsmith/snapshot/code/` | the code export, unzipped, with `index.html` directly inside |
 | `.hostsmith/snapshot/cms/` | the CSV exports, under the names they came with |
 | `.hostsmith/snapshot/sitemap.xml` | the live site's sitemap, when it publishes one |
+| `.hostsmith/snapshot/answers.md` | the answers given in advance, when the person gave a file of them |
 | `.hostsmith/snapshot/fidelity/` | the fidelity check's tools and screenshots, from step 9 |
 | `.hostsmith/snapshot/work/` | your scripts and notes during the migration |
 
@@ -34,6 +35,8 @@ If it exits with anything but 0, stop before copying anything. Say that `.gitign
   ```
 
   If it fails, the site has none: a site on its `webflow.io` address publishes no sitemap. Step 2 then builds the URL map without one. If the person has a sitemap saved from the site's custom domain, copy that instead.
+
+- **Answers given in advance:** copy the person's file of answers to `.hostsmith/snapshot/answers.md`. Answers in the prompt go in the same file, under "From the prompt", so a rerun or a new session has them too. Every step looks there before asking (`SKILL.md`, "Answers given in advance").
 
 Use no Webflow API and no Webflow token: the exports hold everything this skill reads.
 
