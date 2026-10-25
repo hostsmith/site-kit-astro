@@ -166,7 +166,7 @@ footer:
 
 ### Facts
 
-A fact that appears in several places, such as the phone number, is written once in the settings' `facts`, with a name the site picks. Any text in the content uses it as `{name}`: a block's or section's prop, a page's or entry's frontmatter, or a Markdown body. The build fills in the value before checking the content, so `email: "{email}"` is checked as an email address and a `phone` action builds its `tel:` link from the number. Markdown code stays as written.
+A fact that appears in several places, such as the phone number, is written once in the settings' `facts`, with a name the site picks. Any text in the content uses it as `{name}`: a block's or section's prop, a page's or entry's frontmatter, or a Markdown body. The build fills in the value before checking the content, so `email: "{email}"` is checked as an email address and a `phone` action builds its `tel:` link from the number. In a Markdown body, a link's address is filled too, so `[{email}](mailto:{email})` and `[call us](tel:{phone})` follow the settings, with a `tel:` address keeping only the number's digits. Markdown code stays as written.
 
 ```yaml
 facts:

@@ -17,6 +17,7 @@ import { z } from "astro/zod";
 import { parse } from "yaml";
 import { fromCms } from "../core/cms-values.ts";
 import { LOCALE_KEY, splitId } from "./locales.ts";
+import { telHref } from "./tel.ts";
 
 export type Facts = ReadonlyMap<string, string>;
 
@@ -130,19 +131,38 @@ export function withFacts<S extends z.ZodType>(
   }, schema);
 }
 
-// The Markdown plugin that fills placeholders in a body's text. Code spans
-// and code blocks aren't text nodes, so they stay as written.
+type MarkdownContext = { fileURL: URL | undefined; setProperty: (node: never, key: "value" | "url", value: string) => void };
+
+// Fills one Markdown string from the facts of its file's locale, and fails
+// on an unknown name, naming the file.
+function fillMarkdown(text: string, ctx: MarkdownContext): string {
+  const file = ctx.fileURL ? fileURLToPath(ctx.fileURL) : undefined;
+  const locale = file ? localeOfFile(file) : undefined;
+  const facts = readFacts(process.cwd(), locale);
+  const where = file ? `${file.replace(`${process.cwd()}/`, "")}: ` : "";
+  return fillText(text, facts, (name) => {
+    throw new Error(`${where}${unknownFact(name, facts, locale)}`);
+  });
+}
+
+// A link's address, inline or in a reference's definition, such as
+// mailto:{email} (site-kit-webflow-migration design D135). A filled tel:
+// address keeps only the number's digits, as the header's phone action does.
+function fillAddress(node: { url: string }, ctx: MarkdownContext) {
+  if (!hasPlaceholder(node.url)) return;
+  const url = fillMarkdown(node.url, ctx);
+  ctx.setProperty(node as never, "url", url.startsWith("tel:") ? telHref(url.slice("tel:".length)) : url);
+}
+
+// The Markdown plugin that fills placeholders in a body's text and in its
+// links' addresses. Code spans and code blocks are neither, so they stay as
+// written.
 export const factsPlugin = {
   name: "site-kit-facts",
-  text(node: { value: string }, ctx: { fileURL: URL | undefined; setProperty: (node: never, key: "value", value: string) => void }) {
+  text(node: { value: string }, ctx: MarkdownContext) {
     if (!hasPlaceholder(node.value)) return;
-    const file = ctx.fileURL ? fileURLToPath(ctx.fileURL) : undefined;
-    const locale = file ? localeOfFile(file) : undefined;
-    const facts = readFacts(process.cwd(), locale);
-    const where = file ? `${file.replace(`${process.cwd()}/`, "")}: ` : "";
-    const value = fillText(node.value, facts, (name) => {
-      throw new Error(`${where}${unknownFact(name, facts, locale)}`);
-    });
-    ctx.setProperty(node as never, "value", value);
+    ctx.setProperty(node as never, "value", fillMarkdown(node.value, ctx));
   },
+  link: fillAddress,
+  definition: fillAddress,
 };
