@@ -69,6 +69,10 @@ const { logo, nav, ui } = settings;
 const actions = settings.header?.actions ?? [];
 // The icon-only call button comes from the phone action that sets callLabel.
 const call = actions.find((action) => action.type === "phone" && action.callLabel !== undefined);
+// The button action that sets pinned also shows beside the menu button
+// (site-kit-webflow-migration design D137).
+const pinnedAt = actions.findIndex((action) => action.type === "button" && action.pinned);
+const pinned = actions[pinnedAt];
 const hasMenu = nav.length > 0 || actions.length > 0;
 // Nested nav items (site-kit-webflow-example design D108): an item with
 // children gets a disclosure button, which holds its label, or, when the
@@ -174,6 +178,13 @@ const embeds = content.includes('class="sk-embed__placeholder"');
           call?.type === "phone" && (
             <a href={telHref(call.number)} class="sk-header__call" aria-label={`${call.callLabel} ${call.number}`}>
               <Icon name="phone" />
+            </a>
+          )
+        }
+        {
+          pinned?.type === "button" && (
+            <a href={pinned.link} class={`sk-header__pinned sk-button sk-button--${pinned.style}`} {...field(SETTINGS, "header", "actions", pinnedAt, "label")}>
+              {pinned.label}
             </a>
           )
         }

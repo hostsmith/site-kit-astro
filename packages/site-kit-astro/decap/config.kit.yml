@@ -439,6 +439,7 @@ collections:
                       - { name: label, label: Label, widget: string }
                       - { name: link, label: Link, widget: string }
                       - { name: style, label: Style, widget: select, options: [primary, secondary], default: primary, required: false }
+                      - { name: pinned, label: Also beside the menu button on narrow screens, widget: boolean, required: false }
                   - name: link
                     label: Link
                     widget: object

@@ -259,6 +259,7 @@
     }
 
     & .sk-header__call,
+    & .sk-header__pinned,
     & .sk-header__menu-button:not([hidden]) {
       display: none;
     }

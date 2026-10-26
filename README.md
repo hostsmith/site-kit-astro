@@ -135,7 +135,7 @@ nav:
 | Type | Props | Shows |
 | --- | --- | --- |
 | `phone` | number, callLabel | the number as a `tel:` link. With `callLabel`, also an icon-only call button for narrow screens, named by the label and the number. At most one action sets `callLabel` |
-| `button` | label, link, style (`primary`, `secondary`) | a button |
+| `button` | label, link, style (`primary`, `secondary`), pinned | a button. With `pinned: true`, also a copy beside the menu button for narrow screens, and the button stays in the menu. At most one action sets `pinned` |
 | `link` | label, link | a text link |
 | `locales` | | the language switcher of a site with several [locales](#locales) |
 

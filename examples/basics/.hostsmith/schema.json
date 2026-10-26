@@ -1983,6 +1983,10 @@
                             "secondary"
                           ],
                           "x-widget": "select"
+                        },
+                        "pinned": {
+                          "type": "boolean",
+                          "x-widget": "boolean"
                         }
                       },
                       "required": [

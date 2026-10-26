@@ -620,7 +620,9 @@ const headerActionSchemas = {
   // A tel: link with the number. With callLabel, also an icon-only call
   // button outside the menu, named "<callLabel> <number>".
   phone: block("phone", { number: z.string().min(1), callLabel: z.string().min(1).optional() }),
-  button: block("button", { label: z.string().min(1), link, style: z.enum(["primary", "secondary"]).default("primary") }),
+  // With pinned, also a copy outside the menu, beside the menu button
+  // (site-kit-webflow-migration design D137).
+  button: block("button", { label: z.string().min(1), link, style: z.enum(["primary", "secondary"]).default("primary"), pinned: z.boolean().optional() }),
   link: block("link", { label: z.string().min(1), link }),
   // The language switcher of a localized site (site-kit-locales design D52).
   locales: block("locales", {}),
@@ -723,6 +725,14 @@ const headerActions = blockList(headerActionSchemas, "header action").superRefin
       code: "custom",
       path: [calls[1], "callLabel"],
       message: `header action ${calls[1] + 1} (phone): only one phone action may set "callLabel", so the header has one call button`,
+    });
+  }
+  const pinned = actions.flatMap((action, i) => (action.type === "button" && action.pinned ? [i] : []));
+  if (pinned.length > 1) {
+    ctx.addIssue({
+      code: "custom",
+      path: [pinned[1], "pinned"],
+      message: `header action ${pinned[1] + 1} (button): only one button action may set "pinned", so the header has room for it beside the menu button`,
     });
   }
 });
