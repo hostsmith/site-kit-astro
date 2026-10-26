@@ -74,17 +74,19 @@ Compare each page of the build with the same page of the export, as screenshots 
 
    **In a sandbox,** the script may fail to serve on `localhost`, such as with `EPERM` on `listen`, or its browser may fail to start. Never work around a sandbox. Say what it must allow: in Claude Code, `sandbox.network.allowLocalBinding: true` lets it serve on `localhost`. If the browser still can't start, as Google Chrome can't inside Claude Code's sandbox on macOS, say that the person can run the command above outside the sandbox, or skip the check. Record the check as not run, and why, in the report's "Fidelity check", and go on to the person's comparison.
 
-4. **Review the pictures** in `.hostsmith/snapshot/fidelity/shots/<page>/`. Each holds both sides, the export on the left and the build on the right, each labelled. Don't open the full-page screenshots, `<width>-export.png` and `<width>-build.png`: a picture that tall reaches you too shrunk to see a button. In this order:
+4. **Review the pictures on the checklist,** `.hostsmith/snapshot/fidelity/shots/review.md`, which the script writes. Each picture holds both sides, the export on the left and the build on the right, each labelled. Open every picture on it, in its order, several at a time if you like, and tick each one in the file once you've looked at it. Don't skip a width because another looked fine: most layout changes show only at the narrow widths. Don't open the full-page screenshots, `<width>-export.png` and `<width>-build.png`: a picture that tall reaches you too shrunk to see a button. The checklist holds:
    1. **Every page's overview at every width,** `<width>-overview.png`: the order of the sections, a section missing or added, and the columns at that width.
    2. **The header and the footer at every width,** on the home page: its first slice, `<width>-slice-01.png`, and its end, `<width>-end.png`. Every page shares them, and they change the most between widths: a button beside the menu button, a menu that collapses, columns that stack.
-   3. **The slices where an overview shows a difference,** `<width>-slice-<n>.png`, a screen each at full size, to see it in detail. Both sides are cut at the same offset, so below a section of another height they drift apart: find the same content in the next slice.
+   3. **The slices where an overview shows a difference,** `<width>-slice-<n>.png`, a screen each at full size, to see it in detail. Add each one you open to the checklist. Both sides are cut at the same offset, so below a section of another height they drift apart: find the same content in the next slice.
+
+   A rerun of the script keeps your ticks and the slices you added: after a fix, open again the pictures the fix could change.
 
    Look at the layout, the order, the spacing, the type, the colors, the images and what shows at each width. `fidelity.json` lists a page that answered 404 on either side, which usually means a wrong line in `pages.txt`.
    - **CMS areas:** a collection list, and a template's bound fields, are empty in the export. Check those areas against the collection's entries instead of the picture.
    - **Fonts:** while the site uses a fallback, its type differs from the export's in every picture. Note it once.
    - **Fix what you can:** a difference in spacing, size, color or order usually has its cause in the theme or the section's markup. Fix it, build, and run the script again.
    - **The rest goes in the report's "Fidelity check",** with its page and width.
-   - **Record what you compared** in the report's "Fidelity check": the overviews, the header and footer pictures, and the slices you opened, by page and width, and every page and width you didn't look at. Never write that a page or width was compared when you didn't open its picture.
+   - **Record what you compared** in the report's "Fidelity check", from the checklist: the ticked pictures under "Compared", and every one left unticked under "Not compared", with the reason. Never write that a page or width was compared when you didn't open its picture.
 
 ## The person's comparison
 

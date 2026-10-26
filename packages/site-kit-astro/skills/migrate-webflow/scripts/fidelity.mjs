@@ -30,7 +30,8 @@
 //
 // It writes <out>/<page>/<width>-export.png and <width>-build.png, and
 // <out>/fidelity.json, which lists the screenshots, the pages either side
-// answered with 404, and the hosts each side's pages asked for.
+// answered with 404, and the hosts each side's pages asked for. And
+// <out>/review.md, the checklist of step 9's review.
 //
 // For the review, it also puts both sides in one picture, the export on the
 // left and the build on the right, each labelled (site-kit-webflow-migration
@@ -168,8 +169,12 @@ async function main(args) {
     result.requested.export = [...new Set(result.requested.export)].sort();
     result.requested.build = [...new Set(result.requested.build)].sort();
     writeFileSync(join(args.out, "fidelity.json"), `${JSON.stringify(result, null, 2)}\n`);
+    const reviewFile = join(args.out, "review.md");
+    const review = reviewList(result.pages, existsSync(reviewFile) ? readFileSync(reviewFile, "utf8") : "");
+    writeFileSync(reviewFile, review.text);
     console.log(`${result.pages.length} pages at ${WIDTHS.join(", ")} px: ${result.pages.length * WIDTHS.length * 2} screenshots in ${args.out}`);
     console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width, ${pictures} in all.`);
+    console.log(`Open every picture in ${join(args.out, "review.md")}, ${review.count} of them, in its order.`);
     for (const missing of result.missing) console.log(`404: ${missing}`);
     for (const side of ["export", "build"]) {
       if (result.requested[side].length > 0) console.log(`The ${side}'s pages asked other hosts, which got nothing: ${result.requested[side].join(", ")}`);
@@ -342,6 +347,45 @@ async function picture(sheet, file, layout) {
   await sheet.setViewportSize({ width: layout.width * 2 + GAP, height: layout.height + LABEL_HEIGHT });
   await sheet.screenshot({ path: file });
   return relative(process.cwd(), file);
+}
+
+// Step 9's checklist (D139): every page's overview at every width, then the
+// header and the footer at every width, on the home page or else the first
+// page, then room for the slices the agent opens. The paths are as
+// fidelity.json gives them, so each opens as it stands. A rerun, after a
+// fix, keeps the ticks and the slices of the list before it.
+function reviewList(pages, previous) {
+  const first = pages.find((page) => page.name === "home") ?? pages[0];
+  const ticked = new Set([...previous.matchAll(/^- \[x\] (\S+)/gim)].map((match) => match[1]));
+  const added = previous.split(/^## Slices where an overview shows a difference$/m)[1]?.split("\n").filter((line) => line.startsWith("- [")) ?? [];
+  const item = (path) => `- [${ticked.has(path) ? "x" : " "}] ${path}`;
+  const overviews = pages.flatMap((page) => WIDTHS.map((width) => page.shots[width].overview));
+  const ends = WIDTHS.flatMap((width) => [first.shots[width].slices[0], first.shots[width].end]);
+  const text = [
+    "# Fidelity review",
+    "",
+    'Open each picture, in this order, and tick it once you\'ve looked at it. Each holds the export on the left and the build on the right. The report\'s "Compared" lists the ticked ones, and "Not compared" the rest.',
+    "",
+    "## Every page's overview, at every width",
+    "",
+    "The order of the sections, a section missing or added, and the columns at that width.",
+    "",
+    ...overviews.map(item),
+    "",
+    `## The header and the footer, at every width, on ${first.name}`,
+    "",
+    "Every page shares them, and they change the most between widths: a button beside the menu button, a menu that collapses, columns that stack.",
+    "",
+    ...ends.map(item),
+    "",
+    "## Slices where an overview shows a difference",
+    "",
+    "Add each slice you open here, ticked.",
+    "",
+    ...added,
+    ...(added.length ? [""] : []),
+  ].join("\n");
+  return { text, count: overviews.length + ends.length };
 }
 
 // A PNG's height, from its header.

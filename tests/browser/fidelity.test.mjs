@@ -115,6 +115,28 @@ describe("fidelity script", () => {
     }
   });
 
+  it("writes the review's checklist: every overview, then the home page's header and footer", async () => {
+    const review = await readFile(join(dir, "shots", "review.md"), "utf8");
+    const items = [...review.matchAll(/^- \[ \] (\S+)$/gm)].map((match) => match[1]);
+    assert.deepEqual(items, [
+      ...["home", "about", "missing"].flatMap((name) => WIDTHS.map((width) => `shots/${name}/${width}-overview.png`)),
+      ...WIDTHS.flatMap((width) => [`shots/home/${width}-slice-01.png`, `shots/home/${width}-end.png`]),
+    ]);
+  });
+
+  it("keeps the review's ticks and added slices when it runs again", async () => {
+    const file = join(dir, "shots", "review.md");
+    const review = await readFile(file, "utf8");
+    await writeFile(file, `${review.replace("- [ ] shots/about/479-overview.png", "- [x] shots/about/479-overview.png")}- [x] shots/about/1440-slice-01.png\n`);
+    await writeFile(join(dir, "about.txt"), "about.html /about\n");
+    const again = await run(dir, ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "about.txt", "--out", "shots"]);
+    assert.ok(again.ok, again.stderr);
+    const rewritten = await readFile(file, "utf8");
+    assert.match(rewritten, /^- \[x\] shots\/about\/479-overview\.png$/m);
+    assert.match(rewritten, /^- \[ \] shots\/about\/767-overview\.png$/m);
+    assert.match(rewritten, /## Slices where an overview shows a difference\n\nAdd each slice you open here, ticked\.\n\n- \[x\] shots\/about\/1440-slice-01\.png\n/);
+  });
+
   it("stops when Playwright isn't in --tools", async () => {
     const empty = await run(dir, ["--tools", "fonts", "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"]);
     assert.equal(empty.ok, false);
