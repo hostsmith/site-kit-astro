@@ -283,7 +283,7 @@ A section type that offers a `tone` puts its modifier on the section's root, nex
 | `sk-split__content` | `div` | The heading group, the body, the figures and the link |
 | `sk-split__body` | `div` | The body, with `sk-prose` |
 | `sk-split__stats` | `ul` | Up to four `sk-stat` figures |
-| `sk-split__link` | `a` | A link after the text, such as "Meet the team" |
+| `sk-split__link` | `a` | A text link after the text, such as "Meet the team". A link with the `style` `primary` or `secondary` is an `sk-button` in an `sk-buttons` group instead |
 
 ### team
 

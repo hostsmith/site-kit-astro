@@ -88,7 +88,7 @@ The library's section types. Variants change the markup's order or grouping; ton
 | `trust-bar` | short trust signals, such as "Licensed & insured" | title, items | `line`, `chips` | |
 | `stats` | two to four figures | title, items (value, label) | | `plain`, `dark` |
 | `steps` | a process or what's included, numbered | eyebrow, title, intro, items | | |
-| `split` | an image beside text | eyebrow, title, markdown body, image, video, figures, link | `image-left`, `image-right` | `plain`, `surface` |
+| `split` | an image beside text | eyebrow, title, markdown body, image, video, figures, link: a text link, or a button with `style: primary` or `secondary` | `image-left`, `image-right` | `plain`, `surface` |
 | `team` | the people, with placeholders until the photos exist | title, intro, items (name, role, photo) | | |
 | `pricing-list` | prices as the site writes them | title, items (label, price), note | | |
 | `tabs` | panels behind a row of tabs, such as floors or plans | title, intro, items (label, title, markdown body, image, link), at least two | `horizontal`, `vertical` | |

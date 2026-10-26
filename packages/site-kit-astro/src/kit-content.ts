@@ -266,7 +266,9 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     video: videoPath("video", "mp4").optional(),
     videoWebm: videoPath("videoWebm", "webm").optional(),
     stats: statList.min(1, { error: "needs at least 1 item" }).optional(),
-    link: labeledLink.optional(),
+    // A text link, or a button in either style (site-kit-webflow-migration
+    // design D138).
+    link: labeledLink.extend({ style: z.enum(["link", "primary", "secondary"]).default("link") }).optional(),
     variant: z.enum(["image-left", "image-right"]).default("image-left"),
     tone: z.enum(["plain", "surface"]).default("plain"),
   })

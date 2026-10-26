@@ -78,7 +78,7 @@ A site that doesn't use Client-First goes through the same steps: derive the rol
 | Client-First | Becomes |
 | --- | --- |
 | `button` | `sk-button sk-button--primary`, styled in `sections.css` |
-| `button is-secondary` | `sk-button sk-button--secondary` |
+| `button is-secondary` | `sk-button sk-button--secondary`. In content, the secondary of a pair, such as `secondaryCta`, or a `split`'s `link` with `style: secondary` |
 | `button` with `is-text`, `is-small`, `is-large`, `is-icon` or `is-alternate` | utilities on the `sk-button`, such as `px-4 py-2 text-small`, or a class of the site's own in `sections.css` |
 | `button` with `is-full-width` or `is-center` | `w-full`, `mx-auto` |
 | `is-center`, on a component such as a section header | a library type's centered variant, or `mx-auto text-center` |

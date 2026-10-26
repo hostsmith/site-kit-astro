@@ -278,7 +278,14 @@ collections:
               - *video_field
               - *video_webm_field
               - { name: stats, label: Figures, label_singular: Figure, widget: list, required: false, max: 4, fields: *stat_fields }
-              - { name: link, label: Link, widget: object, required: false, fields: *labeled_link }
+              - name: link
+                label: Link
+                widget: object
+                required: false
+                fields:
+                  - { name: label, label: Label, widget: string, required: false }
+                  - { name: link, label: Link, widget: string, required: false }
+                  - { name: style, label: Style, widget: select, options: [link, primary, secondary], default: link, required: false }
               - { name: variant, label: Variant, widget: select, options: [image-left, image-right], default: image-left, required: false }
               - { name: tone, label: Tone, widget: select, options: [plain, surface], default: plain, required: false }
           - name: team

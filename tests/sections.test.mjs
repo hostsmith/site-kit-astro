@@ -407,6 +407,13 @@ describe("library sections", () => {
       assert.match(split, /^<section data-section="split" class="sk-section sk-split sk-split--image-right sk-tone-surface">\s*<div class="sk-container">\s*<img/);
       assert.ok(!split.includes("sk-split__stats") && !split.includes("sk-split__body"), "no empty parts");
     });
+
+    // site-kit-webflow-migration design D138.
+    it("renders a link with a style as a button", async () => {
+      const split = sectionHtml(await build.read("blocks/index.html"), "pages/blocks.en", "b7r7");
+      assert.match(split, /<div class="sk-buttons">\s*<a href="\/about" class="sk-button sk-button--secondary" data-field="pages\/blocks\.en#sections\[b7r7\]\.link\.label">\s*Book a repair\s*<\/a>\s*<\/div>/);
+      assert.ok(!split.includes("sk-split__link"), "a button, not the text link");
+    });
   });
 
   describe("team", () => {
