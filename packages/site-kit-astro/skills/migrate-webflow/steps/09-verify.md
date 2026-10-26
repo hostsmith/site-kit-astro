@@ -74,11 +74,17 @@ Compare each page of the build with the same page of the export, as screenshots 
 
    **In a sandbox,** the script may fail to serve on `localhost`, such as with `EPERM` on `listen`, or its browser may fail to start. Never work around a sandbox. Say what it must allow: in Claude Code, `sandbox.network.allowLocalBinding: true` lets it serve on `localhost`. If the browser still can't start, as Google Chrome can't inside Claude Code's sandbox on macOS, say that the person can run the command above outside the sandbox, or skip the check. Record the check as not run, and why, in the report's "Fidelity check", and go on to the person's comparison.
 
-4. **Review each pair:** `.hostsmith/snapshot/fidelity/shots/<page>/<width>-export.png` beside `<width>-build.png`. Look at the layout, the order, the spacing, the type, the colors, the images and what shows at each width. `fidelity.json` lists a page that answered 404 on either side, which usually means a wrong line in `pages.txt`.
+4. **Review the pictures** in `.hostsmith/snapshot/fidelity/shots/<page>/`. Each holds both sides, the export on the left and the build on the right, each labelled. Don't open the full-page screenshots, `<width>-export.png` and `<width>-build.png`: a picture that tall reaches you too shrunk to see a button. In this order:
+   1. **Every page's overview at every width,** `<width>-overview.png`: the order of the sections, a section missing or added, and the columns at that width.
+   2. **The header and the footer at every width,** on the home page: its first slice, `<width>-slice-01.png`, and its end, `<width>-end.png`. Every page shares them, and they change the most between widths: a button beside the menu button, a menu that collapses, columns that stack.
+   3. **The slices where an overview shows a difference,** `<width>-slice-<n>.png`, a screen each at full size, to see it in detail. Both sides are cut at the same offset, so below a section of another height they drift apart: find the same content in the next slice.
+
+   Look at the layout, the order, the spacing, the type, the colors, the images and what shows at each width. `fidelity.json` lists a page that answered 404 on either side, which usually means a wrong line in `pages.txt`.
    - **CMS areas:** a collection list, and a template's bound fields, are empty in the export. Check those areas against the collection's entries instead of the picture.
    - **Fonts:** while the site uses a fallback, its type differs from the export's in every picture. Note it once.
    - **Fix what you can:** a difference in spacing, size, color or order usually has its cause in the theme or the section's markup. Fix it, build, and run the script again.
    - **The rest goes in the report's "Fidelity check",** with its page and width.
+   - **Record what you compared** in the report's "Fidelity check": the overviews, the header and footer pictures, and the slices you opened, by page and width, and every page and width you didn't look at. Never write that a page or width was compared when you didn't open its picture.
 
 ## The person's comparison
 

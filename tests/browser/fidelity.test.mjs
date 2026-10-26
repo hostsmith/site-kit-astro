@@ -100,6 +100,21 @@ describe("fidelity script", () => {
     assert.deepEqual(report.missing, ["export /missing.html", "build /missing"]);
   });
 
+  // site-kit-webflow-migration design D139: the sides side by side, each a
+  // screen tall with its label, the slices 100 px apart in overlap.
+  it("puts both sides in one picture: an overview, slices a screen tall, and the end", async () => {
+    for (const name of ["home", "about"]) {
+      for (const width of WIDTHS) {
+        const { overview, slices, end } = report.pages.find((p) => p.name === name).shots[width];
+        const tall = Math.max((await size(shot(name, width, "export"))).height, (await size(shot(name, width, "build"))).height);
+        assert.equal(slices.length, tall <= 900 ? 1 : Math.ceil((tall - 900) / 800) + 1, `${name} at ${width}: ${slices.length} slices of ${tall} px`);
+        for (const file of [...slices, end]) assert.deepEqual(await size(join(dir, file)), { width: width * 2 + 16, height: 924 }, file);
+        const picture = await size(join(dir, overview));
+        assert.ok(picture.height <= 1568 && picture.width <= width * 2 + 16, `${overview} is ${picture.width} by ${picture.height} px`);
+      }
+    }
+  });
+
   it("stops when Playwright isn't in --tools", async () => {
     const empty = await run(dir, ["--tools", "fonts", "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"]);
     assert.equal(empty.ok, false);

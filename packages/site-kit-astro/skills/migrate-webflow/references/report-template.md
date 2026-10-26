@@ -84,6 +84,10 @@ To use the theme's own styles instead, delete `src/styles/theme/builder-defaults
 
 <!-- Step 9. The differences between the build and the export, per page and width, and what the person found comparing the site with the old one in a browser. When the check couldn't run, such as in a sandbox, say so, why, and what would let it run. -->
 
+**Compared:** <!-- The pictures you opened, as a list, never a table: each page's overview at each width, the home page's first slice and end at each width, and the slices by page, width and number. -->
+
+**Not compared:** <!-- Each page and width whose pictures you didn't open, or "None". -->
+
 | Page | Width | Difference |
 | --- | --- | --- |
 
