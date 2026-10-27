@@ -43,6 +43,31 @@ describe("reveal", () => {
     for (const section of await page.locator("[data-reveal]").all()) assert.equal(await opacity(section), 1);
   });
 
+  // site-kit-webflow-migration design D143: revealItems.
+  it("gives the items that come into view together their place in their row", async () => {
+    // Tall enough for the whole team at once, so both rows come in together.
+    const page = await browser.open("/reveal-items", { viewport: { width: 1280, height: 2000 } });
+    await page.waitForFunction(() => [...document.querySelectorAll(".sk-team__member")].every((item) => item.hasAttribute("data-revealed")));
+    const items = await page.locator(".sk-team__member").evaluateAll((elements) =>
+      elements.map((element) => ({ top: Math.round(element.getBoundingClientRect().top), order: element.style.getPropertyValue("--sk-reveal-order"), delay: getComputedStyle(element).transitionDelay })),
+    );
+    assert.ok(new Set(items.map((item) => item.top)).size > 1, "the team fits in one row, so no row starts again");
+    const places = items.map((item, i) => String(items.slice(0, i).filter((before) => before.top === item.top).length));
+    assert.deepEqual(
+      items.map((item) => item.order),
+      places,
+    );
+    const third = items.findIndex((item) => item.order === "2");
+    assert.ok(third > 0 && items[third].delay.startsWith("0.4s"), `the third of a row waits ${items[third]?.delay}`);
+  });
+
+  it("shows a list's items at once without scripts, and under reduced motion", async () => {
+    for (const options of [{ javaScriptEnabled: false }, { reducedMotion: "reduce" }]) {
+      const page = await browser.open("/reveal-items", { ...options, viewport: SHORT });
+      for (const item of await page.locator(".sk-team__member").all()) assert.equal(await opacity(item), 1, JSON.stringify(options));
+    }
+  });
+
   it("isn't on a page without reveal", async () => {
     const page = await browser.open("/tabs");
     assert.equal(await page.locator("html").getAttribute("data-sk-ready"), null);

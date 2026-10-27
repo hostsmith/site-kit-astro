@@ -92,6 +92,15 @@ describe("interactive parts' markup", () => {
     assert.doesNotMatch(html, /<(img|link|script)[^>]*(youtube|vimeo|openstreetmap)/);
   });
 
+  it("put a list section's revealItems on each item, and nothing on a list without it", async () => {
+    const html = await build.read("reveal-items/index.html");
+    assert.match(html, /<section data-section="team" data-reveal="fade-up"/, "the section's own reveal changed");
+    assert.equal(count(html, /<li class="sk-team__member" data-reveal="slide-left">/g), 6);
+    const grid = html.slice(html.indexOf('data-section="services-grid"'));
+    assert.doesNotMatch(grid.slice(0, grid.indexOf("</section>")), /data-reveal/);
+    assert.equal(html.split(SCRIPTS.reveal).length - 1, 1);
+  });
+
   it("render nested nav items: a link and its button, or a button with the label", async () => {
     const html = await build.read("spaces/desks/index.html");
     assert.match(html, /<li class="sk-nav__item"><a href="\/spaces" class="sk-nav__link" data-field="settings\/site\.en#nav\[1\]\.label">\s*Spaces\s*<\/a><button type="button" class="sk-nav__toggle" aria-expanded="true" aria-controls="sk-submenu-1" aria-label="Spaces submenu" data-current hidden>/);
@@ -193,6 +202,13 @@ describe("invalid interactive parts fail the build", () => {
       'section "t1b1" (tabs): prop "items": needs at least 2 items',
       'section "w1f1" (slider): prop "autoplay": is the seconds between slides, at least 3',
       'section "r1v1" (rich-text): prop "reveal" has the value "bounce", expected one of "fade", "fade-up", "fade-down", "slide-left", "slide-right", "scale"',
+    ));
+
+  it("names an unknown revealItems, and revealItems on a section without a list", () =>
+    expectFailure(
+      files("  - { id: t1m1, type: team, items: [{ name: Ada }], revealItems: bounce }\n  - { id: r1v1, type: rich-text, body: Text, revealItems: fade }\n"),
+      'section "t1m1" (team): prop "revealItems" has the value "bounce", expected one of "fade", "fade-up", "fade-down", "slide-left", "slide-right", "scale"',
+      'section "r1v1" (rich-text): unknown prop "revealItems"',
     ));
 
   it("names an embed on http, and a video embed of another player", () =>

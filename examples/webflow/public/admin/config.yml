@@ -93,6 +93,8 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              # Every section type that holds a list of items.
+              - &reveal_items { name: revealItems, label: Items' entrance animation, widget: select, options: [ fade, fade-up, fade-down, slide-left, slide-right, scale ], required: false, hint: "The theme animates each item as it scrolls into view, the items of a row one after another, unless the visitor asks for reduced motion.", i18n: true }
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: collection
@@ -109,6 +111,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
@@ -141,6 +144,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: images
@@ -161,6 +165,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
@@ -183,6 +188,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
@@ -235,6 +241,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
@@ -252,6 +259,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items
@@ -271,6 +279,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
@@ -314,6 +323,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - { name: intro, label: Intro, widget: text, required: false, i18n: true }
@@ -334,6 +344,7 @@ collections:
             fields:
               - *section_id
               - *section_reveal
+              - *reveal_items
               - *eyebrow_field
               - { name: title, label: Title, widget: string, required: false, i18n: true }
               - name: items

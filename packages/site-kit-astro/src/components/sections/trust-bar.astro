@@ -23,7 +23,7 @@ const f = sectionFields(entry, section);
     <ul class="sk-trust-bar__list">
       {
         section.items.map((item, i) => (
-          <li class="sk-trust-bar__item" {...f.field("items", i, "text")}>
+          <li class="sk-trust-bar__item" {...f.field("items", i, "text")} {...f.item}>
             {item.text}
           </li>
         ))

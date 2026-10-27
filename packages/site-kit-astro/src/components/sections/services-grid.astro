@@ -27,7 +27,7 @@ const f = sectionFields(entry, section);
     <ul class="sk-services-grid__list">
       {
         items.map((item, i) => (
-          <li class:list={["sk-card", item.link && "sk-card--linked"]}>
+          <li class:list={["sk-card", item.link && "sk-card--linked"]} {...f.item}>
             {item.image && <img src={item.image} alt={item.imageAlt} class="sk-card__media" {...f.field("items", i, "image")} />}
             <div class="sk-card__body">
               {item.icon && (

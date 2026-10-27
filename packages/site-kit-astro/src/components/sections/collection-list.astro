@@ -52,7 +52,7 @@ const featured = section.variant === "featured";
           // By the entry's id within its locale, which the list shares.
           const titleId = `${section.id}-${key.replaceAll("/", "-")}`;
           return (
-            <li class:list={["sk-card", "sk-card--linked", featured && i === 0 && "sk-card--featured"]}>
+            <li class:list={["sk-card", "sk-card--linked", featured && i === 0 && "sk-card--featured"]} {...f.item}>
               {data.image && <img src={data.image} alt={data.imageAlt} class="sk-card__media" {...field(ref, "image")} />}
               <div class="sk-card__body">
                 {data.category && (

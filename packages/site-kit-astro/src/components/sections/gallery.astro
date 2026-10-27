@@ -31,7 +31,7 @@ const f = sectionFields(entry, section);
     <ul class="sk-gallery__list">
       {
         images.map((item, i) => (
-          <li class="sk-gallery__item">
+          <li class="sk-gallery__item" {...f.item}>
             <figure>
               {lightbox ? (
                 <a href={item.image} class="sk-gallery__link">

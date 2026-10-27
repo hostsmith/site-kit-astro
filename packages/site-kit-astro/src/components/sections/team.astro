@@ -23,7 +23,7 @@ const f = sectionFields(entry, section);
     <ul class="sk-team__list">
       {
         section.items.map((item, i) => (
-          <li class="sk-team__member">
+          <li class="sk-team__member" {...f.item}>
             {item.image ? (
               <img src={item.image} alt={item.imageAlt} class="sk-team__photo" {...f.field("items", i, "image")} />
             ) : (

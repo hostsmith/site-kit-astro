@@ -18,7 +18,7 @@ import { EMBED_ASPECTS, videoSource } from "./lib/embed.ts";
 import { FACT_NAME, factsFrom, hasPlaceholder, readFacts, withFacts } from "./lib/facts.ts";
 import { formatPath, type PathPart } from "./core/field.ts";
 import { type Locale, LOCALE_KEY, resolveLocales, withLocale } from "./lib/locales.ts";
-import { icon, itemList, labeledLink, link, mediaPath, requireAlt, section, type UiString } from "./lib/schema.ts";
+import { icon, itemList, labeledLink, link, mediaPath, requireAlt, revealItems, section, type UiString } from "./lib/schema.ts";
 
 // What src/site.schema.ts exports. `siteUi` is optional: a site without it
 // has only the kit's interface strings.
@@ -131,6 +131,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     limit: z.int().positive().optional(),
     // A link beside the title, such as "All articles".
     link: labeledLink.optional(),
+    revealItems,
     variant: z.enum(["cards", "list", "featured"]).default("cards"),
   }),
 
@@ -153,6 +154,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
         })
         .superRefine(requireAlt("image", "imageAlt")),
     ),
+    revealItems,
     variant: z.enum(["cards", "list"]).default("cards"),
     tone: z.enum(["plain", "surface"]).default("plain"),
   }),
@@ -173,6 +175,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     // Each image opens large in a dialog, with its caption and the others a
     // button away (site-kit-webflow-example design D103).
     lightbox: z.boolean().optional(),
+    revealItems,
     variant: z.enum(["grid", "masonry"]).default("grid"),
   }),
 
@@ -190,6 +193,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
         })
         .superRefine(requireAlt("image", "imageAlt")),
     ),
+    revealItems,
     variant: z.enum(["grid", "single"]).default("grid"),
     tone: z.enum(["surface", "dark"]).default("surface"),
   }),
@@ -199,6 +203,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ question: z.string().min(1), answer: z.string().min(1) })),
+    revealItems,
   }),
 
   cta: section("cta", {
@@ -234,6 +239,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ text: z.string().min(1) })),
+    revealItems,
     variant: z.enum(["line", "chips"]).default("line"),
   }),
 
@@ -242,6 +248,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: statList.min(2, { error: "needs at least 2 items" }),
+    revealItems,
     tone: z.enum(["plain", "dark"]).default("plain"),
   }),
 
@@ -251,6 +258,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     title: z.string().min(1).optional(),
     intro: z.string().min(1).optional(),
     items: itemList(z.strictObject({ title: z.string().min(1), text: z.string().min(1).optional() })),
+    revealItems,
   }),
 
   // An image beside text, with optional stats and a link. The image comes
@@ -340,6 +348,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
         })
         .superRefine(requireAlt("image", "imageAlt")),
     ),
+    revealItems,
   }),
 
   // Prices as the site writes them, such as "from $4,800".
@@ -347,6 +356,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     eyebrow: z.string().min(1).optional(),
     title: z.string().min(1).optional(),
     items: itemList(z.strictObject({ label: z.string().min(1), price: z.string().min(1) })),
+    revealItems,
     note: z.string().min(1).optional(),
   }),
 
