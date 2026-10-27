@@ -88,6 +88,8 @@ To use the theme's own styles instead, delete `src/styles/theme/builder-defaults
 
 **Not compared:** <!-- Each picture left unticked on the checklist, with the reason, or "None". -->
 
+<!-- Each difference left as it is gets a row of this table, from the checklist's table of differences, never a list or bullets: its page, its width or "all", and what differs and why it stays. With none left, replace the table with the line "No differences." -->
+
 | Page | Width | Difference |
 | --- | --- | --- |
 

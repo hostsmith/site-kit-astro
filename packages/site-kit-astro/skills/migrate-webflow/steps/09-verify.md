@@ -74,19 +74,27 @@ Compare each page of the build with the same page of the export, as screenshots 
 
    **In a sandbox,** the script may fail to serve on `localhost`, such as with `EPERM` on `listen`, or its browser may fail to start. Never work around a sandbox. Say what it must allow: in Claude Code, `sandbox.network.allowLocalBinding: true` lets it serve on `localhost`. If the browser still can't start, as Google Chrome can't inside Claude Code's sandbox on macOS, say that the person can run the command above outside the sandbox, or skip the check. Record the check as not run, and why, in the report's "Fidelity check", and go on to the person's comparison.
 
-4. **Review the pictures on the checklist,** `.hostsmith/snapshot/fidelity/shots/review.md`, which the script writes. Each picture holds both sides, the export on the left and the build on the right, each labelled. Open every picture on it, in its order, several at a time if you like, and tick each one in the file once you've looked at it. Don't skip a width because another looked fine: most layout changes show only at the narrow widths. Don't open the full-page screenshots, `<width>-export.png` and `<width>-build.png`: a picture that tall reaches you too shrunk to see a button. The checklist holds:
+4. **Review every picture on the checklist first,** `.hostsmith/snapshot/fidelity/shots/review.md`, which the script writes, and fix nothing until you have. Each picture holds both sides, the export on the left and the build on the right, each labelled. Open them in the checklist's order, three or four in one turn, never one at a time, and tick each one in the file once you've looked at it. Don't skip a width because another looked fine: most layout changes show only at the narrow widths. Don't open the full-page screenshots, `<width>-export.png` and `<width>-build.png`: a picture that tall reaches you too shrunk to see a button. The checklist holds:
    1. **Every page's overview at every width,** `<width>-overview.png`: the order of the sections, a section missing or added, and the columns at that width.
    2. **The header and the footer at every width,** on the home page: its first slice, `<width>-slice-01.png`, and its end, `<width>-end.png`. Every page shares them, and they change the most between widths: a button beside the menu button, a menu that collapses, columns that stack.
    3. **The slices where an overview shows a difference,** `<width>-slice-<n>.png`, a screen each at full size, to see it in detail. Add each one you open to the checklist. Both sides are cut at the same offset, so below a section of another height they drift apart: find the same content in the next slice.
 
-   A rerun of the script keeps your ticks and the slices you added: after a fix, open again the pictures the fix could change.
+   Write each difference you see into the checklist's table, "Differences found", as you go: its page, its width or `all`, what differs, and the cause where you see it.
 
    Look at the layout, the order, the spacing, the type, the colors, the images and what shows at each width. `fidelity.json` lists a page that answered 404 on either side, which usually means a wrong line in `pages.txt`.
    - **CMS areas:** a collection list, and a template's bound fields, are empty in the export. Check those areas against the collection's entries instead of the picture.
    - **Fonts:** while the site uses a fallback, its type differs from the export's in every picture. Note it once.
-   - **Fix what you can:** a difference in spacing, size, color or order usually has its cause in the theme or the section's markup. Fix it, build, and run the script again.
-   - **The rest goes in the report's "Fidelity check",** with its page and width.
-   - **Record what you compared** in the report's "Fidelity check", from the checklist: the ticked pictures under "Compared", and every one left unticked under "Not compared", with the reason. Never write that a page or width was compared when you didn't open its picture.
+
+   **With subagents,** such as Claude Code's, hand the review to them, so the pictures stay out of your own context: give each a group of pages, about 16 pictures, and one the header and the footer. Tell each the checklist's path, the pictures it reviews, what to look for, as above, and to open three or four at a time, to open the slices where an overview shows a difference, and to change no file. Each returns the pictures it opened, and its differences as rows of the table. Then tick its pictures, add its slices to the checklist, and put its rows into the table.
+
+5. **Then fix them together.** A difference in spacing, size, color or order usually has its cause in the theme or the section's markup. Fix what you can, all at once, build, and run the script again, once:
+   - **When the fixes touch some pages only,** such as one section type's, add `--only` with those pages' names, the folder names in `shots/`, such as `--only home,pricing`. A fix in the theme touches every page: run it without `--only`.
+   - **The export's screenshots are kept,** so a rerun shoots only the build. `--fresh` shoots the export again too, which only a change to the snapshot needs.
+   - **The rerun unticks every picture whose screenshots changed,** and keeps the rest of the checklist. Open the unticked pictures, as above, and say in the table how each difference was fixed. Fix again only what a fix broke.
+
+6. **Record it** in the report's "Fidelity check":
+   - **the differences left:** each row of the checklist's table that isn't fixed, as a row of the report's table, never as a list, or "No differences." when none is left;
+   - **what you compared,** from the checklist: the ticked pictures under "Compared", and every one left unticked under "Not compared", with the reason. Never write that a page or width was compared when you didn't open its picture.
 
 ## The person's comparison
 

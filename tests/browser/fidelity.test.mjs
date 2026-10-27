@@ -6,7 +6,7 @@
 // Playwright comes from the kit repository's own install, as --tools.
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -35,6 +35,8 @@ const FILES = {
   "pages.txt": "# export file, build path\nindex.html /\nabout.html /about\nmissing.html /missing\n",
 };
 
+const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots", "--fonts", "fonts.css", "--font-files", "fonts"];
+
 // A PNG's width and height, from its IHDR chunk.
 async function size(file) {
   const png = await readFile(file);
@@ -60,7 +62,7 @@ describe("fidelity script", () => {
       await mkdir(dirname(join(dir, path)), { recursive: true });
       await writeFile(join(dir, path), text);
     }
-    result = await run(dir, ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots", "--fonts", "fonts.css", "--font-files", "fonts"]);
+    result = await run(dir, ARGS);
     if (result.ok) report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
   });
 
@@ -124,17 +126,67 @@ describe("fidelity script", () => {
     ]);
   });
 
-  it("keeps the review's ticks and added slices when it runs again", async () => {
-    const file = join(dir, "shots", "review.md");
-    const review = await readFile(file, "utf8");
-    await writeFile(file, `${review.replace("- [ ] shots/about/479-overview.png", "- [x] shots/about/479-overview.png")}- [x] shots/about/1440-slice-01.png\n`);
-    await writeFile(join(dir, "about.txt"), "about.html /about\n");
-    const again = await run(dir, ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "about.txt", "--out", "shots"]);
-    assert.ok(again.ok, again.stderr);
-    const rewritten = await readFile(file, "utf8");
-    assert.match(rewritten, /^- \[x\] shots\/about\/479-overview\.png$/m);
-    assert.match(rewritten, /^- \[ \] shots\/about\/767-overview\.png$/m);
-    assert.match(rewritten, /## Slices where an overview shows a difference\n\nAdd each slice you open here, ticked\.\n\n- \[x\] shots\/about\/1440-slice-01\.png\n/);
+  // site-kit-webflow-migration design D141: reruns.
+  describe("run again after a fix", () => {
+    const file = () => join(dir, "shots", "review.md");
+    const again = (...extra) => run(dir, [...ARGS, ...extra]);
+    const modified = async (name, width, side) => (await stat(shot(name, width, side))).mtimeMs;
+    const ticked = (review, path) => new RegExp(`^- \\[x\\] ${path.replaceAll(".", "\\.")}$`, "m").test(review);
+
+    it("keeps the export's screenshots, and unticks only the pictures whose build changed", async () => {
+      const review = await readFile(file(), "utf8");
+      const ticks = ["shots/home/479-overview.png", "shots/about/479-overview.png", "shots/about/1440-overview.png"];
+      let edited = ticks.reduce((text, path) => text.replace(`- [ ] ${path}`, `- [x] ${path}`), review);
+      edited = edited.replace("Add each slice you open here, ticked.\n", "Add each slice you open here, ticked.\n\n- [x] shots/about/1440-slice-01.png\n");
+      await writeFile(file(), `${edited}| about | 479 | The heading is larger | the theme's h2 |\n`);
+      const exported = await modified("home", 1440, "export");
+      await writeFile(join(dir, "build/index.html"), FILES["build/index.html"].replace("<p>Build</p>", "<p>Build, fixed</p>"));
+
+      const result = await again();
+      assert.ok(result.ok, result.stderr);
+      assert.match(result.stdout, /Pages shot at 479, 767, 991, 1440 px: 3, with the export's screenshots kept from the last run for 3\. Pages kept as they were: 0\./);
+      assert.equal(await modified("home", 1440, "export"), exported, "the export's home was shot again");
+      const rewritten = await readFile(file(), "utf8");
+      assert.ok(!ticked(rewritten, "shots/home/479-overview.png"), "the home page's build changed, but its overview kept its tick");
+      assert.ok(ticked(rewritten, "shots/about/479-overview.png") && ticked(rewritten, "shots/about/1440-overview.png"), "the about page's overviews lost their ticks");
+      assert.ok(ticked(rewritten, "shots/about/1440-slice-01.png"), "the slice added lost its tick or its line");
+      assert.match(rewritten, /## Differences found\n[\s\S]*\| Page \| Width \| Difference \| Cause, or how it was fixed \|\n\| --- \| --- \| --- \| --- \|\n\| about \| 479 \| The heading is larger \| the theme's h2 \|\n/);
+    });
+
+    it("shoots only the pages --only names, and keeps the others as they were", async () => {
+      const about = await modified("about", 479, "build");
+      await writeFile(join(dir, "build/about/index.html"), FILES["build/about/index.html"].replace("<p>About</p>", "<p>About, changed</p>"));
+      const result = await again("--only", "home");
+      assert.ok(result.ok, result.stderr);
+      assert.match(result.stdout, /: 1, with the export's screenshots kept from the last run for 1\. Pages kept as they were: 2\./);
+      assert.equal(await modified("about", 479, "build"), about, "about was shot again");
+      const report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
+      assert.deepEqual(report.pages.map((p) => p.name), ["home", "about", "missing"]);
+      assert.deepEqual(report.missing, ["export /missing.html", "build /missing"]);
+      assert.ok(ticked(await readFile(file(), "utf8"), "shots/about/479-overview.png"));
+    });
+
+    it("shoots the export again with --fresh, and keeps the ticks of pictures that look the same", async () => {
+      await writeFile(file(), (await readFile(file(), "utf8")).replace("- [ ] shots/home/767-overview.png", "- [x] shots/home/767-overview.png"));
+      const exported = await modified("home", 767, "export");
+      const result = await again("--only", "home", "--fresh");
+      assert.ok(result.ok, result.stderr);
+      assert.match(result.stdout, /: 1, with the export's screenshots kept from the last run for 0\./);
+      assert.notEqual(await modified("home", 767, "export"), exported, "the export's home wasn't shot again");
+      assert.ok(ticked(await readFile(file(), "utf8"), "shots/home/767-overview.png"), "a picture that looks the same lost its tick");
+    });
+
+    it("unticks the pictures of a page whose build changed while --only left it out", async () => {
+      const result = await again("--only", "about");
+      assert.ok(result.ok, result.stderr);
+      assert.ok(!ticked(await readFile(file(), "utf8"), "shots/about/479-overview.png"));
+    });
+
+    it("names a page --only doesn't know", async () => {
+      const result = await again("--only", "home,pricing");
+      assert.equal(result.ok, false);
+      assert.match(result.stderr, /--only: no page named "pricing"\. The pages are home, about, missing\./);
+    });
   });
 
   it("stops when Playwright isn't in --tools", async () => {
