@@ -297,7 +297,15 @@ collections:
               - *video_field
               - *video_webm_field
               - { name: stats, label: Figures, label_singular: Figure, widget: list, required: false, max: 4, fields: *stat_fields, i18n: true }
-              - { name: link, label: Link, widget: object, required: false, fields: *labeled_link, i18n: true }
+              - name: link
+                label: Link
+                widget: object
+                i18n: true
+                required: false
+                fields:
+                  - { name: label, label: Label, widget: string, required: false, i18n: true }
+                  - { name: link, label: Link, widget: string, required: false, i18n: true }
+                  - { name: style, label: Style, widget: select, options: [ link, primary, secondary ], default: link, required: false, i18n: true }
               - { name: variant, label: Variant, widget: select, options: [ image-left, image-right ], default: image-left, required: false, i18n: true }
               - { name: tone, label: Tone, widget: select, options: [ plain, surface ], default: plain, required: false, i18n: true }
           - name: team
@@ -467,6 +475,7 @@ collections:
                   - { name: label, label: Label, widget: string, i18n: true }
                   - { name: link, label: Link, widget: string, i18n: true }
                   - { name: style, label: Style, widget: select, options: [ primary, secondary ], default: primary, required: false, i18n: true }
+                  - { name: pinned, label: Also beside the menu button on narrow screens, widget: boolean, required: false, i18n: true }
               - name: link
                 label: Link
                 widget: object

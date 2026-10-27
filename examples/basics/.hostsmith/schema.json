@@ -1318,6 +1318,16 @@
                         "link": {
                           "type": "string",
                           "x-widget": "link"
+                        },
+                        "style": {
+                          "default": "link",
+                          "type": "string",
+                          "enum": [
+                            "link",
+                            "primary",
+                            "secondary"
+                          ],
+                          "x-widget": "select"
                         }
                       },
                       "required": [
@@ -1983,6 +1993,10 @@
                             "secondary"
                           ],
                           "x-widget": "select"
+                        },
+                        "pinned": {
+                          "type": "boolean",
+                          "x-widget": "boolean"
                         }
                       },
                       "required": [

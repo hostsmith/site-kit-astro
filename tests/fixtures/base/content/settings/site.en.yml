@@ -16,6 +16,7 @@ header:
     - type: button
       label: Get an estimate
       link: /about
+      pinned: true
     - type: link
       label: Latest news
       link: /news

@@ -24,7 +24,7 @@ Write `src/content/settings/site.<code>.yml` from the export's navbar and footer
 - **`name`:** the business's name, as the navbar's logo or the footer gives it.
 - **`logo`:** the navbar's logo, as step 7 names it, with its alt text.
 - **`nav`:** the navbar's links, in order. A Webflow Dropdown (`w-dropdown`) becomes an item with `children`, one level deep, with the dropdown toggle's text as the item's `label`.
-- **`header.actions`:** the navbar's buttons, as `button` actions with `style: primary` or `secondary`, and a phone link as a `phone` action.
+- **`header.actions`:** the navbar's buttons, as `button` actions with `style: primary` or `secondary`, and a phone link as a `phone` action. A button the navbar shows outside its collapsed menu, beside the menu button, such as "Book a Tour" next to "Menu" below 992 px, gets `pinned: true`: look at where it sits in the export's markup, outside `w-nav-menu` or the site's own mobile menu, and at which widths its CSS shows it. One button at most. Style `sk-header__pinned` in the theme, and hide it at the widths where the old site hid it.
 - **`footer.blocks` and `footer.bottom`:** the footer's columns, as blocks:
   - the logo and its line of text as `brand`, with its own `logo` and `logoAlt` when the footer shows another version, such as a reversed logo on a dark footer;
   - a column of links as `links`, with its heading as `title`;

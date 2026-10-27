@@ -100,6 +100,43 @@ describe("fidelity script", () => {
     assert.deepEqual(report.missing, ["export /missing.html", "build /missing"]);
   });
 
+  // site-kit-webflow-migration design D139: the sides side by side, each a
+  // screen tall with its label, the slices 100 px apart in overlap.
+  it("puts both sides in one picture: an overview, slices a screen tall, and the end", async () => {
+    for (const name of ["home", "about"]) {
+      for (const width of WIDTHS) {
+        const { overview, slices, end } = report.pages.find((p) => p.name === name).shots[width];
+        const tall = Math.max((await size(shot(name, width, "export"))).height, (await size(shot(name, width, "build"))).height);
+        assert.equal(slices.length, tall <= 900 ? 1 : Math.ceil((tall - 900) / 800) + 1, `${name} at ${width}: ${slices.length} slices of ${tall} px`);
+        for (const file of [...slices, end]) assert.deepEqual(await size(join(dir, file)), { width: width * 2 + 16, height: 924 }, file);
+        const picture = await size(join(dir, overview));
+        assert.ok(picture.height <= 1568 && picture.width <= width * 2 + 16, `${overview} is ${picture.width} by ${picture.height} px`);
+      }
+    }
+  });
+
+  it("writes the review's checklist: every overview, then the home page's header and footer", async () => {
+    const review = await readFile(join(dir, "shots", "review.md"), "utf8");
+    const items = [...review.matchAll(/^- \[ \] (\S+)$/gm)].map((match) => match[1]);
+    assert.deepEqual(items, [
+      ...["home", "about", "missing"].flatMap((name) => WIDTHS.map((width) => `shots/${name}/${width}-overview.png`)),
+      ...WIDTHS.flatMap((width) => [`shots/home/${width}-slice-01.png`, `shots/home/${width}-end.png`]),
+    ]);
+  });
+
+  it("keeps the review's ticks and added slices when it runs again", async () => {
+    const file = join(dir, "shots", "review.md");
+    const review = await readFile(file, "utf8");
+    await writeFile(file, `${review.replace("- [ ] shots/about/479-overview.png", "- [x] shots/about/479-overview.png")}- [x] shots/about/1440-slice-01.png\n`);
+    await writeFile(join(dir, "about.txt"), "about.html /about\n");
+    const again = await run(dir, ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "about.txt", "--out", "shots"]);
+    assert.ok(again.ok, again.stderr);
+    const rewritten = await readFile(file, "utf8");
+    assert.match(rewritten, /^- \[x\] shots\/about\/479-overview\.png$/m);
+    assert.match(rewritten, /^- \[ \] shots\/about\/767-overview\.png$/m);
+    assert.match(rewritten, /## Slices where an overview shows a difference\n\nAdd each slice you open here, ticked\.\n\n- \[x\] shots\/about\/1440-slice-01\.png\n/);
+  });
+
   it("stops when Playwright isn't in --tools", async () => {
     const empty = await run(dir, ["--tools", "fonts", "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"]);
     assert.equal(empty.ok, false);

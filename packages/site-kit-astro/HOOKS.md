@@ -32,6 +32,7 @@ Unstyled, a kit page is a readable HTML document. Some elements the kit hides wi
 | `sk-header__logo` | `img` | The logo, when settings have one |
 | `sk-header__name` | `span` | The site name, when settings have no logo |
 | `sk-header__call` | `a` | An icon-only `tel:` link, from the `phone` action that sets `callLabel`. Usually shown only on narrow screens. Its accessible name is the `callLabel` and the number |
+| `sk-header__pinned` | `a` | A copy, outside the menu, of the `button` action that sets `pinned`, also `sk-button` with its style. Usually shown only where the menu is a panel, beside the menu button. The action stays in the menu too |
 | `sk-header__menu-button` | `button` | Opens and closes the menu. `hidden` until the layout's script runs. Holds a `menu` icon, an `x` icon and the label |
 | `sk-header__menu-label` | `span` | The menu button's text, from `ui.menu`. A theme can hide it visually and keep it for screen readers |
 | `sk-menu` | `div` | The menu, rendered once: the nav and the header's actions. A row on wide screens, a panel on narrow ones: the theme decides where |
@@ -282,7 +283,7 @@ A section type that offers a `tone` puts its modifier on the section's root, nex
 | `sk-split__content` | `div` | The heading group, the body, the figures and the link |
 | `sk-split__body` | `div` | The body, with `sk-prose` |
 | `sk-split__stats` | `ul` | Up to four `sk-stat` figures |
-| `sk-split__link` | `a` | A link after the text, such as "Meet the team" |
+| `sk-split__link` | `a` | A text link after the text, such as "Meet the team". A link with the `style` `primary` or `secondary` is an `sk-button` in an `sk-buttons` group instead |
 
 ### team
 

@@ -90,7 +90,7 @@ Its body stays empty. In the sections:
 - **Links:** an internal `.html` link becomes its clean path, and a link to a CMS item its path in the URL map (step 2).
 - **Images:** `/assets/images/<name>`, the name step 7 gives the file, with the export's alt text. When the export's alt text is empty, write a short one and list it in the report's "Alt text written", for the owner to check.
 - **Facts:** a phone number, email or address that the settings hold as a fact is written `{name}`.
-- **Buttons:** a button's text and link become the type's `cta`, `secondaryCta`, `button` or `link`.
+- **Buttons:** a button's text and link become the type's `cta`, `secondaryCta`, `button` or `link`. A `split`'s `link` keeps the look: `style: primary` for a `button`, `style: secondary` for a `button is-secondary`, and no `style`, a text link, for a link styled as text.
 - **Icons:** an icon image in a card becomes the item's `icon`: a site icon from step 7, named after its file in `src/icons/`.
 
 ## Webflow's elements

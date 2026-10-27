@@ -56,6 +56,7 @@ sections:
     title: Repairs
     image: /assets/test/photo.svg
     imageAlt: A wrench on a workbench
+    link: { label: Book a repair, link: /about, style: secondary }
     variant: image-right
     tone: surface
   - id: b8m8

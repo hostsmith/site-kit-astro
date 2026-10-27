@@ -1,10 +1,11 @@
 ---
 // split: eyebrow, title, body (markdown), image + imageAlt, video,
-// videoWebm, stats, link. Variants: image-left (default), image-right. Tones:
-// plain (default), surface. The image comes first in reading order; the
-// variant tells the theme which side to show it on. With `video`, the media
-// is a video with the image as its poster and `imageAlt` as its text
-// alternative (site-kit-webflow-example design D103).
+// videoWebm, stats, link: a text link, or a button with `style` primary or
+// secondary (site-kit-webflow-migration design D138). Variants: image-left
+// (default), image-right. Tones: plain (default), surface. The image comes
+// first in reading order; the variant tells the theme which side to show it
+// on. With `video`, the media is a video with the image as its poster and
+// `imageAlt` as its text alternative (site-kit-webflow-example design D103).
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../core/field.ts";
 import { sectionClass } from "../../lib/hooks.ts";
@@ -48,10 +49,19 @@ const html = body === undefined ? undefined : await renderMarkdown(body, `${entr
         )
       }
       {
-        link && (
+        link?.style === "link" && (
           <a href={link.link} class="sk-split__link" {...f.field("link", "label")}>
             {link.label}
           </a>
+        )
+      }
+      {
+        link && link.style !== "link" && (
+          <div class="sk-buttons">
+            <a href={link.link} class={`sk-button sk-button--${link.style}`} {...f.field("link", "label")}>
+              {link.label}
+            </a>
+          </div>
         )
       }
     </div>

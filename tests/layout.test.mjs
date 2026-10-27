@@ -62,7 +62,41 @@ describe("base layout", () => {
     ].map((pattern) => menu.search(pattern));
     assert.ok(actions.every((at) => at > menu.indexOf('<div class="sk-header__actions">')), `actions not all in the menu: ${actions}`);
     assert.deepEqual([...actions].sort((a, b) => a - b), actions, "the actions keep their order");
-    assert.equal(count(menu, /class="sk-button/g), 1, "the button is rendered once");
+    assert.equal(count(menu, /class="sk-button/g), 1, "the button is rendered once in the menu");
+  });
+
+  // site-kit-webflow-migration design D137.
+  it("renders the pinned button beside the menu button, and in the menu", () => {
+    const bar = home.slice(home.indexOf("</a>", home.indexOf("sk-header__brand")), home.indexOf('id="sk-menu"'));
+    assert.match(
+      bar,
+      /<a href="\/about" class="sk-header__pinned sk-button sk-button--primary" data-field="settings\/site\.en#header\.actions\[1\]\.label">\s*Get an estimate\s*<\/a>\s*<button type="button" hidden aria-expanded="false" aria-controls="sk-menu" class="sk-header__menu-button">/,
+    );
+    assert.ok(bar.indexOf("sk-header__call") < bar.indexOf("sk-header__pinned"), "after the call button");
+  });
+
+  it("renders no pinned copy without pinned", async () => {
+    const plain = await buildFixture("base", { edit: { [SETTINGS_FILE]: (text) => text.replace("      pinned: true\n", "") } });
+    try {
+      assert.ok(plain.ok, plain.output);
+      const header = (await plain.read("index.html")).split("</header>")[0];
+      assert.ok(!header.includes("sk-header__pinned"), "a pinned copy without pinned");
+      assert.equal(count(header, /class="sk-button/g), 1, "the button only in the menu");
+    } finally {
+      await plain.cleanup();
+    }
+  });
+
+  it("fails the build with two pinned buttons", async () => {
+    const twice = await buildFixture("base", {
+      edit: { [SETTINGS_FILE]: (text) => text.replace("    - type: link\n", "    - type: button\n      label: Call us back\n      link: /about\n      pinned: true\n    - type: link\n") },
+    });
+    try {
+      assert.ok(!twice.ok, "the build passed");
+      assert.match(twice.output, /header action 3 \(button\): only one button action may set "pinned"/);
+    } finally {
+      await twice.cleanup();
+    }
   });
 
   it("renders no call button for a phone action without callLabel", async () => {
