@@ -101,7 +101,7 @@ Never copy raw HTML, a script or a style into the content or a component. What h
 
 ## Interactions
 
-Read the interactions from `.hostsmith/snapshot/code/js/webflow.js` as text, as the element mapping's "Interactions" says, and never run the file. A simple entrance animation becomes a `reveal` preset on each section that carries its class, on the section or on its header: `reveal: fade-up` in the section entry. On an element of a site-local type's own markup, it's `data-reveal="fade-up"` in the component instead. Record each interaction in the report's "Interactions", with its id and what was done with it.
+Read the interactions from `.hostsmith/snapshot/code/js/webflow.js` as text, as the element mapping's "Interactions" says, and never run the file. A simple entrance animation becomes a `reveal` preset on each section that carries its class, on the section or on its header: `reveal: fade-up` in the section entry. On the items of a list, such as a row of cards that slide in one after another, it's `revealItems: slide-left` on a library list type. On an element of a site-local type's own markup, it's `data-reveal="fade-up"` in the component instead. Webflow's built-in effects, such as Slide In, map the same way, by the element each one targets. Record each interaction in the report's "Interactions", with its id and what was done with it, and the built-in effects by page.
 
 ## Pages that need their own template
 

@@ -49,7 +49,9 @@ The frame's `title` becomes the section's `title`, and its aspect ratio its `asp
 Webflow's interactions run in `webflow.js`. Read them as text, by searching the file, and never run, import or load it.
 
 - **IX3,** the current engine: a `register([...], [...])` call, inside a module that calls `Webflow.require("ix3")`. Its first list holds the interactions, each with an `id` such as `i-1a2b3c4d`, its `triggers` and its `timelineIds`. Its second holds the timelines, each with its `actions` and their `properties`. A trigger names its target class like `["wf:class",["section-header_component"],...]`.
-- **IX2,** the older engine: `Webflow.require('ix2').init({...})`, with `events` and `actionLists`, and elements marked `data-w-id`.
+- **IX2,** the older engine: `Webflow.require('ix2').init({...})`, with `events` and `actionLists`, and elements marked `data-w-id`. It holds two kinds of entrance, and a site often has dozens of each, so search for both:
+  - **the site's own animations:** an event whose `action.config.actionListId` names one of the site's action lists, such as `a-3`;
+  - **Webflow's built-in effects,** such as Fade In, Slide In and Grow In: an event with `animationType:"preset"`. Its action list, such as `slideInBottom` or `fadeIn`, is in `actionLists` like the site's own, so the table below maps it by what it does: `slideInBottom` starts 100 px lower, so it's `fade-up`, and `slideInRight` 100 px to the right, so it's `slide-left`. Each one targets a single element: its `target.id` is the element's `data-w-id` on its page. `config.delay` holds its delay in milliseconds, such as 0, 200, 400 and 600 across a row of cards.
 
 A simple entrance animation becomes a `reveal` preset:
 
@@ -62,7 +64,12 @@ A simple entrance animation becomes a `reveal` preset:
 | moves in from the left: `x` or `xPercent` from a negative value to 0 | `slide-right` |
 | grows in: scale from below 1 to 1 | `scale` |
 
-It's a simple entrance when its trigger is the element scrolling into view or the page loading, it plays once, and its timeline only fades, moves by a small offset or scales to the element's resting state. Put `reveal: <preset>` on each section that carries the targeted class, on the section or on its header, such as `reveal: fade-up` for the sections whose headers are `section-header_component`. On an element of a site-local type's own markup, it's `data-reveal="<preset>"`.
+It's a simple entrance when its trigger is the element scrolling into view or the page loading, it plays once, and its timeline only fades, moves by a small offset or scales to the element's resting state. Where it goes:
+- **On a section, or its header:** `reveal: <preset>` on the section, such as `reveal: fade-up` for the sections whose headers are `section-header_component`.
+- **On the items of a list,** such as cards, price tables, steps, team members or logos, often with delays rising across a row: `revealItems: <preset>` on the section that holds them, when it's a library type with a list (`services-grid`, `pricing-list`, `steps`, `team`, `testimonials`, `trust-bar`, `stats`, `gallery`, `collection-list` or `faq`). The kit gives the items that come into view together their order in their row, and the theme brings them in one after another, so the delays aren't carried one by one. A section may have both, such as a header that slides up over cards that slide in from the right.
+- **On an element of a site-local type's own markup:** `data-reveal="<preset>"` on it. Items of one section that carry it get their order in their row too.
+
+Find a built-in effect's element by searching the export's pages for `data-w-id="<target.id>"`, and the section it sits in. List the built-in effects in the report's "Interactions" by page, with their preset, rather than one row per element.
 
 Anything else, such as hover and click effects, scroll-linked movement, loops, sequences, counters and page transitions, isn't carried. The report's "Interactions" lists each interaction with its id, what it did and what was done with it.
 
