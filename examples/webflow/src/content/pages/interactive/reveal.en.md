@@ -38,4 +38,17 @@ sections:
     reveal: scale
     title: Reveal, scale
     body: This section grows to its size.
+  - id: f2oh
+    type: services-grid
+    reveal: fade-up
+    revealItems: slide-left
+    title: Reveal items, one after another
+    intro: The section fades up, and its cards slide in from the right, each row's one after another, as Webflow's Slide In with rising delays does.
+    items:
+      - { title: First, text: Comes in first. }
+      - { title: Second, text: Then this one. }
+      - { title: Third, text: Then this one. }
+      - { title: Fourth, text: A new row starts again. }
+      - { title: Fifth, text: Then this one. }
+      - { title: Sixth, text: Then this one. }
 ---

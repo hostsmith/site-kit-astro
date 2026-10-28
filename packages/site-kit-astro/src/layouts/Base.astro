@@ -128,6 +128,11 @@ const embeds = content.includes('class="sk-embed__placeholder"');
         element under it without a flash. Then it sets `data-revealed` on each
         element with `data-reveal` once it enters the viewport. A theme animates
         on that, only without reduced motion. Without scripts, nothing is hidden.
+        Elements of one section that come into view together, such as a list's
+        items, get their place in their row as `--sk-reveal-order`, from 0, so a
+        theme can bring them in one after another (site-kit-webflow-migration
+        design D143). An element whose top is above the bottom of the one before
+        it is in that one's row.
       */
       reveal && (
         <script is:inline>
@@ -141,8 +146,16 @@ const embeds = content.includes('class="sk-embed__placeholder"');
               }
               const observer = new IntersectionObserver(
                 (entries) => {
+                  const rows = new Map();
                   for (const entry of entries) {
                     if (!entry.isIntersecting) continue;
+                    const section = entry.target.parentElement?.closest("[data-section]");
+                    if (section) {
+                      const before = rows.get(section);
+                      const order = before && entry.boundingClientRect.top < before.bottom ? before.order + 1 : 0;
+                      rows.set(section, { order, bottom: entry.boundingClientRect.bottom });
+                      entry.target.style.setProperty("--sk-reveal-order", String(order));
+                    }
                     entry.target.setAttribute("data-revealed", "");
                     observer.unobserve(entry.target);
                   }

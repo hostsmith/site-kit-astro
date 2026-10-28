@@ -13,7 +13,7 @@ Remove what's left of the `webflow` example, so the site holds only its own cont
 - **The README:** the site's `README.md` says what the site is, in place of the example's description.
 - **Interface strings:** keep the kit's keys for the parts the site uses. The others may stay: they're optional.
 
-Then run `npm run decap-config`, `npx site-kit schema` and the checks in step 9 again, and commit.
+Then run `npm run decap-config`, `npx site-kit schema`, and step 9's "The checks" and "No Webflow left" again, and commit. The fidelity check needs to run again only if this step changed the settings, such as a header action or a footer block: then run it with `--only home`, and open the pictures it unticks.
 
 The snapshot stays in `.hostsmith/snapshot/`, ignored by git, for a rerun. The report says it can be deleted once the owner has approved the site.
 

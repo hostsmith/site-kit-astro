@@ -25,7 +25,7 @@ const f = sectionFields(entry, section);
     <ul class="sk-testimonials__list">
       {
         items.map((item, i) => (
-          <li>
+          <li {...f.item}>
             <figure class="sk-testimonials__item">
               <blockquote class="sk-testimonials__quote">
                 <p {...f.field("items", i, "quote")}>{item.quote}</p>

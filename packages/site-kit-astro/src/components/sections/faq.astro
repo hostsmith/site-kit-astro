@@ -28,7 +28,7 @@ const answers = await Promise.all(
     <div class="sk-faq__list">
       {
         items.map((item, i) => (
-          <details class="sk-faq__item">
+          <details class="sk-faq__item" {...f.item}>
             <summary class="sk-faq__question" {...f.field("items", i, "question")}>
               {item.question}
             </summary>

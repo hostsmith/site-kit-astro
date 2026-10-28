@@ -438,9 +438,13 @@ Behaviors that sit on the layout or on a section type, each with its own hooks a
 
 | State | Element | Means |
 | --- | --- | --- |
-| `data-reveal` | a section's root, or any element of the site's own markup | Its entrance animation: `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`. Hide it only under `[data-sk-ready]`, and only inside `prefers-reduced-motion: no-preference` |
+| `data-reveal` | a section's root, each item of a list section that sets `revealItems`, or any element of the site's own markup | Its entrance animation: `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`. Hide it only under `[data-sk-ready]`, and only inside `prefers-reduced-motion: no-preference` |
 | `data-revealed` | the same element | It has entered the viewport: animate it to its place |
 | `data-sk-ready` | `html` | The reveal script has run, before the page renders. Without scripts it's missing, so nothing is hidden |
+
+| Custom property | Element | Means |
+| --- | --- | --- |
+| `--sk-reveal-order` | an element with `data-reveal` inside a section, once revealed | Its place in its row among the section's elements that came into view together, from 0. Delay its animation by it, such as `transition-delay: calc(var(--sk-reveal-order, 0) * 0.2s)`, to bring a list's items in one after another |
 
 ## Deprecated
 

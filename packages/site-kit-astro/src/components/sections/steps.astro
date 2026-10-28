@@ -24,7 +24,7 @@ const f = sectionFields(entry, section);
     <ol class="sk-steps__list">
       {
         section.items.map((item, i) => (
-          <li class="sk-steps__item">
+          <li class="sk-steps__item" {...f.item}>
             <h3 class="sk-steps__title" {...f.field("items", i, "title")}>
               <Title text={item.title} />
             </h3>

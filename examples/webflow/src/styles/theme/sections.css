@@ -1279,12 +1279,14 @@
   display: none;
 }
 
-/* reveal: hidden only once the head script ran, and only with motion */
+/* reveal: hidden only once the head script ran, and only with motion. Items
+   that come into view together in a row come in 0.2 s apart. */
 [data-sk-ready] [data-reveal] {
   @variant motion-safe {
     transition:
       opacity 0.6s ease,
       transform 0.6s ease;
+    transition-delay: calc(var(--sk-reveal-order, 0) * 0.2s);
   }
 }
 

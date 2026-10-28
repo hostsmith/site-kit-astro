@@ -36,7 +36,7 @@ The snapshot is in `.hostsmith/snapshot/`, which git ignores. It can be deleted 
 
 ## Interactions
 
-<!-- Steps 2 and 5. Each interaction by its id, what it did, and what was done with it, such as "fade-up on scroll, on the section headers: reveal: fade-up on 11 sections". -->
+<!-- Steps 2 and 5. Each interaction by its id, what it did, and what was done with it, such as "fade-up on scroll, on the section headers: reveal: fade-up on 11 sections". Then Webflow's built-in effects by page, such as "Pricing tables: Slide In from the bottom on the heading and the three price tables, 0 to 400 ms apart: reveal: fade-up and revealItems: fade-up". Otherwise: "None found", having searched for both. -->
 
 ## Embeds
 
@@ -87,6 +87,8 @@ To use the theme's own styles instead, delete `src/styles/theme/builder-defaults
 **Compared:** <!-- The ticked pictures of .hostsmith/snapshot/fidelity/shots/review.md, as a list, never a table: each page's overview at each width, the home page's first slice and end at each width, and the slices by page, width and number. -->
 
 **Not compared:** <!-- Each picture left unticked on the checklist, with the reason, or "None". -->
+
+<!-- Each difference left as it is gets a row of this table, from the checklist's table of differences, never a list or bullets: its page, its width or "all", and what differs and why it stays. With none left, replace the table with the line "No differences." -->
 
 | Page | Width | Difference |
 | --- | --- | --- |

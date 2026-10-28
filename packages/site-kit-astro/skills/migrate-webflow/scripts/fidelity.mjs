@@ -9,7 +9,8 @@
 //     --build dist \
 //     --pages .hostsmith/snapshot/fidelity/pages.txt \
 //     --out .hostsmith/snapshot/fidelity/shots \
-//     --fonts src/styles/theme/fonts.css --font-files public/assets/fonts
+//     --fonts src/styles/theme/fonts.css --font-files public/assets/fonts \
+//     [--only home,about] [--fresh]
 //
 // --pages lists one page per line: the export's file, then the build's path,
 // such as `about.html /about`. A line starting with # is a comment.
@@ -17,8 +18,13 @@
 // Both sides are served on localhost by this script. Every request to another
 // host gets an empty answer, so no page reaches Webflow's CDNs or an embed's
 // provider. The export renders with scripts off: its scripts come from
-// Webflow, and without them its interactions hide nothing. The build renders
-// with its scripts, so its parts are set up, and both emulate reduced motion.
+// Webflow. Webflow writes the start of an animation on page load or on scroll
+// into view into the page, as an inline style that hides or moves the element
+// until the script plays it; the export's pages are served without those, so
+// such an element shows where its animation ends. The script reads them from
+// the export's interactions, as data, never running them, and leaves the
+// start states of hover and click as they are. The build renders with its
+// scripts, so its parts are set up, and both emulate reduced motion.
 // --fonts adds the site's @font-face rules to the export's pages, with
 // --font-files served at /assets/fonts/, so a font the export lacks doesn't
 // count as a difference.
@@ -39,7 +45,16 @@
 // <width>-slice-01.png and on, a screen at a time at full size, at the same
 // offset on both sides; and <width>-end.png, each side's last screen. A
 // full-page screenshot is too tall for a vision model to see its detail.
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+//
+// A rerun, after a fix (D141), shoots the build again, but keeps the export's
+// screenshots unless what they depend on changed: the export's page file, the
+// fonts given, or the way this script shoots. --fresh shoots them again too.
+// --only home,about shoots only those pages, by the names the script gives
+// them, and any page it hasn't shot before, and keeps the others as they are.
+// The checklist keeps its ticks, the slices added and the table of
+// differences, but unticks every picture whose screenshots changed.
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -56,6 +71,12 @@ const SLICE_STEP = 800;
 const OVERVIEW_HEIGHT = 1568;
 const LABEL_HEIGHT = 24;
 const GAP = 16;
+// Part of each export screenshot's key: change it when the way the script
+// shoots changes, so a rerun shoots the export again.
+const SHOT_VERSION = `2 ${WIDTHS.join(",")} ${HEIGHT}`;
+const SLICES = "Slices where an overview shows a difference";
+const DIFFERENCES = "Differences found";
+const DIFFERENCES_HEAD = ["| Page | Width | Difference | Cause, or how it was fixed |", "| --- | --- | --- | --- |"];
 
 // The page that composes the pictures: a pane for each side, holding its
 // screenshot, which compose() moves and scales.
@@ -80,6 +101,10 @@ const SHEET = `<!doctype html>
 </html>`;
 const FONTS_PATH = "/assets/fonts/";
 const FONTS_CSS = "/__fidelity/fonts.css";
+// Webflow's (IX2) triggers of an entrance: page load and scroll into view.
+const ENTRANCES = new Set(["PAGE_START", "PAGE_FINISH", "SCROLL_INTO_VIEW"]);
+// What an entrance's start state sets inline.
+const START_PROPERTY = /^\s*(-(webkit|moz|ms)-)?(opacity|transform|filter)\s*$/i;
 
 const TYPES = {
   ".html": "text/html",
@@ -117,6 +142,8 @@ const { values: options } = parseArgs({
     out: { type: "string" },
     fonts: { type: "string" },
     "font-files": { type: "string" },
+    only: { type: "string" },
+    fresh: { type: "boolean" },
   },
 });
 
@@ -137,10 +164,17 @@ async function main(args) {
   const fontDir = args["font-files"] ? folder(args["font-files"], "--font-files") : undefined;
   const fontsCss = args.fonts ? readFileSync(args.fonts, "utf8") : undefined;
   const pages = readPages(args.pages);
+  const only = args.only === undefined ? undefined : readOnly(args.only, pages);
   const { chromium } = loadPlaywright(args.tools);
 
   mkdirSync(args.out, { recursive: true });
-  const exportSide = await serve(exportDir, { fontDir, fontsCss });
+  const resultFile = join(args.out, "fidelity.json");
+  const reviewFile = join(args.out, "review.md");
+  // The last run's pages, by name, for what a rerun keeps.
+  const previous = new Map((existsSync(resultFile) ? (JSON.parse(readFileSync(resultFile, "utf8")).pages ?? []) : []).map((page) => [page.name, page]));
+  const fonts = fontsKey(fontsCss, fontDir);
+  const starts = entranceStartsOf(exportDir);
+  const exportSide = await serve(exportDir, { fontDir, fontsCss, starts });
   const buildSide = await serve(buildDir);
   // The screenshots, for the page that composes the pictures.
   const shotsSide = await serve(resolve(args.out));
@@ -150,35 +184,60 @@ async function main(args) {
     const sheet = await browser.newPage();
     await sheet.setContent(SHEET);
     const result = { widths: WIDTHS, pages: [], missing: [], requested: { export: [], build: [] } };
+    // The pictures whose screenshots changed, which lose their ticks.
+    const changed = new Set();
+    const counts = { shot: 0, exportsKept: 0, kept: 0 };
     let pictures = 0;
     for (const page of pages) {
+      const before = previous.get(page.name);
+      const same = before?.export === page.exportPath && before?.build === page.buildPath;
+      if (only && !only.has(page.name) && same) {
+        result.pages.push(before);
+        counts.kept++;
+        continue;
+      }
       const dir = join(args.out, page.name);
       mkdirSync(dir, { recursive: true });
-      const shots = {};
-      for (const width of WIDTHS) {
-        shots[width] = {
-          export: await shoot(browser, exportSide, page.exportPath, join(dir, `${width}-export.png`), { width, scripts: false }, result, "export"),
-          build: await shoot(browser, buildSide, page.buildPath, join(dir, `${width}-build.png`), { width, scripts: true }, result, "build"),
-        };
-        Object.assign(shots[width], await compose(sheet, shotsSide, page.name, width, dir));
-        pictures += shots[width].slices.length + 2;
+      const key = exportKey(exportDir, page.exportPath, fonts);
+      const keepExport = !args.fresh && same && before.key === key && WIDTHS.every((width) => existsSync(join(dir, `${width}-export.png`)));
+      const entry = { name: page.name, export: page.exportPath, build: page.buildPath, key, shots: {}, missing: [], requested: { export: [], build: [] } };
+      if (keepExport) {
+        entry.missing.push(...(before.missing ?? []).filter((missing) => missing.startsWith("export ")));
+        entry.requested.export.push(...(before.requested?.export ?? []));
+        counts.exportsKept++;
       }
-      result.pages.push({ name: page.name, export: page.exportPath, build: page.buildPath, shots });
+      for (const width of WIDTHS) {
+        const exportShot = keepExport
+          ? { file: relative(process.cwd(), join(dir, `${width}-export.png`)), changed: false }
+          : await shoot(browser, exportSide, page.exportPath, join(dir, `${width}-export.png`), { width, scripts: false }, entry, "export");
+        const buildShot = await shoot(browser, buildSide, page.buildPath, join(dir, `${width}-build.png`), { width, scripts: true }, entry, "build");
+        const shots = { export: exportShot.file, build: buildShot.file, ...(await compose(sheet, shotsSide, page.name, width, dir)) };
+        if (exportShot.changed || buildShot.changed) for (const picture of [shots.overview, ...shots.slices, shots.end]) changed.add(picture);
+        entry.shots[width] = shots;
+        pictures += shots.slices.length + 2;
+      }
+      entry.missing = [...new Set(entry.missing)];
+      entry.requested.export = [...new Set(entry.requested.export)].sort();
+      entry.requested.build = [...new Set(entry.requested.build)].sort();
+      result.pages.push(entry);
+      counts.shot++;
     }
-    result.missing = [...new Set(result.missing)];
-    result.requested.export = [...new Set(result.requested.export)].sort();
-    result.requested.build = [...new Set(result.requested.build)].sort();
-    writeFileSync(join(args.out, "fidelity.json"), `${JSON.stringify(result, null, 2)}\n`);
-    const reviewFile = join(args.out, "review.md");
-    const review = reviewList(result.pages, existsSync(reviewFile) ? readFileSync(reviewFile, "utf8") : "");
+    result.missing = [...new Set(result.pages.flatMap((page) => page.missing ?? []))];
+    for (const side of ["export", "build"]) result.requested[side] = [...new Set(result.pages.flatMap((page) => page.requested?.[side] ?? []))].sort();
+    writeFileSync(resultFile, `${JSON.stringify(result, null, 2)}\n`);
+    const review = reviewList(result.pages, existsSync(reviewFile) ? readFileSync(reviewFile, "utf8") : "", changed);
     writeFileSync(reviewFile, review.text);
-    console.log(`${result.pages.length} pages at ${WIDTHS.join(", ")} px: ${result.pages.length * WIDTHS.length * 2} screenshots in ${args.out}`);
-    console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width, ${pictures} in all.`);
-    console.log(`Open every picture in ${join(args.out, "review.md")}, ${review.count} of them, in its order.`);
+    // What went wrong first, and what to do next last, where a look at the
+    // output's end finds it.
+    if (starts === null) console.log("Webflow's interactions couldn't be read from the export's scripts, so what its entrance animations hide at first stays hidden in the export's screenshots.");
+    else if (starts) console.log("Webflow's entrance animations start some elements hidden or moved: the export's screenshots show them where the animations end.");
     for (const missing of result.missing) console.log(`404: ${missing}`);
     for (const side of ["export", "build"]) {
       if (result.requested[side].length > 0) console.log(`The ${side}'s pages asked other hosts, which got nothing: ${result.requested[side].join(", ")}`);
     }
+    console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width. New pictures: ${pictures}.`);
+    console.log(`Pages shot at ${WIDTHS.join(", ")} px: ${counts.shot}, with the export's screenshots kept from the last run for ${counts.exportsKept}. Pages kept as they were: ${counts.kept}. In ${args.out}`);
+    console.log(`Pictures to open in ${reviewFile}, in its order, three or four at a time: ${review.open} of ${review.count}.`);
   } finally {
     await browser?.close();
     await exportSide.close();
@@ -213,6 +272,148 @@ function readPages(path) {
   return pages;
 }
 
+// --only's page names, such as `home,about`, each one a page of --pages.
+function readOnly(list, pages) {
+  const names = new Set(list.split(",").map((name) => name.trim()).filter(Boolean));
+  const unknown = [...names].filter((name) => !pages.some((page) => page.name === name));
+  if (names.size === 0 || unknown.length > 0) {
+    throw new UsageError(`--only: ${unknown.length ? `no page named ${unknown.map((name) => `"${name}"`).join(", ")}` : "no page named"}. The pages are ${pages.map((page) => page.name).join(", ")}.`);
+  }
+  return names;
+}
+
+// The site's fonts, as the export's pages get them: the rules and the files.
+function fontsKey(fontsCss, fontDir) {
+  const hash = createHash("sha256").update(fontsCss ?? "");
+  if (fontDir) {
+    for (const name of readdirSync(fontDir, { recursive: true }).sort()) {
+      const file = join(fontDir, name);
+      if (statSync(file).isFile()) hash.update(`\n${name} ${statSync(file).size}`);
+    }
+  }
+  return hash.digest("hex");
+}
+
+// What an export page's screenshots depend on, besides the rest of the
+// snapshot, which a migration never changes: its file, the fonts, and the way
+// the script shoots.
+function exportKey(exportDir, path, fonts) {
+  const file = find(exportDir, path);
+  return createHash("sha256")
+    .update(`${SHOT_VERSION}\n${fonts}\n`)
+    .update(file ? readFileSync(file) : "404")
+    .digest("hex")
+    .slice(0, 16);
+}
+
+// The elements Webflow's entrance animations start hidden or moved, from the
+// interactions (IX2) in the export's scripts, read as data: by data-w-id, and,
+// for an animation on a page's load, by class on that page, as data-wf-page
+// names it. Undefined when there are none, null when they can't be read.
+function entranceStartsOf(exportDir) {
+  const dir = join(exportDir, "js");
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) return undefined;
+  for (const name of readdirSync(dir).filter((name) => /^webflow.*\.js$/i.test(name)).sort()) {
+    const js = readFileSync(join(dir, name), "utf8");
+    const call = /ix2["']\)\.init\(\s*\{/.exec(js);
+    if (!call) continue;
+    let interactions;
+    try {
+      interactions = JSON.parse(literalToJson(js, call.index + call[0].length - 1));
+    } catch {
+      return null;
+    }
+    const ids = new Set();
+    const classes = new Map();
+    for (const event of Object.values(interactions.events ?? {})) {
+      if (!ENTRANCES.has(event.eventTypeId)) continue;
+      const list = interactions.actionLists?.[event.action?.config?.actionListId];
+      for (const item of (list?.actionItemGroups ?? []).flatMap((group) => group.actionItems ?? [])) {
+        const target = item.config?.target ?? {};
+        if (!target.selector) {
+          const id = target.useEventTarget === true ? event.target?.id : target.id;
+          if (id) ids.add(id.split("|").pop());
+        } else if (event.target?.appliesTo === "PAGE" && !target.useEventTarget && /^(\.[\w-]+)+$/.test(target.selector)) {
+          for (const page of event.targets ?? [event.target]) {
+            classes.set(page.id, [...(classes.get(page.id) ?? []), target.selector.split(".").filter(Boolean)]);
+          }
+        }
+      }
+    }
+    return ids.size > 0 || classes.size > 0 ? { ids, classes } : undefined;
+  }
+  return undefined;
+}
+
+// The object literal at `start`, a `{`, as JSON: its keys quoted, its strings
+// in double quotes, `!0` and `!1` as true and false, and hexadecimal numbers
+// as decimal. Throws on anything else, which a literal of data doesn't hold.
+function literalToJson(js, start) {
+  let json = "";
+  let depth = 0;
+  let i = start;
+  do {
+    const char = js[i];
+    if (char === '"' || char === "'") {
+      let text = '"';
+      let end = i + 1;
+      while (js[end] !== char) {
+        if (end >= js.length) throw new Error("A string doesn't end.");
+        if (js[end] === "\\") {
+          text += js[end + 1] === "'" ? "'" : js.slice(end, end + 2);
+          end += 2;
+        } else {
+          text += js[end] === '"' ? '\\"' : js[end];
+          end++;
+        }
+      }
+      json += `${text}"`;
+      i = end + 1;
+    } else if (/\s/.test(char)) {
+      i++;
+    } else if ("{[,:]}".includes(char)) {
+      if (char === "{" || char === "[") depth++;
+      if (char === "}" || char === "]") depth--;
+      json += char;
+      i++;
+    } else if (char === "!" && (js[i + 1] === "0" || js[i + 1] === "1")) {
+      json += js[i + 1] === "0" ? "true" : "false";
+      i += 2;
+    } else {
+      const number = /^(-?)(0x[0-9a-f]+|\d*\.?\d+(?:e[+-]?\d+)?)/i.exec(js.slice(i, i + 40));
+      const word = /^[A-Za-z_$][\w$]*/.exec(js.slice(i, i + 200));
+      if (number) {
+        json += number[1] + String(Number(number[2]));
+        i += number[0].length;
+      } else if (word && ["true", "false", "null"].includes(word[0])) {
+        json += word[0];
+        i += word[0].length;
+      } else if (word && /^\s*:/.test(js.slice(i + word[0].length, i + word[0].length + 20))) {
+        json += `"${word[0]}"`;
+        i += word[0].length;
+      } else {
+        throw new Error(`Not data: ${js.slice(i, i + 30)}`);
+      }
+    }
+  } while (depth > 0);
+  return json;
+}
+
+// A page of the export without its entrances' start states: each element
+// they start loses its inline opacity, transform and filter.
+function withoutStarts(html, { ids, classes }) {
+  const lists = classes.get(/<html[^>]*\sdata-wf-page="([^"]+)"/i.exec(html)?.[1]) ?? [];
+  return html.replace(/<[a-zA-Z][^>]*\sstyle="[^"]*"[^>]*>/g, (tag) => {
+    const id = /\sdata-w-id="([^"]+)"/.exec(tag)?.[1];
+    const names = (/\sclass="([^"]*)"/.exec(tag)?.[1] ?? "").split(/\s+/);
+    if (!ids.has(id) && !lists.some((list) => list.every((name) => names.includes(name)))) return tag;
+    return tag.replace(/\sstyle="([^"]*)"/, (attribute, style) => {
+      const kept = style.split(";").filter((declaration) => !START_PROPERTY.test(declaration.split(":")[0]));
+      return kept.join(";").trim() ? ` style="${kept.join(";")}"` : "";
+    });
+  });
+}
+
 function loadPlaywright(tools) {
   const require = createRequire(join(resolve(tools), "package.json"));
   try {
@@ -236,8 +437,9 @@ async function launch(chromium, tools) {
 
 // Serves `root` on a free local port, the way Hostsmith serves a site:
 // /about from about, about.html or about/index.html. The export's pages get
-// the site's fonts when `fontsCss` is given.
-async function serve(root, { fontDir, fontsCss } = {}) {
+// the site's fonts when `fontsCss` is given, and lose the entrances' start
+// states when `starts` is.
+async function serve(root, { fontDir, fontsCss, starts } = {}) {
   const server = createServer(async (request, response) => {
     const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
     if (fontsCss && path === FONTS_CSS) return send(response, 200, "text/css", fontsCss);
@@ -248,6 +450,7 @@ async function serve(root, { fontDir, fontsCss } = {}) {
     }
     const type = TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
     let body = await readFile(file);
+    if (starts && type === "text/html") body = withoutStarts(body.toString("utf8"), starts);
     if (fontsCss && type === "text/html") {
       body = body.toString("utf8").replace(/<\/head>/i, `<link rel="stylesheet" href="${FONTS_CSS}"></head>`);
     }
@@ -274,7 +477,9 @@ function send(response, status, type, body) {
   response.end(body);
 }
 
-async function shoot(browser, side, path, file, { width, scripts }, result, name) {
+// A full-page screenshot into `file`, and whether it differs from the one
+// there before, byte for byte.
+async function shoot(browser, side, path, file, { width, scripts }, entry, name) {
   const context = await browser.newContext({ viewport: { width, height: HEIGHT }, reducedMotion: "reduce", javaScriptEnabled: scripts });
   try {
     // Another host gets an empty page, not an abort: Chrome would show its
@@ -282,14 +487,16 @@ async function shoot(browser, side, path, file, { width, scripts }, result, name
     await context.route("**/*", (route) => {
       const url = new URL(route.request().url());
       if (url.origin === side.origin) return route.continue();
-      result.requested[name].push(url.host);
+      entry.requested[name].push(url.host);
       return route.fulfill({ status: 200, contentType: "text/html", body: "" });
     });
     const page = await context.newPage();
     const response = await page.goto(`${side.origin}${path}`, { waitUntil: "networkidle" });
-    if (response?.status() === 404) result.missing.push(`${name} ${path}`);
-    await page.screenshot({ path: file, fullPage: true });
-    return relative(process.cwd(), file);
+    if (response?.status() === 404) entry.missing.push(`${name} ${path}`);
+    const png = await page.screenshot({ fullPage: true });
+    const changed = !existsSync(file) || !readFileSync(file).equals(png);
+    writeFileSync(file, png);
+    return { file: relative(process.cwd(), file), changed };
   } finally {
     await context.close();
   }
@@ -349,22 +556,31 @@ async function picture(sheet, file, layout) {
   return relative(process.cwd(), file);
 }
 
-// Step 9's checklist (D139): every page's overview at every width, then the
-// header and the footer at every width, on the home page or else the first
-// page, then room for the slices the agent opens. The paths are as
-// fidelity.json gives them, so each opens as it stands. A rerun, after a
-// fix, keeps the ticks and the slices of the list before it.
-function reviewList(pages, previous) {
+// Step 9's checklist (D139, D141): every page's overview at every width, then
+// the header and the footer at every width, on the home page or else the
+// first page, then room for the slices the agent opens, and the table of the
+// differences it finds. The paths are as fidelity.json gives them, so each
+// opens as it stands. A rerun keeps the ticks, the slices added and the
+// table, but unticks the pictures in `changed`, whose screenshots changed, and
+// drops a slice added that no longer exists.
+function reviewList(pages, previous, changed) {
   const first = pages.find((page) => page.name === "home") ?? pages[0];
-  const ticked = new Set([...previous.matchAll(/^- \[x\] (\S+)/gim)].map((match) => match[1]));
-  const added = previous.split(/^## Slices where an overview shows a difference$/m)[1]?.split("\n").filter((line) => line.startsWith("- [")) ?? [];
+  const ticked = new Set([...previous.matchAll(/^- \[x\] (\S+)/gim)].map((match) => match[1]).filter((path) => !changed.has(path)));
+  const part = (title) => previous.split(`\n## ${title}\n`)[1]?.split("\n## ")[0] ?? "";
+  const added = [...part(SLICES).matchAll(/^- \[[ x]\] (\S+)/gim)].map((match) => match[1]).filter((path) => existsSync(path));
+  const rows = part(DIFFERENCES)
+    .split("\n")
+    .filter((line) => line.startsWith("|") && !DIFFERENCES_HEAD.includes(line.trim()));
   const item = (path) => `- [${ticked.has(path) ? "x" : " "}] ${path}`;
   const overviews = pages.flatMap((page) => WIDTHS.map((width) => page.shots[width].overview));
   const ends = WIDTHS.flatMap((width) => [first.shots[width].slices[0], first.shots[width].end]);
+  const listed = [...overviews, ...ends];
   const text = [
     "# Fidelity review",
     "",
-    'Open each picture, in this order, and tick it once you\'ve looked at it. Each holds the export on the left and the build on the right. The report\'s "Compared" lists the ticked ones, and "Not compared" the rest.',
+    "Open the pictures in this order, three or four at a time, and tick each one once you've looked at it. Each holds the export on the left and the build on the right. Write each difference into the table at the end as you go, and fix nothing until you've opened them all. A rerun unticks the pictures whose screenshots changed: open those again.",
+    "",
+    'The report\'s "Compared" lists the ticked pictures, "Not compared" the rest, and its table the differences left.',
     "",
     "## Every page's overview, at every width",
     "",
@@ -378,14 +594,21 @@ function reviewList(pages, previous) {
     "",
     ...ends.map(item),
     "",
-    "## Slices where an overview shows a difference",
+    `## ${SLICES}`,
     "",
     "Add each slice you open here, ticked.",
     "",
-    ...added,
+    ...added.map(item),
     ...(added.length ? [""] : []),
+    `## ${DIFFERENCES}`,
+    "",
+    "One row for each difference, by page and width, or `all` for every width. Once it's fixed, say how in the last column. The rows not fixed go into the report.",
+    "",
+    ...DIFFERENCES_HEAD,
+    ...rows,
+    "",
   ].join("\n");
-  return { text, count: overviews.length + ends.length };
+  return { text, count: listed.length + added.length, open: [...listed, ...added].filter((path) => !ticked.has(path)).length };
 }
 
 // A PNG's height, from its header.

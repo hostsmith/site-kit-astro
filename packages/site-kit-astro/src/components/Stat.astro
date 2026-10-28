@@ -9,12 +9,14 @@ interface Props {
   at: PathPart[];
   value: string;
   label: string;
+  // Its entrance animation, from the section's `revealItems`.
+  reveal?: { "data-reveal"?: string };
 }
 
-const { field, at, value, label } = Astro.props;
+const { field, at, value, label, reveal } = Astro.props;
 ---
 
-<li class="sk-stat">
+<li class="sk-stat" {...reveal}>
   <p class="sk-stat__value" {...field(...at, "value")}>{value}</p>
   <p class="sk-stat__label" {...field(...at, "label")}>{label}</p>
 </li>

@@ -23,7 +23,7 @@ const f = sectionFields(entry, section);
     <dl class="sk-pricing-list__list">
       {
         section.items.map((item, i) => (
-          <div class="sk-pricing-list__row">
+          <div class="sk-pricing-list__row" {...f.item}>
             <dt class="sk-pricing-list__label" {...f.field("items", i, "label")}>
               {item.label}
             </dt>

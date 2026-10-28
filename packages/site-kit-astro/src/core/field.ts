@@ -46,10 +46,13 @@ export function fieldsFor(collection: string, entryId: string) {
   return (...path: PathPart[]): FieldAttrs => field(`${collection}/${entryId}`, ...path);
 }
 
-export function sectionFields(entry: string, section: { id: string; type: string; reveal?: string }) {
+// `item` goes on each item of a list section: its entrance animation, when the
+// entry sets `revealItems` (site-kit-webflow-migration design D143).
+export function sectionFields(entry: string, section: { id: string; type: string; reveal?: string; revealItems?: string }) {
   const prefix = `sections[${section.id}]`;
   return {
     root: (section.reveal ? { "data-section": section.type, "data-reveal": section.reveal } : { "data-section": section.type }) as SectionAttrs,
+    item: (section.revealItems ? { "data-reveal": section.revealItems } : {}) as { "data-reveal"?: string },
     field: (...path: PathPart[]): FieldAttrs => {
       const rest = formatPath(path);
       return { "data-field": `${entry}#${prefix}${rest.startsWith("[") ? rest : `.${rest}`}` };

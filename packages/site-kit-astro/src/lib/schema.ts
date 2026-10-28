@@ -20,6 +20,13 @@ export const icon = z.enum([...CONTENT_ICONS, ...siteIcons.map((siteIcon) => sit
 // kit marks the element, and the theme animates it.
 export const REVEAL_PRESETS = ["fade", "fade-up", "fade-down", "slide-left", "slide-right", "scale"] as const;
 
+// The entrance animation of each item of a list section, which the kit puts
+// on every item (site-kit-webflow-migration design D143). Items that come into
+// view together in a row get their order from the reveal script, so a theme
+// can bring them in one after another. A list type's schema adds it beside
+// its items, and a site-local type may too.
+export const revealItems = z.enum(REVEAL_PRESETS).optional();
+
 // A section type's schema. The record key, the `type` literal and the
 // component's file name are the same kebab-case name (design D2). Every
 // section may set `reveal`, which sectionFields() puts on its root.

@@ -367,6 +367,18 @@
                       "additionalProperties": false,
                       "x-widget": "object"
                     },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
+                    },
                     "variant": {
                       "default": "cards",
                       "type": "string",
@@ -505,6 +517,18 @@
                       },
                       "x-widget": "list"
                     },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
+                    },
                     "variant": {
                       "default": "cards",
                       "type": "string",
@@ -599,6 +623,18 @@
                       "type": "boolean",
                       "x-widget": "boolean"
                     },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
+                    },
                     "variant": {
                       "default": "grid",
                       "type": "string",
@@ -691,6 +727,18 @@
                       },
                       "x-widget": "list"
                     },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
+                    },
                     "variant": {
                       "default": "grid",
                       "type": "string",
@@ -776,6 +824,18 @@
                         "x-widget": "object"
                       },
                       "x-widget": "list"
+                    },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
                     }
                   },
                   "required": [
@@ -1054,6 +1114,18 @@
                       },
                       "x-widget": "list"
                     },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
+                    },
                     "variant": {
                       "default": "line",
                       "type": "string",
@@ -1131,6 +1203,18 @@
                         "x-widget": "object"
                       },
                       "x-widget": "list"
+                    },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
                     },
                     "tone": {
                       "default": "plain",
@@ -1212,6 +1296,18 @@
                         "x-widget": "object"
                       },
                       "x-widget": "list"
+                    },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
                     }
                   },
                   "required": [
@@ -1665,6 +1761,18 @@
                         "x-widget": "object"
                       },
                       "x-widget": "list"
+                    },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
                     }
                   },
                   "required": [
@@ -1733,6 +1841,18 @@
                         "x-widget": "object"
                       },
                       "x-widget": "list"
+                    },
+                    "revealItems": {
+                      "type": "string",
+                      "enum": [
+                        "fade",
+                        "fade-up",
+                        "fade-down",
+                        "slide-left",
+                        "slide-right",
+                        "scale"
+                      ],
+                      "x-widget": "select"
                     },
                     "note": {
                       "type": "string",
