@@ -34,7 +34,7 @@ Compare the size of `dist/` (`du -sh dist`) with the upload and storage limits o
 
 ## The fidelity check
 
-Compare each page of the build with the same page of the export, as screenshots at Webflow's widths, 479, 767, 991 and 1440 px. The comparison is with the export, never the live site. The script `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/fidelity.mjs` serves both on `localhost`, takes the screenshots under reduced motion, renders the export with its scripts off, so Webflow's interactions show their end state, and answers any other host with nothing.
+Compare each page of the build with the same page of the export, as screenshots at Webflow's widths, 479, 767, 991 and 1440 px. The comparison is with the export, never the live site. The script `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/fidelity.mjs` serves both on `localhost`, takes the screenshots under reduced motion, renders the export with its scripts off, and answers any other host with nothing. Webflow writes the start of an animation on page load or on scroll into view into the page, which hides or moves the element until its script plays it: the script serves the export's pages without those start states, so each such element shows where its animation ends. Never edit or copy the export for the check.
 
 1. **Install Playwright for the check,** in a folder of its own inside the ignored snapshot, never in the site's `package.json`:
 
@@ -71,6 +71,8 @@ Compare each page of the build with the same page of the export, as screenshots 
    ```
 
    Leave out `--fonts` and `--font-files` while the site has no font files of its own. With them, the export's pages get the site's fonts, so a font the export lacks isn't a difference.
+
+   Read all of its output, a few lines: what went wrong first, such as the pages that answered 404, then what it shot, what it kept from the last run, and how many pictures to open.
 
    **In a sandbox,** the script may fail to serve on `localhost`, such as with `EPERM` on `listen`, or its browser may fail to start. Never work around a sandbox. Say what it must allow: in Claude Code, `sandbox.network.allowLocalBinding: true` lets it serve on `localhost`. If the browser still can't start, as Google Chrome can't inside Claude Code's sandbox on macOS, say that the person can run the command above outside the sandbox, or skip the check. Record the check as not run, and why, in the report's "Fidelity check", and go on to the person's comparison.
 

@@ -18,8 +18,13 @@
 // Both sides are served on localhost by this script. Every request to another
 // host gets an empty answer, so no page reaches Webflow's CDNs or an embed's
 // provider. The export renders with scripts off: its scripts come from
-// Webflow, and without them its interactions hide nothing. The build renders
-// with its scripts, so its parts are set up, and both emulate reduced motion.
+// Webflow. Webflow writes the start of an animation on page load or on scroll
+// into view into the page, as an inline style that hides or moves the element
+// until the script plays it; the export's pages are served without those, so
+// such an element shows where its animation ends. The script reads them from
+// the export's interactions, as data, never running them, and leaves the
+// start states of hover and click as they are. The build renders with its
+// scripts, so its parts are set up, and both emulate reduced motion.
 // --fonts adds the site's @font-face rules to the export's pages, with
 // --font-files served at /assets/fonts/, so a font the export lacks doesn't
 // count as a difference.
@@ -68,7 +73,7 @@ const LABEL_HEIGHT = 24;
 const GAP = 16;
 // Part of each export screenshot's key: change it when the way the script
 // shoots changes, so a rerun shoots the export again.
-const SHOT_VERSION = `1 ${WIDTHS.join(",")} ${HEIGHT}`;
+const SHOT_VERSION = `2 ${WIDTHS.join(",")} ${HEIGHT}`;
 const SLICES = "Slices where an overview shows a difference";
 const DIFFERENCES = "Differences found";
 const DIFFERENCES_HEAD = ["| Page | Width | Difference | Cause, or how it was fixed |", "| --- | --- | --- | --- |"];
@@ -96,6 +101,10 @@ const SHEET = `<!doctype html>
 </html>`;
 const FONTS_PATH = "/assets/fonts/";
 const FONTS_CSS = "/__fidelity/fonts.css";
+// Webflow's (IX2) triggers of an entrance: page load and scroll into view.
+const ENTRANCES = new Set(["PAGE_START", "PAGE_FINISH", "SCROLL_INTO_VIEW"]);
+// What an entrance's start state sets inline.
+const START_PROPERTY = /^\s*(-(webkit|moz|ms)-)?(opacity|transform|filter)\s*$/i;
 
 const TYPES = {
   ".html": "text/html",
@@ -164,7 +173,8 @@ async function main(args) {
   // The last run's pages, by name, for what a rerun keeps.
   const previous = new Map((existsSync(resultFile) ? (JSON.parse(readFileSync(resultFile, "utf8")).pages ?? []) : []).map((page) => [page.name, page]));
   const fonts = fontsKey(fontsCss, fontDir);
-  const exportSide = await serve(exportDir, { fontDir, fontsCss });
+  const starts = entranceStartsOf(exportDir);
+  const exportSide = await serve(exportDir, { fontDir, fontsCss, starts });
   const buildSide = await serve(buildDir);
   // The screenshots, for the page that composes the pictures.
   const shotsSide = await serve(resolve(args.out));
@@ -217,13 +227,17 @@ async function main(args) {
     writeFileSync(resultFile, `${JSON.stringify(result, null, 2)}\n`);
     const review = reviewList(result.pages, existsSync(reviewFile) ? readFileSync(reviewFile, "utf8") : "", changed);
     writeFileSync(reviewFile, review.text);
-    console.log(`Pages shot at ${WIDTHS.join(", ")} px: ${counts.shot}, with the export's screenshots kept from the last run for ${counts.exportsKept}. Pages kept as they were: ${counts.kept}. In ${args.out}`);
-    console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width. New pictures: ${pictures}.`);
-    console.log(`Pictures to open in ${reviewFile}, in its order, three or four at a time: ${review.open} of ${review.count}.`);
+    // What went wrong first, and what to do next last, where a look at the
+    // output's end finds it.
+    if (starts === null) console.log("Webflow's interactions couldn't be read from the export's scripts, so what its entrance animations hide at first stays hidden in the export's screenshots.");
+    else if (starts) console.log("Webflow's entrance animations start some elements hidden or moved: the export's screenshots show them where the animations end.");
     for (const missing of result.missing) console.log(`404: ${missing}`);
     for (const side of ["export", "build"]) {
       if (result.requested[side].length > 0) console.log(`The ${side}'s pages asked other hosts, which got nothing: ${result.requested[side].join(", ")}`);
     }
+    console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width. New pictures: ${pictures}.`);
+    console.log(`Pages shot at ${WIDTHS.join(", ")} px: ${counts.shot}, with the export's screenshots kept from the last run for ${counts.exportsKept}. Pages kept as they were: ${counts.kept}. In ${args.out}`);
+    console.log(`Pictures to open in ${reviewFile}, in its order, three or four at a time: ${review.open} of ${review.count}.`);
   } finally {
     await browser?.close();
     await exportSide.close();
@@ -292,6 +306,114 @@ function exportKey(exportDir, path, fonts) {
     .slice(0, 16);
 }
 
+// The elements Webflow's entrance animations start hidden or moved, from the
+// interactions (IX2) in the export's scripts, read as data: by data-w-id, and,
+// for an animation on a page's load, by class on that page, as data-wf-page
+// names it. Undefined when there are none, null when they can't be read.
+function entranceStartsOf(exportDir) {
+  const dir = join(exportDir, "js");
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) return undefined;
+  for (const name of readdirSync(dir).filter((name) => /^webflow.*\.js$/i.test(name)).sort()) {
+    const js = readFileSync(join(dir, name), "utf8");
+    const call = /ix2["']\)\.init\(\s*\{/.exec(js);
+    if (!call) continue;
+    let interactions;
+    try {
+      interactions = JSON.parse(literalToJson(js, call.index + call[0].length - 1));
+    } catch {
+      return null;
+    }
+    const ids = new Set();
+    const classes = new Map();
+    for (const event of Object.values(interactions.events ?? {})) {
+      if (!ENTRANCES.has(event.eventTypeId)) continue;
+      const list = interactions.actionLists?.[event.action?.config?.actionListId];
+      for (const item of (list?.actionItemGroups ?? []).flatMap((group) => group.actionItems ?? [])) {
+        const target = item.config?.target ?? {};
+        if (!target.selector) {
+          const id = target.useEventTarget === true ? event.target?.id : target.id;
+          if (id) ids.add(id.split("|").pop());
+        } else if (event.target?.appliesTo === "PAGE" && !target.useEventTarget && /^(\.[\w-]+)+$/.test(target.selector)) {
+          for (const page of event.targets ?? [event.target]) {
+            classes.set(page.id, [...(classes.get(page.id) ?? []), target.selector.split(".").filter(Boolean)]);
+          }
+        }
+      }
+    }
+    return ids.size > 0 || classes.size > 0 ? { ids, classes } : undefined;
+  }
+  return undefined;
+}
+
+// The object literal at `start`, a `{`, as JSON: its keys quoted, its strings
+// in double quotes, `!0` and `!1` as true and false, and hexadecimal numbers
+// as decimal. Throws on anything else, which a literal of data doesn't hold.
+function literalToJson(js, start) {
+  let json = "";
+  let depth = 0;
+  let i = start;
+  do {
+    const char = js[i];
+    if (char === '"' || char === "'") {
+      let text = '"';
+      let end = i + 1;
+      while (js[end] !== char) {
+        if (end >= js.length) throw new Error("A string doesn't end.");
+        if (js[end] === "\\") {
+          text += js[end + 1] === "'" ? "'" : js.slice(end, end + 2);
+          end += 2;
+        } else {
+          text += js[end] === '"' ? '\\"' : js[end];
+          end++;
+        }
+      }
+      json += `${text}"`;
+      i = end + 1;
+    } else if (/\s/.test(char)) {
+      i++;
+    } else if ("{[,:]}".includes(char)) {
+      if (char === "{" || char === "[") depth++;
+      if (char === "}" || char === "]") depth--;
+      json += char;
+      i++;
+    } else if (char === "!" && (js[i + 1] === "0" || js[i + 1] === "1")) {
+      json += js[i + 1] === "0" ? "true" : "false";
+      i += 2;
+    } else {
+      const number = /^(-?)(0x[0-9a-f]+|\d*\.?\d+(?:e[+-]?\d+)?)/i.exec(js.slice(i, i + 40));
+      const word = /^[A-Za-z_$][\w$]*/.exec(js.slice(i, i + 200));
+      if (number) {
+        json += number[1] + String(Number(number[2]));
+        i += number[0].length;
+      } else if (word && ["true", "false", "null"].includes(word[0])) {
+        json += word[0];
+        i += word[0].length;
+      } else if (word && /^\s*:/.test(js.slice(i + word[0].length, i + word[0].length + 20))) {
+        json += `"${word[0]}"`;
+        i += word[0].length;
+      } else {
+        throw new Error(`Not data: ${js.slice(i, i + 30)}`);
+      }
+    }
+  } while (depth > 0);
+  return json;
+}
+
+// A page of the export without its entrances' start states: each element
+// they start loses its inline opacity, transform and filter.
+function withoutStarts(html, { ids, classes }) {
+  const lists = classes.get(/<html[^>]*\sdata-wf-page="([^"]+)"/i.exec(html)?.[1]) ?? [];
+  return html.replace(/<[a-zA-Z][^>]*\sstyle="[^"]*"[^>]*>/g, (tag) => {
+    const id = /\sdata-w-id="([^"]+)"/.exec(tag)?.[1];
+    const names = (/\sclass="([^"]*)"/.exec(tag)?.[1] ?? "").split(/\s+/);
+    if (!ids.has(id) && !lists.some((list) => list.every((name) => names.includes(name)))) return tag;
+    return tag.replace(/\sstyle="([^"]*)"/, (attribute, style) => {
+      const kept = style.split(";").filter((declaration) => !START_PROPERTY.test(declaration.split(":")[0]));
+      return kept.join(";").trim() ? ` style="${kept.join(";")}"` : "";
+    });
+  });
+}
+
 function loadPlaywright(tools) {
   const require = createRequire(join(resolve(tools), "package.json"));
   try {
@@ -315,8 +437,9 @@ async function launch(chromium, tools) {
 
 // Serves `root` on a free local port, the way Hostsmith serves a site:
 // /about from about, about.html or about/index.html. The export's pages get
-// the site's fonts when `fontsCss` is given.
-async function serve(root, { fontDir, fontsCss } = {}) {
+// the site's fonts when `fontsCss` is given, and lose the entrances' start
+// states when `starts` is.
+async function serve(root, { fontDir, fontsCss, starts } = {}) {
   const server = createServer(async (request, response) => {
     const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
     if (fontsCss && path === FONTS_CSS) return send(response, 200, "text/css", fontsCss);
@@ -327,6 +450,7 @@ async function serve(root, { fontDir, fontsCss } = {}) {
     }
     const type = TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
     let body = await readFile(file);
+    if (starts && type === "text/html") body = withoutStarts(body.toString("utf8"), starts);
     if (fontsCss && type === "text/html") {
       body = body.toString("utf8").replace(/<\/head>/i, `<link rel="stylesheet" href="${FONTS_CSS}"></head>`);
     }

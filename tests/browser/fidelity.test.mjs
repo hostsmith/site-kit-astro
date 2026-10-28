@@ -102,6 +102,11 @@ describe("fidelity script", () => {
     assert.deepEqual(report.missing, ["export /missing.html", "build /missing"]);
   });
 
+  it("ends its output with what it shot and what to open, after what went wrong", () => {
+    assert.match(result.stdout, /^404: export \/missing\.html\n404: build \/missing\nThe export's pages asked other hosts[^\n]*\nTo review[^\n]*\nPages shot at [^\n]*\nPictures to open [^\n]*\n$/);
+    assert.doesNotMatch(result.stdout, /Webflow's (entrance animations|interactions)/);
+  });
+
   // site-kit-webflow-migration design D139: the sides side by side, each a
   // screen tall with its label, the slices 100 px apart in overlap.
   it("puts both sides in one picture: an overview, slices a screen tall, and the end", async () => {
@@ -193,5 +198,53 @@ describe("fidelity script", () => {
     const empty = await run(dir, ["--tools", "fonts", "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"]);
     assert.equal(empty.ok, false);
     assert.match(empty.stderr, /Playwright isn't installed in fonts/);
+  });
+});
+
+// Webflow writes an entrance's start state into the page, which only its
+// script would play: the export's pages are served without it, but keep the
+// start state of a hover. The interactions are minified JavaScript, as
+// Webflow's are, read as data.
+describe("fidelity script, with Webflow's entrance animations", () => {
+  const INTERACTIONS = `!function(){Webflow.require("ix2").init({events:{"e-1":{id:"e-1",eventTypeId:"SCROLL_INTO_VIEW",action:{config:{actionListId:"a-1"}},target:{id:"page1|entrance",appliesTo:"ELEMENT"}},"e-2":{id:"e-2",eventTypeId:"PAGE_FINISH",action:{config:{actionListId:"a-2"}},target:{id:"page1",appliesTo:"PAGE"},targets:[{id:"page1",appliesTo:"PAGE"}]},"e-3":{id:"e-3",eventTypeId:"MOUSE_OVER",action:{config:{actionListId:"a-3"}},target:{id:"page1|hover",appliesTo:"ELEMENT"}}},actionLists:{"a-1":{id:"a-1",title:'Slide "in"',actionItemGroups:[{actionItems:[{config:{target:{useEventTarget:!0,id:"page1|entrance"},value:0}}]}],useFirstGroupAsInitialState:!0,createdOn:0x164676ec7a3},"a-2":{actionItemGroups:[{actionItems:[{config:{target:{selector:".page-title",selectorGuids:["g-1"]}}}]}]},"a-3":{actionItemGroups:[{actionItems:[{config:{target:{id:"page1|hover"}}}]}]}}})}();`;
+  // Each start state moves its element down, which makes the page taller.
+  const moved = (distance) => `opacity:0;-webkit-transform:translate3d(0, ${distance}PX, 0);transform:translate3d(0, ${distance}PX, 0)`;
+  const FILES = {
+    "export/index.html": `<!doctype html><html data-wf-page="page1"><head><title>Page</title><style>body, h1, div { margin: 0; }</style></head><body><div data-w-id="entrance" style="${moved(5000)}">Entrance</div><h1 style="${moved(4000)}" class="page-title">Title</h1><div data-w-id="hover" style="${moved(2000)}">Hover</div><script src="js/webflow.js"></script></body></html>`,
+    "export/js/webflow.js": INTERACTIONS,
+    "build/index.html": page("<p>Build</p>"),
+    "build/css/site.css": "body, p { margin: 0; }",
+    "pages.txt": "index.html /\n",
+  };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"];
+  let dir;
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-ix2-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("shoots an element an entrance starts where the entrance ends, and a hover's start as it is", async () => {
+    const result = await run(dir, ARGS);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /Webflow's entrance animations start some elements hidden or moved/);
+    for (const width of WIDTHS) {
+      const { height } = await size(join(dir, "shots", "home", `${width}-export.png`));
+      assert.ok(height >= 2000, `the hover's start state went at ${width}: ${height} px`);
+      assert.ok(height < 4000, `an entrance's start state stayed at ${width}: ${height} px`);
+    }
+  });
+
+  it("says when it can't read the interactions, and keeps every start state", async () => {
+    await writeFile(join(dir, "export/js/webflow.js"), INTERACTIONS.replace("createdOn:", "createdOn:Date.now()+"));
+    const result = await run(dir, [...ARGS, "--fresh"]);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /Webflow's interactions couldn't be read from the export's scripts/);
+    assert.ok((await size(join(dir, "shots", "home", "1440-export.png"))).height >= 5000);
   });
 });
