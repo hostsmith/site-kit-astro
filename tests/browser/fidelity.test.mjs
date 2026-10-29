@@ -306,8 +306,24 @@ describe("fidelity script, measured", () => {
     await writeFile(join(dir, "build", "color", "index.html"), page(block("#204060")));
     const second = await run(dir, ARGS);
     assert.ok(second.ok, second.stderr);
-    const [, now, before] = second.stdout.match(/Average ([\d.]+)%, against ([\d.]+)% in the last run\./);
+    const [, now, before, change] = second.stdout.match(/Average ([\d.]+)%, against ([\d.]+)% in the last run: down ([\d.]+) points/);
     assert.ok(Number(now) < Number(before), `${now}% isn't less than ${before}%`);
+    assert.ok(Number(change) >= 0.5, second.stdout);
+    assert.match(second.stdout, /down [\d.]+ points\. Review the pictures it unticked\.\n/);
+  });
+
+  // site-kit-migration-cost design D177.
+  it("stops the rounds when a rerun lowers the average by less than half a point", async () => {
+    const third = await run(dir, ARGS);
+    assert.ok(third.ok, third.stderr);
+    assert.match(third.stdout, /in the last run: down 0 points, less than 0\.5, so the review's rounds stop here\. Open none of the pictures it unticked: list them under the report's "Not compared"\.\n/);
+  });
+
+  it("asks for a review of what the last fixes broke when the average rises", async () => {
+    await writeFile(join(dir, "build", "color", "index.html"), page(block("#ff0000")));
+    const fourth = await run(dir, ARGS);
+    assert.ok(fourth.ok, fourth.stderr);
+    assert.match(fourth.stdout, /in the last run: up [\d.]+ points\. The last fixes made pages differ more: review the pictures it unticked for what they broke\.\n/);
   });
 });
 

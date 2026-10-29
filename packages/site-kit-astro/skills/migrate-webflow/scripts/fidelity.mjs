@@ -53,7 +53,9 @@
 // differs, with both screenshots scaled to 240 px wide. The checklist lists
 // the overviews worst first, and the output prints the largest and the
 // average, against the last run's, to show the review's rounds converging.
-// The number decides nothing: the review opens every picture.
+// The number decides only when the rounds stop (site-kit-migration-cost
+// D177): when the average fell by less than 0.5 points against a run of the
+// same pages and widths. Until then, the review opens every picture.
 //
 // A rerun, after a fix (D141), shoots the build again, but keeps the export's
 // screenshots unless what they depend on changed: the export's page file, the
@@ -81,6 +83,9 @@ const LABEL_HEIGHT = 24;
 const GAP = 16;
 // The width both screenshots are scaled to for the measured difference.
 const MEASURE_WIDTH = 240;
+// The review's rounds stop when a rerun lowers the average by less than this,
+// in points (site-kit-migration-cost D177).
+const ROUNDS_STOP = 0.5;
 // Part of each export screenshot's key: change it when the way the script
 // shoots changes, so a rerun shoots the export again.
 const SHOT_VERSION = `2 ${WIDTHS.join(",")} ${HEIGHT}`;
@@ -233,7 +238,7 @@ async function main(args) {
       const before = measuredOf([...previous.values()]).filter((m) => now.has(`${m.name} ${m.width}`));
       const comparable = before.length === measured.length;
       const largest = measured.slice(0, 5).map((m) => `${m.name} at ${m.width} px, ${m.difference}%`).join("; ");
-      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${comparable ? `, against ${average(before)}% in the last run` : ""}.`);
+      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${comparable ? `, against ${average(before)}% in the last run: ${roundsVerdict(average(before), average(measured))}` : "."}`);
     }
     console.log(`Pictures to open in ${reviewFile}, in its order, three or four at a time: ${review.open} of ${review.count}.`);
   } finally {
@@ -586,6 +591,15 @@ function measuredOf(pages) {
     .flatMap((page) => WIDTHS.map((width) => ({ name: page.name, width, difference: page.shots?.[width]?.difference })))
     .filter((m) => typeof m.difference === "number")
     .sort((a, b) => b.difference - a.difference);
+}
+
+// Whether the review's rounds go on, from the last run's average and this
+// one's (site-kit-migration-cost D177).
+function roundsVerdict(before, now) {
+  const change = Math.round((before - now) * 10) / 10;
+  if (change < 0) return `up ${-change} points. The last fixes made pages differ more: review the pictures it unticked for what they broke.`;
+  if (change < ROUNDS_STOP) return `down ${change} points, less than ${ROUNDS_STOP}, so the review's rounds stop here. Open none of the pictures it unticked: list them under the report's "Not compared".`;
+  return `down ${change} points. Review the pictures it unticked.`;
 }
 
 // A declaration, not a const: main() runs before this point of the file.
