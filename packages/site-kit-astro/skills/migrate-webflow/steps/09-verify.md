@@ -116,6 +116,8 @@ Compare each page of the build with the same page of the export, as screenshots 
 
    Fixing means matching the export, as the old design was. In the checklist's last column, write the row that applies and the fix, such as "theme: the names in capitals" or "a deliberate choice".
 
+   **With subagents,** sort the rows yourself, from the table, and hand the fixes to them, as the skill's "With subagents" says: the rows the theme fixes to one, and the rows of each type or page to another, side by side where they touch different files. Give each its rows, the export's files and the build's for its pages, and this table. Each fixes its rows, builds, and returns how it fixed each one, for the table's last column, and the rows it couldn't fix, with why.
+
 7. **Then review again, in rounds, until it converges.** Build, run the content check, then the fidelity check again:
    - **On every page,** without `--only`: a fix in the theme or a shared type can change a page it wasn't made for. `--only` is for step 5's sample.
    - **The export's screenshots are kept,** so a rerun shoots only the build. `--fresh` shoots the export again too, which only a change to the snapshot needs.

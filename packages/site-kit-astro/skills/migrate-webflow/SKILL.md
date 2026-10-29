@@ -50,6 +50,26 @@ Then run `npm ci` if `node_modules` is missing, and `npm run build`, to see that
 - **Your own scripts.** A script you write for the migration, such as a CSV reader, goes in `.hostsmith/snapshot/work/`, which git ignores, and uses only Node's built-in modules. Never add a package to the site.
 - **Webflow's code stays out.** Read `webflow.js` and Webflow's CSS as text, and never run, import or copy them. No `w-` class, Webflow class name, `data-wf-` attribute or Webflow host reaches the site.
 
+## With subagents
+
+Where you can hand work to subagents, such as Claude Code's, lead the migration and keep your own context small: everything you read stays in it, and is read again on every turn after. Never read the export's HTML or CSS, the screenshots or the kit's long references yourself. Hand each heavy phase to a fresh subagent:
+
+| Phase | Subagents |
+| --- | --- |
+| The look: steps 3 and 4, and step 5's sample, with the sample's images | one |
+| The pages: step 5's other groups | one per group of four or five pages, side by side |
+| The collections: step 6 | one, beside the page groups |
+| The review: step 9's pictures | one per group of about 16 pictures, as step 9 says |
+| The fixes: step 9's differences | one for the theme, and one for each type or page, side by side where they touch different files |
+
+Do steps 1, 2, 7's other images, 8, 10 and 11 yourself, run the checks and the scripts, and keep step 9's checklist.
+
+- **What each gets:** the steps it does, by their paths, the paths of the report and `.hostsmith/snapshot/`, what earlier phases made, such as the types and site variants, and the answers given in advance.
+- **What each does:** reads what its phase needs, does it, commits, writes its findings and answers into the report, and returns a short summary: what it made, what it couldn't carry, and the questions left. Never its files' contents.
+- **Questions:** a subagent asks the person nothing. It returns the questions that the answers given in advance don't answer. Ask the person yourself, and hand the answers to the same subagent, where you can continue it, or to a new one.
+
+Without subagents, do every step yourself, in order.
+
 ## Steps
 
 1. [Snapshot](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/01-snapshot.md): copy the exports into `.hostsmith/snapshot/`, note what they lack, and start the report.
