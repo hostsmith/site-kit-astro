@@ -311,6 +311,54 @@ describe("fidelity script, measured", () => {
   });
 });
 
+// site-kit-webflow-migration design D166: step 5 compares a sample of pages
+// before it builds the rest, so --only shoots the sample alone.
+describe("fidelity script, on step 5's sample", () => {
+  const block = (color) => `<div style="height: 800px; background: ${color}"></div>`;
+  const FILES = {
+    "export/index.html": page(block("#204060")),
+    "export/about.html": page(block("#204060")),
+    "export/pricing.html": page(block("#204060")),
+    "build/index.html": page(block("#c08020")),
+    "pages.txt": "index.html /\nabout.html /about\npricing.html /pricing\n",
+  };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"];
+  let dir;
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-sample-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("shoots only the sample, and leaves out the pages it hasn't shot yet", async () => {
+    const result = await run(dir, [...ARGS, "--only", "home"]);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /Pages shot at [^\n]*: 1, [^\n]*Pages kept as they were: 0\. Pages left out by --only, not shot yet: 2\./);
+    assert.match(result.stdout, /the largest home at /);
+    const report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
+    assert.deepEqual(report.pages.map((p) => p.name), ["home"]);
+    assert.deepEqual(report.missing, []);
+    const review = await readFile(join(dir, "shots", "review.md"), "utf8");
+    assert.doesNotMatch(review, /shots\/(about|pricing)\//);
+  });
+
+  it("shoots every page on the next run without --only, and compares no average with the sample's", async () => {
+    for (const name of ["about", "pricing"]) {
+      await mkdir(join(dir, "build", name), { recursive: true });
+      await writeFile(join(dir, "build", name, "index.html"), page(block("#204060")));
+    }
+    const result = await run(dir, ARGS);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /Pages shot at [^\n]*: 3, with the export's screenshots kept from the last run for 1\./);
+    assert.doesNotMatch(result.stdout, /in the last run/);
+  });
+});
+
 // site-kit-motion design D164: the build of a site that ignores reduced motion
 // plays its motion, and is shot with each element where its motion ends.
 describe("fidelity script, on a site that ignores reduced motion", () => {

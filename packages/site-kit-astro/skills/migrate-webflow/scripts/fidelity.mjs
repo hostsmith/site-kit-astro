@@ -59,8 +59,9 @@
 // screenshots unless what they depend on changed: the export's page file, the
 // fonts given, or the way this script shoots. --fresh shoots them again too.
 // --only home,about shoots only those pages, by the names the script gives
-// them, and any page it hasn't shot before, and keeps the others as they are.
-// The checklist keeps its ticks, the slices added and the table of
+// them, and keeps the others as they are, or leaves out those it hasn't shot
+// yet, such as the pages step 5 hasn't built while it settles the theme on a
+// sample. The checklist keeps its ticks, the slices added and the table of
 // differences, but unticks every picture whose screenshots changed.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -170,14 +171,16 @@ async function main(args) {
     const result = { widths: WIDTHS, pages: [], missing: [], requested: { export: [], build: [] } };
     // The pictures whose screenshots changed, which lose their ticks.
     const changed = new Set();
-    const counts = { shot: 0, exportsKept: 0, kept: 0 };
+    const counts = { shot: 0, exportsKept: 0, kept: 0, left: 0 };
     let pictures = 0;
     for (const page of pages) {
       const before = previous.get(page.name);
       const same = before?.export === page.exportPath && before?.build === page.buildPath;
-      if (only && !only.has(page.name) && same) {
-        result.pages.push(before);
-        counts.kept++;
+      if (only && !only.has(page.name)) {
+        if (same) {
+          result.pages.push(before);
+          counts.kept++;
+        } else counts.left++;
         continue;
       }
       const dir = join(args.out, page.name);
@@ -221,12 +224,16 @@ async function main(args) {
       if (result.requested[side].length > 0) console.log(`The ${side}'s pages asked other hosts, which got nothing: ${result.requested[side].join(", ")}`);
     }
     console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width. New pictures: ${pictures}.`);
-    console.log(`Pages shot at ${WIDTHS.join(", ")} px: ${counts.shot}, with the export's screenshots kept from the last run for ${counts.exportsKept}. Pages kept as they were: ${counts.kept}. In ${args.out}`);
+    console.log(`Pages shot at ${WIDTHS.join(", ")} px: ${counts.shot}, with the export's screenshots kept from the last run for ${counts.exportsKept}. Pages kept as they were: ${counts.kept}.${counts.left > 0 ? ` Pages left out by --only, not shot yet: ${counts.left}.` : ""} In ${args.out}`);
     const measured = measuredOf(result.pages);
     if (measured.length > 0) {
-      const before = measuredOf([...previous.values()]);
+      // The last run's average, only when it measured the same pages and
+      // widths: not after step 5's sample, which measured a few.
+      const now = new Set(measured.map((m) => `${m.name} ${m.width}`));
+      const before = measuredOf([...previous.values()]).filter((m) => now.has(`${m.name} ${m.width}`));
+      const comparable = before.length === measured.length;
       const largest = measured.slice(0, 5).map((m) => `${m.name} at ${m.width} px, ${m.difference}%`).join("; ");
-      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${before.length > 0 ? `, against ${average(before)}% in the last run` : ""}.`);
+      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${comparable ? `, against ${average(before)}% in the last run` : ""}.`);
     }
     console.log(`Pictures to open in ${reviewFile}, in its order, three or four at a time: ${review.open} of ${review.count}.`);
   } finally {
