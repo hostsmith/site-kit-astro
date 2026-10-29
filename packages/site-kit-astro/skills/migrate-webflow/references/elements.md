@@ -41,7 +41,7 @@ The frame's `title` becomes the section's `title`, and its aspect ratio its `asp
 
 | Webflow element | In the export | Becomes |
 | --- | --- | --- |
-| Form | `w-form`, with a `form`, `w-input`, `w-select`, `w-checkbox`, `w-radio`, `w-button`, `w-form-done` and `w-form-fail` | not carried yet: the report's "Forms" lists each one, with its fields, options, required flags, button and messages. The kit's contact form comes in a later release. The built pages submit nothing to Webflow |
+| Form | `w-form`, with a `form`, `w-input`, `w-select`, `w-checkbox`, `w-radio`, `w-button`, `w-form-done` and `w-form-fail` | not carried yet: the report's "Forms" lists each one, with its fields, options, required flags, button and messages. The kit's contact form comes in a later release. The built pages submit nothing to Webflow. The text around a form stays on the page, in its place: its heading and its intro, such as "Request a tour" above the fields, become a section, so the page keeps its order and the form has its place when it comes |
 | Password page | `w-password-page`, in `401.html` | not carried. The report lists it |
 
 ## Interactions
