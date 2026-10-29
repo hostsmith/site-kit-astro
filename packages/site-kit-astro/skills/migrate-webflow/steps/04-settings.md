@@ -33,7 +33,7 @@ Write `src/content/settings/site.<code>.yml` from the export's navbar and footer
   - the address, phone and email as `contact`, and opening hours as `hours`;
   - a paragraph as `text`, and the copyright line as `copyright`;
   - a newsletter form goes to the report's "Forms", for the kit's contact form in a later release.
-- **`facts`:** each fact the site shows in more than one place, such as its phone number, email or address, written once here. Every text that shows it, in the settings and in the content, writes `{name}`, such as `{phone}`.
+- **`facts`:** each fact the site shows in more than one place, such as its phone number, email or address, written once here. Every text that shows it, in the settings and in the content, writes `{name}`, such as `{phone}`. Make each fact the value as the texts show it: where sentences name the street alone and the footer shows the whole address, the street is a fact, and the address writes `{street}` with the rest.
 - **`seo.description`:** the home page's meta description, the default for pages without their own.
 - **`seo.ogImage`:** the Open Graph image the pages share, if they share one. When no page has one, ask the person whether to add a default.
 - **`ui`:** the kit's interface strings. Keep the example's keys, in the site's language and voice: the parts the site uses need theirs, and the build names any that are missing.

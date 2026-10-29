@@ -52,7 +52,7 @@ Then run `npm ci` if `node_modules` is missing, and `npm run build`, to see that
 
 ## With subagents
 
-Where you can hand work to subagents, such as Claude Code's, lead the migration and keep your own context small: everything you read stays in it, and is read again on every turn after. Never read the export's HTML or CSS, the screenshots or the kit's long references yourself. Hand each heavy phase to a fresh subagent:
+On a large site, one whose export has more than 15 HTML pages, its templates and utility pages counted, and where you can hand work to subagents, such as Claude Code's, lead the migration and keep your own context small: everything you read stays in it, and is read again on every turn after. Never read the export's HTML or CSS, the screenshots or the kit's long references yourself. Hand each heavy phase to a fresh subagent:
 
 | Phase | Subagents |
 | --- | --- |
@@ -64,11 +64,11 @@ Where you can hand work to subagents, such as Claude Code's, lead the migration 
 
 Do steps 1, 2, 7's other images, 8, 10 and 11 yourself, run the checks and the scripts, and keep step 9's checklist.
 
-- **What each gets:** the steps it does, by their paths, the paths of the report and `.hostsmith/snapshot/`, what earlier phases made, such as the types and site variants, and the answers given in advance.
+- **What each gets:** the steps it does, by their paths, the paths of the report and `.hostsmith/snapshot/`, what earlier phases made, such as the types, the site variants and the settings' facts, and the answers given in advance. Its text writes each fact's placeholder, such as `{street}`, never its value.
 - **What each does:** reads what its phase needs, does it, commits, writes its findings and answers into the report, and returns a short summary: what it made, what it couldn't carry, and the questions left. Never its files' contents.
 - **Questions:** a subagent asks the person nothing. It returns the questions that the answers given in advance don't answer. Ask the person yourself, and hand the answers to the same subagent, where you can continue it, or to a new one.
 
-Without subagents, do every step yourself, in order.
+On a smaller site, do every step yourself, in order, and hand only step 9's review to subagents, as step 9 says: your context stays small enough, and each subagent would read the export, the schema and the steps again. Without subagents, do every step yourself.
 
 ## Steps
 
