@@ -79,10 +79,10 @@ On a smaller site, do every step yourself, in order, and hand only step 9's revi
 5. [Pages to sections](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/05-pages-to-sections.md): each page as section entries: library types first, a site variant for one section's own look, and a site-local type only for an element no library type renders, with Webflow's elements as the kit's parts. A sample of pages first, to settle the theme, then the rest in bulk.
 6. [CMS to collections](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/06-cms-to-collections.md): each CMS collection from its CSV, with its detail template.
 7. [Media](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/07-media.md): images, icons and videos into `public/assets/` and `src/icons/`, with their credits.
-8. [Brief](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/08-brief.md): `.hostsmith/brief.md`, filled in.
+8. [Brief](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/08-brief.md): `.hostsmith/brief.md`, filled in, right after step 2, while your context is small.
 9. [Verify](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/09-verify.md): the checks, the content check, the fidelity check against the export in rounds until it converges, the accessibility check, and the person's comparison with the old site.
 10. [Report](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/10-report.md): `.hostsmith/migration-report.md`, complete, for the owner to approve.
-11. [Clean up](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/11-clean-up.md): the example's content removed, and the DNS switch checklist.
+11. [Clean up](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/11-clean-up.md): the example's content removed, by a script, and the DNS switch checklist.
 
 The references the steps use:
 
