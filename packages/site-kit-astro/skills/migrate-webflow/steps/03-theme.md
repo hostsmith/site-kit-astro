@@ -8,11 +8,13 @@ Port the old site's design onto the theme in `src/styles/theme/`, the `webflow` 
 
 Never copy Webflow's CSS. `webflow.css`, `normalize.css` and the site's own stylesheet, `<site>.webflow.css`, stay in the snapshot: read them, and write the theme's rules anew on its tokens. No `w-` class and no Webflow class name reaches the site.
 
+Read them through `css-rules.mjs`, never whole, as the skill's "Read through the helpers" says: `--variables` for the tokens, `--fonts`, `--elements` with `--page .hostsmith/snapshot/code/index.html` for the element defaults and the global styles embed, and the class names of each part, from the home page's outline, `outline.mjs .hostsmith/snapshot/code/index.html`, such as `css-rules.mjs navbar_component navbar_link button`.
+
 Run `npm run check:styles` before you change anything. It passes on the example's theme.
 
 ## Tokens from the Webflow variables
 
-The site's stylesheet, `.hostsmith/snapshot/code/css/<site>.webflow.css`, defines Webflow's variables as custom properties in `:root`, named `--_<group>---<name>`, such as `--_colors---cream` or `--_typography---size-h1`. Its media queries redefine some of them at 991, 767 and 479 px, on `:root`, on `body` or on a wrapper such as `.page-wrapper`: read every rule in each media query that sets a variable. A site without variables gets its values from its most used colors, sizes and spacings instead.
+The site's stylesheet, `.hostsmith/snapshot/code/css/<site>.webflow.css`, defines Webflow's variables as custom properties in `:root`, named `--_<group>---<name>`, such as `--_colors---cream` or `--_typography---size-h1`. Its media queries redefine some of them at 991, 767 and 479 px, on `:root`, on `body` or on a wrapper such as `.page-wrapper`: read every rule in each media query that sets a variable: `css-rules.mjs --variables` prints them all. A site without variables gets its values from its most used colors, sizes and spacings instead.
 
 ### Colors
 
@@ -89,7 +91,7 @@ Step 5 styles each section as it ports it, with the same rules as below, from th
 
 - **Breakpoints:** a rule in `@media screen and (max-width: 991px)` goes inside the theme's rule as `@variant max-lg`, `767px` as `@variant max-md`, and `479px` as `@variant max-sm`. In site markup, these are the `max-lg:`, `max-md:` and `max-sm:` utilities. Never write a media query.
 - **Variables and values:** `var(--_colors---green)` becomes its role, `var(--color-brand)`, and a raw color its role or site color. A rule that reads a text role reads all four of its properties. Font names appear only in `tokens/type.css` and `fonts.css`.
-- **Kit parts:** style a library type or the layout through its hooks in `node_modules/@hostsmith/site-kit-astro/HOOKS.md`, such as `.sk-hero__title`, never through its elements' nesting or order. Every difference of look a library type shows, its colors, band, borders, spacing, sizes, type, capitals, decoration and the arrangement of its elements at each width, is fixed here.
+- **Kit parts:** style a library type or the layout through its hooks in `node_modules/@hostsmith/site-kit-astro/HOOKS.md`, such as `.sk-hero__title`: read it once up to "## Sections", and a section type's hooks with `props.mjs <type>`. Never style one through its elements' nesting or order. Every difference of look a library type shows, its colors, band, borders, spacing, sizes, type, capitals, decoration and the arrangement of its elements at each width, is fixed here.
 - **Site variants,** from step 5: style each in `src/styles/theme/sections.css`, beside the site-local types' styles. Select the root by its block class and the attribute, and its elements only by their hooks and states, such as `.sk-faq[data-site-variant="boxed"] .sk-faq__item`, or `::before` for drawn quote marks: `npm run check:styles` fails on an element name or a position, such as `li` or `:nth-child`. Take its colors from a tone where one fits.
 - **Site-local types,** from step 5: give their elements class names of their own, after the type, such as `.amenities` and `.amenities__icon`, and style them in `src/styles/theme/sections.css`, or with utilities in their markup. Every class needs a rule or is a utility: `npm run check:styles -- --built` warns about one with neither. A site-local navbar's links collapse below the theme's nav breakpoint, as step 5 says: hide its `summary` from that breakpoint up, and show the links as a row there.
 - **Client-First utilities:** see the Client-First mapping.
@@ -99,7 +101,7 @@ Step 5 styles each section as it ports it, with the same rules as below, from th
 
 `webflow.css` gives each of Webflow's elements a default look, and the old site shows a default wherever its own stylesheet never sets that property or state. A Tabs element's selected tab, for example, is `#C8C8C8` grey from `.w-tab-link.w--current` when the site has no rule for its current state. These defaults are part of the old site's look, so the port keeps them, apart from the theme, where the owner can drop them:
 
-1. **Find them.** For each element in the export's pages with a `w-` class, such as `w-tab-link`, `w-button`, `w-nav-link`, `w-dropdown-link` or `w-slider-dot`, read the rules for that class in `.hostsmith/snapshot/code/css/webflow.css`, its states included (`w--current`, `w--open`, `w--active`). A property one of them sets, which none of the site's own rules for the element's classes sets in the same state, shows on the old site.
+1. **Find them.** For each element in the export's pages with a `w-` class, such as `w-tab-link`, `w-button`, `w-nav-link`, `w-dropdown-link` or `w-slider-dot`, read the rules for that class in `.hostsmith/snapshot/code/css/webflow.css`, its states included (`w--current`, `w--open`, `w--active`): `css-rules.mjs w-tab-link` prints them, after the site's own. A property one of them sets, which none of the site's own rules for the element's classes sets in the same state, shows on the old site.
 2. **Keep each one** in `src/styles/theme/builder-defaults.css`, written anew on the hook of the kit part or site-local type that replaced the element, with the value the old site showed, never `webflow.css`'s rule. Its colors become site colors named `--color-builder-*` in the site's preset, such as `--color-builder-tab-current: #c8c8c8`. For the selected tab:
 
    ```css

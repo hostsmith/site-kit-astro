@@ -47,6 +47,12 @@ Then run `npm ci` if `node_modules` is missing, and `npm run build`, to see that
 - **Questions together.** Ask only what the exports can't tell. Collect a step's questions and ask them at once, and record each answer in the report.
 - **Answers given in advance.** Before asking a question, look for its answer in the prompt and in `.hostsmith/snapshot/answers.md`. Use an answer you find without asking, and record it in the report's "Answers" as given in advance. Ask only what's left. When no one can answer, such as in an unattended run, stop at the first question nothing answers, and say exactly what you need.
 - **The text as it is.** Copy the old site's text exactly. Don't rewrite, shorten or correct it, apart from what a step names. List a typo you notice in the report, for the owner.
+- **Read through the helpers.** Everything you read stays in your context, and is read again on every turn after. So read the export and the kit through the skill's helpers in `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/`, never whole:
+  - `outline.mjs`: export pages as outlines, their text, links, images, forms and interactions, with the classes to look up. Name every page a step reads in one call, so the header and the footer print once.
+  - `css-rules.mjs`: the export's stylesheets, by `--variables`, `--elements`, `--fonts` or class names, with the variables the rules use.
+  - `props.mjs`: the section types and their props, from `.hostsmith/schema.json`, and with a type's name, its props in full and its hooks, in place of `src/kit-content.ts` and the sections of `HOOKS.md`.
+
+  Read a page's HTML or a stylesheet only for what a helper leaves out, and then only the lines you need.
 - **Your own scripts.** A script you write for the migration, such as a CSV reader, goes in `.hostsmith/snapshot/work/`, which git ignores, and uses only Node's built-in modules. Never add a package to the site.
 - **Webflow's code stays out.** Read `webflow.js` and Webflow's CSS as text, and never run, import or copy them. No `w-` class, Webflow class name, `data-wf-` attribute or Webflow host reaches the site.
 

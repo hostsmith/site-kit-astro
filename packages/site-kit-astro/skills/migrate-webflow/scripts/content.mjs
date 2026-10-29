@@ -37,7 +37,7 @@ const SKIPPED_CLASSES = ["w-dyn-list", "w-dyn-empty", "w-form", "w-embed", "w-we
 const ORDERED = /\S+\s+\S+\s+\S+/;
 
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—", hellip: "…", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", copy: "©", reg: "®", trade: "™", middot: "·", bull: "•", times: "×" };
-const decode = (text) =>
+export const decode = (text) =>
   text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name) => {
     if (name[0] === "#") return String.fromCodePoint(Number.parseInt(name[1] === "x" || name[1] === "X" ? name.slice(2) : name.slice(1), name[1] === "x" || name[1] === "X" ? 16 : 10));
     return ENTITIES[name.toLowerCase()] ?? whole;

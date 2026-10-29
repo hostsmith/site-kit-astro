@@ -27,14 +27,24 @@ Write each path, one per line, into `.hostsmith/old-urls.txt`, in place of the e
 
 Record each collection's confirmed base path in the report's "Answers". Step 6 writes it into `src/site.config.ts`.
 
+## Read the pages' notes
+
+Read what this step needs from the export's pages in one call, never the pages themselves:
+
+```bash
+node node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/outline.mjs --notes $(find .hostsmith/snapshot/code -name '*.html' | sort)
+```
+
+For each page, it prints the head's scripts and stylesheets, each form with its messages, each embed, video, iframe, script and `<style>`, each element an interaction names by its `data-w-id`, and the page's links.
+
 ## Check the links
 
-- **Clean paths:** list every internal link in the export's pages and in the CSVs' rich text: an `href` that starts with `/`, or that names a page file, such as `about.html` or `../index.html`. Steps 5 and 6 write each one as its clean path: `about.html` is `/about`, `index.html` is `/`, and a fragment or query stays, as in `/membership#plans`.
+- **Clean paths:** list every internal link in the export's pages, from the notes' `links:` lines, and in the CSVs' rich text: an `href` that starts with `/`, or that names a page file, such as `about.html` or `../index.html`. Steps 5 and 6 write each one as its clean path: `about.html` is `/about`, `index.html` is `/`, and a fragment or query stays, as in `/membership#plans`.
 - **Links to items:** check every link to a CMS item against the URL map. A link to an item that isn't in it, such as a draft, an archived item or a mistyped slug, goes into the report's "Links to check", with its page.
 
 ## Note for later steps
 
-While you read each page, add these to the report, each with its page:
+From the pages' notes, add these to the report, each with its page:
 
 - **Forms:** each `form` inside a `w-form` element, with every field's label, name, type and options, whether it's required, its submit button's label, and its success and error messages, for the report's "Forms". The kit's contact form comes in a later release. Until then, no form is carried over.
 - **Embeds and custom code:** each `w-embed`, `w-video` and `w-iframe` element, each `iframe`, and each `script` in the body or the head that isn't Webflow's own, for step 5 and the report's "Embeds" and "Not carried over". A `<style>` in an embed, such as Client-First's global styles, is site CSS: step 3 ports it.

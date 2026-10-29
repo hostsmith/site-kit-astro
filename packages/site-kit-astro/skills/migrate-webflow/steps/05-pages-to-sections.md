@@ -6,6 +6,8 @@ scope: kit
 
 Rebuild each static page of the export as a page entry made of sections, keeping its text, its images and their order. Read the element mapping, `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/references/elements.md`, first.
 
+Read the pages you port as outlines, all in one call, such as `node node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/outline.mjs .hostsmith/snapshot/code/index.html .hostsmith/snapshot/code/about.html`, the types with `props.mjs`, and a section's CSS with `css-rules.mjs` and its classes, as the skill's "Read through the helpers" says.
+
 ## In two passes
 
 The look most pages share, their type, colors, spacing, buttons, header and footer, is settled once, on a sample, before the rest is built on it. The sections below say how to port each page, in either pass.
@@ -39,7 +41,7 @@ Expect a call to action band repeated on several pages, and cards repeated in a 
 
 Give each section the first of these forms that can show it, as the kit's `AGENTS.md` says:
 
-1. **A library type** that renders the elements and fields the section needs. The kit's README, "Section types", lists each type's props, variants and tones. Its look is the theme's work, from step 3: colors, a band, borders, spacing, sizes, type, capitals, decoration, the arrangement of the elements it renders, and where it changes at each width. None of these makes a section site-local. A hero, a call to action, questions and answers, prices, a numbered process, quotes, people or a list of entries often fit. Every library type with a title also takes an `eyebrow`, so Client-First's section header, a small label above the heading, never makes a section site-local by itself.
+1. **A library type** that renders the elements and fields the section needs. `props.mjs` lists each type's props, and `props.mjs <type>` its props in full, with its variants, tones and hooks. Its look is the theme's work, from step 3: colors, a band, borders, spacing, sizes, type, capitals, decoration, the arrangement of the elements it renders, and where it changes at each width. None of these makes a section site-local. A hero, a call to action, questions and answers, prices, a numbered process, quotes, people or a list of entries often fit. Every library type with a title also takes an `eyebrow`, so Client-First's section header, a small label above the heading, never makes a section site-local by itself.
 2. **A library type with a site variant,** when one section should look different from its type's others on the site, such as one FAQ with boxed questions among plain ones: declare it in `siteVariants` in `src/site.config.ts` and set `siteVariant` on the entry, as the kit's `AGENTS.md`, "Site variants", says. Step 3's rules style it.
 3. **A site-local type,** only when no library type renders an element the section needs, such as a large portrait beside a testimonial: a variant of a site-local type you've already made, or a new one. List the element in the report's "Site-local types and Components", as a gap of the library type.
 

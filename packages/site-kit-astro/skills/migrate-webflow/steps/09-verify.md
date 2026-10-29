@@ -114,7 +114,7 @@ Compare each page of the build with the same page of the export, as screenshots 
    | A deliberate choice, such as a map or a video that loads on a click | left, and listed |
    | Content the export lacks, such as logos loaded from another site | left, and listed |
 
-   Fixing means matching the export, as the old design was. In the checklist's last column, write the row that applies and the fix, such as "theme: the names in capitals" or "a deliberate choice".
+   Fixing means matching the export, as the old design was: look up the old rules with `css-rules.mjs` and the classes the page's outline shows, never the stylesheet whole. In the checklist's last column, write the row that applies and the fix, such as "theme: the names in capitals" or "a deliberate choice".
 
    **On a large site with subagents,** sort the rows yourself, from the table, and hand the fixes to them, as the skill's "With subagents" says: the rows the theme fixes to one, and the rows of each type or page to another, side by side where they touch different files. Give each its rows, the export's files and the build's for its pages, and this table. Each fixes its rows, builds, and returns how it fixed each one, for the table's last column, and the rows it couldn't fix, with why.
 
