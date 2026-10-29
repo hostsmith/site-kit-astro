@@ -6,6 +6,15 @@ scope: kit
 
 Rebuild each static page of the export as a page entry made of sections, keeping its text, its images and their order. Read the element mapping, `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/references/elements.md`, first.
 
+## In two passes
+
+The look most pages share, their type, colors, spacing, buttons, header and footer, is settled once, on a sample, before the rest is built on it. The sections below say how to port each page, in either pass.
+
+1. **A sample first.** Pick two or three pages that between them hold most of the site's kinds of section, the home page first. Port them, copy the images, as step 7 says, since the comparison needs them, then compare them with the export, with step 9's fidelity check limited to them: install its tools as step 9 says, write `.hostsmith/snapshot/fidelity/pages.txt` with every page, build, and run the script with `--only` and the sample's names, such as `--only home,features,pricing`. Open their overviews, and the home page's first slices and ends, and fix the theme until they match. Fix the look in the theme, for every page, never for one page.
+2. **The rest in bulk.** Port the other pages on the settled theme, styling each section from the export's CSS rules, as step 3 says, and run no fidelity check: step 9 compares every page at once, in rounds.
+   - **With subagents,** such as Claude Code's, port the pages in groups, so their HTML stays out of your own context. First make the types and the Components that more than one group needs. Then give each subagent its pages, the types made so far, this step's rules and the element mapping. Each writes its pages' entries and any type only its pages use, named after what it shows, and returns what it made and what it couldn't carry. Then build, and check that no two types do the same.
+   - **Without subagents,** port them in turn.
+
 ## Split each page
 
 A page built with Client-First is a `page-wrapper` holding the navbar, a `main-wrapper` and the footer. The `main-wrapper` holds the top-level sections, named `section_*`. For each page in the URL map, and for `404.html`:

@@ -83,7 +83,7 @@ Until then, the theme uses the fallback stack. The report's "Fonts" lists each f
 
 Keep the theme's rules that make the parts work: what hides, collapses and sizes them, `[data-ready]`, `:not([hidden])`, the focus styles and the 44 px targets. Restyle only how they look.
 
-Step 5 styles each section as it ports it, with the same rules as below.
+Step 5 styles each section as it ports it, with the same rules as below, from the export's CSS, and settles the theme on a sample of pages before it ports the rest.
 
 ## How to rewrite a rule
 

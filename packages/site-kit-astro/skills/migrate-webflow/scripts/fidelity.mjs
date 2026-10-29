@@ -49,6 +49,12 @@
 // offset on both sides; and <width>-end.png, each side's last screen. A
 // full-page screenshot is too tall for a vision model to see its detail.
 //
+// It measures each page and width (D166): the share of the taller side that
+// differs, with both screenshots scaled to 240 px wide. The checklist lists
+// the overviews worst first, and the output prints the largest and the
+// average, against the last run's, to show the review's rounds converging.
+// The number decides nothing: the review opens every picture.
+//
 // A rerun, after a fix (D141), shoots the build again, but keeps the export's
 // screenshots unless what they depend on changed: the export's page file, the
 // fonts given, or the way this script shoots. --fresh shoots them again too.
@@ -72,6 +78,8 @@ const SLICE_STEP = 800;
 const OVERVIEW_HEIGHT = 1568;
 const LABEL_HEIGHT = 24;
 const GAP = 16;
+// The width both screenshots are scaled to for the measured difference.
+const MEASURE_WIDTH = 240;
 // Part of each export screenshot's key: change it when the way the script
 // shoots changes, so a rerun shoots the export again.
 const SHOT_VERSION = `2 ${WIDTHS.join(",")} ${HEIGHT}`;
@@ -156,6 +164,8 @@ async function main(args) {
   try {
     browser = await launch(chromium, args.tools);
     const sheet = await browser.newPage();
+    // The sheet takes the screenshots' origin, so its canvas may read them.
+    await sheet.goto(`${shotsSide.origin}/`);
     await sheet.setContent(SHEET);
     const result = { widths: WIDTHS, pages: [], missing: [], requested: { export: [], build: [] } };
     // The pictures whose screenshots changed, which lose their ticks.
@@ -212,6 +222,12 @@ async function main(args) {
     }
     console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width. New pictures: ${pictures}.`);
     console.log(`Pages shot at ${WIDTHS.join(", ")} px: ${counts.shot}, with the export's screenshots kept from the last run for ${counts.exportsKept}. Pages kept as they were: ${counts.kept}. In ${args.out}`);
+    const measured = measuredOf(result.pages);
+    if (measured.length > 0) {
+      const before = measuredOf([...previous.values()]);
+      const largest = measured.slice(0, 5).map((m) => `${m.name} at ${m.width} px, ${m.difference}%`).join("; ");
+      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${before.length > 0 ? `, against ${average(before)}% in the last run` : ""}.`);
+    }
     console.log(`Pictures to open in ${reviewFile}, in its order, three or four at a time: ${review.open} of ${review.count}.`);
   } finally {
     await browser?.close();
@@ -432,6 +448,7 @@ async function compose(sheet, shotsSide, name, width, dir) {
       await image.decode();
     }
   }, { export: url("export"), build: url("build") });
+  const difference = await measure(sheet);
 
   const scale = Math.min(1, (OVERVIEW_HEIGHT - LABEL_HEIGHT) / tall);
   const overview = await picture(sheet, join(dir, `${width}-overview.png`), {
@@ -453,7 +470,33 @@ async function compose(sheet, shotsSide, name, width, dir) {
     return { top, label: `${side}, last screen, ${top}-${heights[side]} px` };
   };
   const end = await picture(sheet, join(dir, `${width}-end.png`), { width, height: HEIGHT, export: last("export"), build: last("build") });
-  return { overview, slices, end };
+  return { overview, slices, end, difference };
+}
+
+// How much the build differs from the export (D166), in percent of the
+// taller side: both screenshots, as the sheet holds them, scaled to
+// MEASURE_WIDTH, the pixels of their overlap whose color differs by more than
+// a small margin, and all of the part one side has beyond the other's end.
+// It ranks the review and shows the rounds converging. It decides nothing.
+function measure(sheet) {
+  return sheet.evaluate((width) => {
+    const images = ["export", "build"].map((side) => document.querySelector(`#${side} img`));
+    const heights = images.map((image) => Math.max(1, Math.round((image.naturalHeight * width) / image.naturalWidth)));
+    const pixels = images.map((image, i) => {
+      const canvas = Object.assign(document.createElement("canvas"), { width, height: heights[i] });
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.drawImage(image, 0, 0, width, heights[i]);
+      return context.getImageData(0, 0, width, heights[i]).data;
+    });
+    const overlap = Math.min(...heights);
+    const tall = Math.max(...heights);
+    let differing = 0;
+    for (let i = 0; i < width * overlap * 4; i += 4) {
+      const most = Math.max(Math.abs(pixels[0][i] - pixels[1][i]), Math.abs(pixels[0][i + 1] - pixels[1][i + 1]), Math.abs(pixels[0][i + 2] - pixels[1][i + 2]));
+      if (most > 32) differing++;
+    }
+    return Math.round(((differing + width * (tall - overlap)) / (width * tall)) * 1000) / 10;
+  }, MEASURE_WIDTH);
 }
 
 async function picture(sheet, file, layout) {
@@ -486,8 +529,11 @@ function reviewList(pages, previous, changed) {
   const rows = part(DIFFERENCES)
     .split("\n")
     .filter((line) => line.startsWith("|") && !DIFFERENCES_HEAD.includes(line.trim()));
-  const item = (path) => `- [${ticked.has(path) ? "x" : " "}] ${path}`;
-  const overviews = pages.flatMap((page) => WIDTHS.map((width) => page.shots[width].overview));
+  const item = (path, note = "") => `- [${ticked.has(path) ? "x" : " "}] ${path}${note}`;
+  // The overviews worst first, by their measured difference (D166).
+  const measured = pages.flatMap((page) => WIDTHS.map((width) => ({ path: page.shots[width].overview, difference: page.shots[width].difference })));
+  measured.sort((a, b) => (b.difference ?? -1) - (a.difference ?? -1));
+  const overviews = measured.map((m) => m.path);
   const ends = WIDTHS.flatMap((width) => [first.shots[width].slices[0], first.shots[width].end]);
   const listed = [...overviews, ...ends];
   const text = [
@@ -499,21 +545,21 @@ function reviewList(pages, previous, changed) {
     "",
     "## Every page's overview, at every width",
     "",
-    "The order of the sections, a section missing or added, and the columns at that width.",
+    "The order of the sections, a section missing or added, and the columns at that width. Worst first, each with the share of the page that differs, as measured: a small share can still hide a missing button, so open every one.",
     "",
-    ...overviews.map(item),
+    ...measured.map((m) => item(m.path, typeof m.difference === "number" ? ` (${m.difference}% different)` : "")),
     "",
     `## The header and the footer, at every width, on ${first.name}`,
     "",
     "Every page shares them, and they change the most between widths: a button beside the menu button, a menu that collapses, columns that stack.",
     "",
-    ...ends.map(item),
+    ...ends.map((path) => item(path)),
     "",
     `## ${SLICES}`,
     "",
     "Add each slice you open here, ticked.",
     "",
-    ...added.map(item),
+    ...added.map((path) => item(path)),
     ...(added.length ? [""] : []),
     `## ${DIFFERENCES}`,
     "",
@@ -524,6 +570,20 @@ function reviewList(pages, previous, changed) {
     "",
   ].join("\n");
   return { text, count: listed.length + added.length, open: [...listed, ...added].filter((path) => !ticked.has(path)).length };
+}
+
+// Each page and width's measured difference, the largest first, from the
+// pages' entries in fidelity.json. Entries from before D166 have none.
+function measuredOf(pages) {
+  return pages
+    .flatMap((page) => WIDTHS.map((width) => ({ name: page.name, width, difference: page.shots?.[width]?.difference })))
+    .filter((m) => typeof m.difference === "number")
+    .sort((a, b) => b.difference - a.difference);
+}
+
+// A declaration, not a const: main() runs before this point of the file.
+function average(measured) {
+  return Math.round((measured.reduce((sum, m) => sum + m.difference, 0) / measured.length) * 10) / 10;
 }
 
 // A PNG's height, from its header.

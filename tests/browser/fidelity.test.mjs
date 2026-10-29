@@ -104,7 +104,7 @@ describe("fidelity script", () => {
   });
 
   it("ends its output with what it shot and what to open, after what went wrong", () => {
-    assert.match(result.stdout, /^404: export \/missing\.html\n404: build \/missing\nThe export's pages asked other hosts[^\n]*\nTo review[^\n]*\nPages shot at [^\n]*\nPictures to open [^\n]*\n$/);
+    assert.match(result.stdout, /^404: export \/missing\.html\n404: build \/missing\nThe export's pages asked other hosts[^\n]*\nTo review[^\n]*\nPages shot at [^\n]*\nMeasured, [^\n]*\nPictures to open [^\n]*\n$/);
     assert.doesNotMatch(result.stdout, /Webflow's (entrance animations|interactions)/);
   });
 
@@ -123,13 +123,15 @@ describe("fidelity script", () => {
     }
   });
 
-  it("writes the review's checklist: every overview, then the home page's header and footer", async () => {
+  it("writes the review's checklist: every overview, worst first, then the home page's header and footer", async () => {
     const review = await readFile(join(dir, "shots", "review.md"), "utf8");
-    const items = [...review.matchAll(/^- \[ \] (\S+)$/gm)].map((match) => match[1]);
-    assert.deepEqual(items, [
-      ...["home", "about", "missing"].flatMap((name) => WIDTHS.map((width) => `shots/${name}/${width}-overview.png`)),
-      ...WIDTHS.flatMap((width) => [`shots/home/${width}-slice-01.png`, `shots/home/${width}-end.png`]),
-    ]);
+    const items = [...review.matchAll(/^- \[ \] (\S+)/gm)].map((match) => match[1]);
+    const overviews = ["home", "about", "missing"].flatMap((name) => WIDTHS.map((width) => `shots/${name}/${width}-overview.png`));
+    assert.deepEqual([...items.slice(0, 12)].sort(), [...overviews].sort());
+    assert.deepEqual(items.slice(12), WIDTHS.flatMap((width) => [`shots/home/${width}-slice-01.png`, `shots/home/${width}-end.png`]));
+    const shares = [...review.matchAll(/-overview\.png \(([\d.]+)% different\)$/gm)].map((match) => Number(match[1]));
+    assert.equal(shares.length, 12);
+    assert.deepEqual(shares, [...shares].sort((a, b) => b - a));
   });
 
   // site-kit-webflow-migration design D141: reruns.
@@ -137,7 +139,7 @@ describe("fidelity script", () => {
     const file = () => join(dir, "shots", "review.md");
     const again = (...extra) => run(dir, [...ARGS, ...extra]);
     const modified = async (name, width, side) => (await stat(shot(name, width, side))).mtimeMs;
-    const ticked = (review, path) => new RegExp(`^- \\[x\\] ${path.replaceAll(".", "\\.")}$`, "m").test(review);
+    const ticked = (review, path) => new RegExp(`^- \\[x\\] ${path.replaceAll(".", "\\.")}( \\([\\d.]+% different\\))?$`, "m").test(review);
 
     it("keeps the export's screenshots, and unticks only the pictures whose build changed", async () => {
       const review = await readFile(file(), "utf8");
@@ -247,6 +249,65 @@ describe("fidelity script, with Webflow's entrance animations", () => {
     assert.ok(result.ok, result.stderr);
     assert.match(result.stdout, /Webflow's interactions couldn't be read from the export's scripts/);
     assert.ok((await size(join(dir, "shots", "home", "1440-export.png"))).height >= 5000);
+  });
+});
+
+// site-kit-webflow-migration design D166: each page and width measured, the
+// checklist's overviews worst first, and the average against the last run's.
+describe("fidelity script, measured", () => {
+  const block = (color, height = 800) => `<div style="height: ${height}px; background: ${color}"></div>`;
+  const FILES = {
+    "export/same.html": page(block("#204060")),
+    "export/color.html": page(block("#204060")),
+    "export/short.html": page(block("#204060", 1600)),
+    "build/same/index.html": page(block("#204060")),
+    "build/color/index.html": page(block("#c08020")),
+    "build/short/index.html": page(block("#204060", 800)),
+    "pages.txt": "same.html /same\ncolor.html /color\nshort.html /short\n",
+  };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots", "--only", "same,color,short"];
+  let dir;
+  let first;
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-measured-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+    first = await run(dir, ARGS.slice(0, -2));
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("measures the share of each page that differs", async () => {
+    assert.ok(first.ok, first.stderr);
+    const report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
+    const at = (name, width) => report.pages.find((p) => p.name === name).shots[width].difference;
+    for (const width of WIDTHS) {
+      assert.equal(at("same", width), 0, `same at ${width}`);
+      // The body's margin is white on both sides.
+      assert.ok(at("color", width) > 70, `color at ${width}: ${at("color", width)}`);
+      assert.ok(at("short", width) > 30 && at("short", width) < 60, `short at ${width}: ${at("short", width)}`);
+    }
+  });
+
+  it("lists the overviews worst first, each with its share, and prints the largest and the average", async () => {
+    const review = await readFile(join(dir, "shots", "review.md"), "utf8");
+    const overviews = [...review.matchAll(/^- \[ \] (\S+-overview\.png) \(([\d.]+)% different\)$/gm)].map((m) => [m[1].split("/").at(-2), Number(m[2])]);
+    assert.equal(overviews.length, 12);
+    assert.deepEqual(overviews.map(([name]) => name).slice(0, 4), ["color", "color", "color", "color"]);
+    assert.deepEqual(overviews.map(([name]) => name).slice(-4), ["same", "same", "same", "same"]);
+    assert.deepEqual([...overviews.map(([, share]) => share)], [...overviews.map(([, share]) => share)].sort((a, b) => b - a));
+    assert.match(first.stdout, /Measured, the share of each page that differs: the largest color at \d+ px, [\d.]+%;[^\n]* Average [\d.]+%\.\n/);
+  });
+
+  it("prints the average against the last run's after a fix", async () => {
+    await writeFile(join(dir, "build", "color", "index.html"), page(block("#204060")));
+    const second = await run(dir, ARGS);
+    assert.ok(second.ok, second.stderr);
+    const [, now, before] = second.stdout.match(/Average ([\d.]+)%, against ([\d.]+)% in the last run\./);
+    assert.ok(Number(now) < Number(before), `${now}% isn't less than ${before}%`);
   });
 });
 
