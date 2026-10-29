@@ -12,6 +12,7 @@ import { dirname, join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { promisify } from "node:util";
 import { PACKAGE, REPO } from "../helpers.mjs";
+import { launch } from "./helpers.mjs";
 
 const SCRIPT = join(PACKAGE, "skills", "migrate-webflow", "scripts", "fidelity.mjs");
 const WIDTHS = [479, 767, 991, 1440];
@@ -246,5 +247,73 @@ describe("fidelity script, with Webflow's entrance animations", () => {
     assert.ok(result.ok, result.stderr);
     assert.match(result.stdout, /Webflow's interactions couldn't be read from the export's scripts/);
     assert.ok((await size(join(dir, "shots", "home", "1440-export.png"))).height >= 5000);
+  });
+});
+
+// site-kit-motion design D164: the build of a site that ignores reduced motion
+// plays its motion, and is shot with each element where its motion ends.
+describe("fidelity script, on a site that ignores reduced motion", () => {
+  // A box below the first screen, hidden and moved until it scrolls into
+  // view, as a theme's reveal is; and a block that reduced motion makes tall.
+  const BUILD = `<!doctype html><html><head><title>Page</title><style>
+    body { margin: 0; } .spacer { height: 1500px; } .box { height: 300px; background: #c00; transition: opacity 0.6s, transform 0.6s; }
+    [data-ready] .box:not([data-revealed]) { opacity: 0; transform: translateY(300px); }
+    @media (prefers-reduced-motion: reduce) { .reduced { height: 2000px; } }
+  </style></head><body><div class="spacer"></div><div class="box"></div><div class="reduced"></div><script>
+    document.documentElement.setAttribute("data-ready", "");
+    new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.setAttribute("data-revealed", ""))).observe(document.querySelector(".box"));
+  </script></body></html>`;
+  const FILES = { "export/index.html": page("<p>Export</p>"), "build/index.html": BUILD, "pages.txt": "index.html /\n" };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots", "--reduced-motion", "ignore"];
+  let dir;
+
+  // A pixel of a PNG as "r,g,b", read in the browser.
+  async function pixel(file, x, y) {
+    const browser = await launch();
+    try {
+      const sheet = await browser.newPage();
+      const data = (await readFile(file)).toString("base64");
+      return await sheet.evaluate(
+        async ({ data, x, y }) => {
+          const image = new Image();
+          image.src = `data:image/png;base64,${data}`;
+          await image.decode();
+          const canvas = Object.assign(document.createElement("canvas"), { width: image.width, height: image.height });
+          const context = canvas.getContext("2d");
+          context.drawImage(image, 0, 0);
+          return [...context.getImageData(x, y, 1, 1).data.slice(0, 3)].join(",");
+        },
+        { data, x, y },
+      );
+    } finally {
+      await browser.close();
+    }
+  }
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-motion-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("shoots a section below the first screen at rest in its place, without reduced motion", async () => {
+    const result = await run(dir, ARGS);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /The build plays its motion for every visitor/);
+    for (const width of [479, 1440]) {
+      const file = join(dir, "shots", "home", `${width}-build.png`);
+      assert.ok((await size(file)).height < 2000, `the build was shot under reduced motion at ${width}`);
+      assert.equal(await pixel(file, 10, 1510), "204,0,0", `the box isn't at rest in its place at ${width}`);
+    }
+  });
+
+  it("names the values --reduced-motion takes", async () => {
+    const result = await run(dir, [...ARGS.slice(0, -1), "sometimes"]);
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /--reduced-motion is "sometimes"\. It is the site's reducedMotion from src\/site\.config\.ts: respect, the default, or ignore\./);
   });
 });

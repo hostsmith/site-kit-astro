@@ -34,12 +34,12 @@ Compare the size of `dist/` (`du -sh dist`) with the upload and storage limits o
 
 ## The fidelity check
 
-Compare each page of the build with the same page of the export, as screenshots at Webflow's widths, 479, 767, 991 and 1440 px. The comparison is with the export, never the live site. The script `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/fidelity.mjs` serves both on `localhost`, takes the screenshots under reduced motion, renders the export with its scripts off, and answers any other host with nothing. Webflow writes the start of an animation on page load or on scroll into view into the page, which hides or moves the element until its script plays it: the script serves the export's pages without those start states, so each such element shows where its animation ends. Never edit or copy the export for the check.
+Compare each page of the build with the same page of the export, as screenshots at Webflow's widths, 479, 767, 991 and 1440 px. The comparison is with the export, never the live site. The script `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/fidelity.mjs` serves both on `localhost`, renders the export with its scripts off, and answers any other host with nothing. It takes the screenshots under reduced motion, unless the site has `reducedMotion: "ignore"`: the build then plays its motion, as its visitors see it, and each element is shot where its motion ends. Webflow writes the start of an animation on page load or on scroll into view into the page, which hides or moves the element until its script plays it: the script serves the export's pages without those start states, so each such element shows where its animation ends. Never edit or copy the export for the check.
 
-1. **Install Playwright for the check,** in a folder of its own inside the ignored snapshot, never in the site's `package.json`:
+1. **Install Playwright and axe-core for the checks,** in a folder of its own inside the ignored snapshot, never in the site's `package.json`:
 
    ```bash
-   npm install --prefix .hostsmith/snapshot/fidelity/tools playwright@1.64.0
+   npm install --prefix .hostsmith/snapshot/fidelity/tools playwright@1.64.0 @axe-core/playwright@4.14.0
    ```
 
    The script uses Playwright's Chromium, or Google Chrome where that isn't installed. If neither is on the machine, tell the person that Playwright will download Chromium, about 150 MB, outside the site, and wait for their go-ahead before you run:
@@ -67,10 +67,11 @@ Compare each page of the build with the same page of the export, as screenshots 
      --build dist \
      --pages .hostsmith/snapshot/fidelity/pages.txt \
      --out .hostsmith/snapshot/fidelity/shots \
-     --fonts src/styles/theme/fonts.css --font-files public/assets/fonts
+     --fonts src/styles/theme/fonts.css --font-files public/assets/fonts \
+     --reduced-motion ignore
    ```
 
-   Leave out `--fonts` and `--font-files` while the site has no font files of its own. With them, the export's pages get the site's fonts, so a font the export lacks isn't a difference.
+   Leave out `--fonts` and `--font-files` while the site has no font files of its own. With them, the export's pages get the site's fonts, so a font the export lacks isn't a difference. Pass `--reduced-motion ignore` only when `src/site.config.ts` has `reducedMotion: "ignore"`, as step 4 set it.
 
    Read all of its output, a few lines: what went wrong first, such as the pages that answered 404, then what it shot, what it kept from the last run, and how many pictures to open.
 
@@ -89,14 +90,41 @@ Compare each page of the build with the same page of the export, as screenshots 
 
    **With subagents,** such as Claude Code's, hand the review to them, so the pictures stay out of your own context: give each a group of pages, about 16 pictures, and one the header and the footer. Tell each the checklist's path, the pictures it reviews, what to look for, as above, and to open three or four at a time, to open the slices where an overview shows a difference, and to change no file. Each returns the pictures it opened, and its differences as rows of the table. Then tick its pictures, add its slices to the checklist, and put its rows into the table.
 
-5. **Then fix them together.** A difference in spacing, size, color or order usually has its cause in the theme or the section's markup. Fix what you can, all at once, build, and run the script again, once:
+5. **Then sort each difference, and fix it where it belongs,** all at once:
+
+   | The difference | Where it's fixed |
+   | --- | --- |
+   | CSS can reach it: a color, a band, a border, spacing, a size, type, capitals, a decoration, the arrangement of the elements the type renders, a breakpoint | the theme, always. Never left |
+   | One section should look different from its type's others | a site variant, as the kit's `AGENTS.md`, "Site variants", says |
+   | The library type doesn't render an element the section needs | a site-local type, as step 5 says |
+   | A kit part lacks an element of the old one | kept, as "Kit parts first" says. Left, and listed |
+   | A deliberate choice, such as a map or a video that loads on a click | left, and listed |
+   | Content the export lacks, such as logos loaded from another site | left, and listed |
+
+   Fixing means matching the export, as the old design was. In the checklist's last column, write the row that applies and the fix, such as "theme: the names in capitals" or "a deliberate choice". Then build, and run the script again, once:
    - **When the fixes touch some pages only,** such as one section type's, add `--only` with those pages' names, the folder names in `shots/`, such as `--only home,pricing`. A fix in the theme touches every page: run it without `--only`.
    - **The export's screenshots are kept,** so a rerun shoots only the build. `--fresh` shoots the export again too, which only a change to the snapshot needs.
    - **The rerun unticks every picture whose screenshots changed,** and keeps the rest of the checklist. Open the unticked pictures, as above, and say in the table how each difference was fixed. Fix again only what a fix broke.
 
 6. **Record it** in the report's "Fidelity check":
-   - **the differences left:** each row of the checklist's table that isn't fixed, as a row of the report's table, never as a list, or "No differences." when none is left;
+   - **the differences left:** each row of the checklist's table that isn't fixed, as a row of the report's table, never as a list, with the row of the table above that lets it stay in the last column: a kit part lacks it, a deliberate choice, or content the export lacks. A difference CSS can reach is never left. "No differences." when none is left;
    - **what you compared,** from the checklist: the ticked pictures under "Compared", and every one left unticked under "Not compared", with the reason. Never write that a page or width was compared when you didn't open its picture.
+
+## Accessibility
+
+The migration carries the old design as it was, so it fixes none of its accessibility gaps and asks nothing about them: the report notes each one, with enough for a follow-up to fix it if the owner wants. After the fidelity check's fixes, build and run axe-core on the same pages:
+
+```bash
+npm run build
+node node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/accessibility.mjs \
+  --tools .hostsmith/snapshot/fidelity/tools \
+  --build dist \
+  --pages .hostsmith/snapshot/fidelity/pages.txt \
+  --out .hostsmith/snapshot/fidelity/accessibility.json \
+  --reduced-motion ignore
+```
+
+Pass `--reduced-motion ignore` as for the fidelity check. Its output lists each text and background pair below WCAG 1.4.3's contrast minimum, with its ratio, its pages and the nearest shade of the text's color that meets it, then each other violation axe-core rates serious or critical, with its pages. Write a note in the report's "Accessibility" for each one the old design brings: for a pair, the colors as the theme names them, such as `--color-muted` on `--color-bg`, its ratio, its pages, WCAG 1.4.3 (AA), and the shade as the value to change. One that the kit's own markup causes, such as a part's missing name, isn't the old design's: say so to the person, as a fault of the kit. With `reducedMotion: "ignore"`, add the motion note, as the report template says.
 
 ## The person's comparison
 

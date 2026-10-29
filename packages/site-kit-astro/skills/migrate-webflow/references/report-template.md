@@ -6,7 +6,7 @@ The site <site name> moved from Webflow to this repository on <date>, from the e
 
 ## For the owner to approve
 
-<!-- Every decision below that the owner makes, as a checklist: colors changed for contrast, fonts, embeds, pages written anew, alt text written, differences left as they are. -->
+<!-- Every decision below that the owner makes, as a checklist: fonts, embeds, pages written anew, alt text written, differences left as they are, and whether to fix the gaps under "Accessibility" after the move. -->
 
 - [ ] <decision, and where it's described below>
 
@@ -21,14 +21,14 @@ The snapshot is in `.hostsmith/snapshot/`, which git ignores. It can be deleted 
 
 ## Pages
 
-<!-- Step 5. Each page with its URL and its sections in order, each with its type, library or site-local. -->
+<!-- Step 5. Each page with its URL and its sections in order, each with its type, library or site-local, and its site variant, if any. -->
 
 | Page | URL | Sections |
 | --- | --- | --- |
 
 ## Site-local types and Components
 
-<!-- Step 5. Each site-local type, what it shows and the pages it's on. Each Component found by repetition, the type it became, and the pages it's on. Each Webflow element that a kit part replaced, such as Tabs on About. -->
+<!-- Step 5. Each site variant, its type, label and the sections that use it. Each site-local type, what it shows, the element no library type renders that made it site-local, and the pages it's on. Each Component found by repetition, the type it became, and the pages it's on. Each Webflow element that a kit part replaced, such as Tabs on About. -->
 
 ## Collections
 
@@ -49,10 +49,6 @@ The snapshot is in `.hostsmith/snapshot/`, which git ignores. It can be deleted 
 ## Fonts
 
 <!-- Step 3. Each font family: where it came from, its license, the recommendation, and whether its files arrived. -->
-
-## Colors changed for contrast
-
-<!-- Step 3. Each role changed to pass a contrast pair: the role, the pair, the old value and the new one. -->
 
 ## Builder defaults kept
 
@@ -88,10 +84,18 @@ To use the theme's own styles instead, delete `src/styles/theme/builder-defaults
 
 **Not compared:** <!-- Each picture left unticked on the checklist, with the reason, or "None". -->
 
-<!-- Each difference left as it is gets a row of this table, from the checklist's table of differences, never a list or bullets: its page, its width or "all", and what differs and why it stays. With none left, replace the table with the line "No differences." -->
+<!-- Each difference left as it is gets a row of this table, from the checklist's table of differences, never a list or bullets: its page, its width or "all", what differs, and why it stays. Only three kinds may stay, and the last column names which: "a kit part lacks it", "a deliberate choice", such as a map that loads on a click, or "content the export lacks". A difference CSS can reach, such as a color, a band, a border, spacing, a size, type, capitals, a decoration, the arrangement of a type's elements or a breakpoint, is fixed in the theme or with a site variant, and an element a library type doesn't render gets a site-local type: neither is listed here. With none left, replace the table with the line "No differences." -->
 
-| Page | Width | Difference |
-| --- | --- | --- |
+| Page | Width | Difference | Why it stays |
+| --- | --- | --- | --- |
+
+## Accessibility
+
+<!-- Steps 2, 4 and 9. The migration carries the old design as it was and fixes none of its gaps, so each place where the site, as the old one did, falls short of WCAG 2.1 AA, the level EN 301 549 sets for the European Accessibility Act, or of a practice beyond it, is a note here, for a follow-up if the owner wants one. Each note holds what falls short, where, by page, the requirement and its level, and the change that would fix it:
+- a text and background pair below its contrast minimum, from step 9's accessibility check: the colors as the theme names them, its ratio, its pages, WCAG 1.4.3 (AA), and the nearest shade that passes, as the value to change;
+- motion for visitors who ask for less, when `src/site.config.ts` has `reducedMotion: "ignore"`: that the site animates for visitors who ask their device for less motion, as the old one did; which motion, by page; that WCAG 2.1 AA doesn't require following the setting for short motion, and WCAG 2.3.3 (AAA) does; and the change that follows it, `reducedMotion: "respect"` in `src/site.config.ts`;
+- every other violation axe-core rates serious or critical that the old design brings, with its rule and its pages.
+The kit's own guarantees, such as keyboard use, focus rings, alt text and the content without scripts, aren't gaps. With none, "No gaps found.", having run the check. -->
 
 ## To translate
 

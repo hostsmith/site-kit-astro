@@ -22,14 +22,17 @@
 // - `collections`: the site's `collections`.
 //
 // Then Decap's i18n settings are added, for the locales in src/site.config.ts,
-// one or more (site-kit-locales design D55), and the site's own icons, from
-// src/icons/, to the kit's icon select (site-kit-webflow-example design D107).
+// one or more (site-kit-locales design D55), the site's own icons, from
+// src/icons/, to the kit's icon select (site-kit-webflow-example design D107),
+// and a select of the site variants in src/site.config.ts to each library type
+// that has some (site-kit-site-variants design D159).
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMap, isSeq, parse, parseDocument, visit } from "yaml";
 import { siteIconNames } from "./site-icons.mjs";
-import { localeCodes } from "./site-config.mjs";
+import { readSiteConfig } from "./site-config.mjs";
+import { readSiteVariants } from "./site-variants.mjs";
 
 // The kit's part, as messages name it, and its file in the package.
 export const KIT_PART = "@hostsmith/site-kit-astro/decap/config.kit.yml";
@@ -259,6 +262,41 @@ function addSiteIcons(doc, icons) {
   });
 }
 
+// The library section types of the kit's part, each with its kit variants,
+// the options of its `variant` select, or none.
+function kitVariants(kitText) {
+  const pages = parse(kitText).collections.find((collection) => collection.name === "pages");
+  const types = pages.fields.find((field) => field.name === "sections").types;
+  return Object.fromEntries(types.map((type) => [type.name, type.fields.find((field) => field.name === "variant")?.options ?? []]));
+}
+
+// Each library type with site variants gets a `siteVariant` select after its
+// own fields, which offers them by their labels. The kit's sections field is
+// anchored `sections`.
+function addSiteVariants(doc, siteVariants) {
+  if (Object.keys(siteVariants).length === 0) return;
+  visit(doc, {
+    Map(_, node) {
+      if (node.anchor !== "sections") return;
+      for (const type of node.get("types", true).items) {
+        const variants = siteVariants[type.get("name")];
+        if (!variants) continue;
+        const field = doc.createNode({
+          name: "siteVariant",
+          label: "Site variant",
+          widget: "select",
+          options: Object.entries(variants).map(([value, { label }]) => ({ label, value })),
+          required: false,
+          hint: "One of this site's own looks for this section type, which its theme styles. Leave it empty for the type's usual look.",
+        });
+        field.flow = true;
+        type.get("fields", true).items.push(field);
+      }
+      return visit.BREAK;
+    },
+  });
+}
+
 // Every site's config, with one locale or several (site-kit-locales design
 // D55): Decap's i18n settings, in the `multiple_files` structure, which
 // names each file's locale before its extension (D48); the pages, the
@@ -268,9 +306,10 @@ function addSiteIcons(doc, icons) {
 // Only Decap's i18n options are used, which Sveltia reads too. The yaml
 // library's document keeps the assembled text's comments, anchors and flow
 // style.
-function localize(text, locales, icons) {
+function localize(text, locales, icons, siteVariants) {
   const doc = parseDocument(text);
   addSiteIcons(doc, icons);
+  addSiteVariants(doc, siteVariants);
   const seen = new Set();
   const collections = doc.get("collections", true);
   collections.items = collections.items.map((collection) => {
@@ -310,12 +349,13 @@ function localize(text, locales, icons) {
   return doc.toString({ lineWidth: 0 });
 }
 
-// `locales` is the site's locale codes, the default first, and `icons` the
-// names of the site's own icons.
-export function assemble(kitText, siteText, locales, icons = []) {
+// `locales` is the site's locale codes, the default first, `icons` the names
+// of the site's own icons, and `siteVariants` the site config's, unchecked.
+export function assemble(kitText, siteText, locales, icons = [], siteVariants = undefined) {
   if (!locales?.length) {
     throw new Error(`No locales for ${ASSEMBLED}: every site lists its locales in src/site.config.ts, such as locales: [{ code: "en", tag: "en-US" }].`);
   }
+  const variants = readSiteVariants(siteVariants, kitVariants(kitText));
   const site = parseSitePart(siteText);
   const lines = kitText.replace(/\n$/, "").split("\n");
 
@@ -350,30 +390,31 @@ export function assemble(kitText, siteText, locales, icons = []) {
     lines.splice(index, 1, ...parts[marker](pad));
   }
   while (lines.at(-1) === "") lines.pop();
-  return localize(`${HEADER}${lines.join("\n")}\n`, locales, icons);
+  return localize(`${HEADER}${lines.join("\n")}\n`, locales, icons, variants);
 }
 
 // The kit part ships in the package. The site part and the site's icons are
-// read from the site's root.
-export function assembleFiles(root, locales, kitPartFile = KIT_PART_FILE) {
-  return assemble(readFileSync(kitPartFile, "utf8"), readFileSync(join(root, SITE_PART), "utf8"), locales, siteIconNames(root));
+// read from the site's root, and `siteVariants` come from its site config.
+export function assembleFiles(root, locales, siteVariants = undefined, kitPartFile = KIT_PART_FILE) {
+  return assemble(readFileSync(kitPartFile, "utf8"), readFileSync(join(root, SITE_PART), "utf8"), locales, siteIconNames(root), siteVariants);
 }
 
 // Why config.yml is stale, or undefined when it matches a fresh assembly.
-export function staleness(root, locales) {
-  if (readFileSync(join(root, ASSEMBLED), "utf8") === assembleFiles(root, locales)) return undefined;
-  return `${ASSEMBLED} doesn't match the kit's part and ${SITE_PART}. Edit ${SITE_PART}, not ${ASSEMBLED}, and run npm run decap-config. After a kit update, run npm run decap-config.`;
+export function staleness(root, locales, siteVariants = undefined) {
+  if (readFileSync(join(root, ASSEMBLED), "utf8") === assembleFiles(root, locales, siteVariants)) return undefined;
+  return `${ASSEMBLED} doesn't match the kit's part, ${SITE_PART} and the site variants in src/site.config.ts. Edit ${SITE_PART} or src/site.config.ts, not ${ASSEMBLED}, and run npm run decap-config. After a kit update, run npm run decap-config.`;
 }
 
 async function main(args) {
-  const locales = await localeCodes();
+  const siteConfig = await readSiteConfig();
+  const locales = siteConfig?.locales?.map((locale) => locale.code);
   if (args.includes("--check")) {
-    const problem = staleness(".", locales);
+    const problem = staleness(".", locales, siteConfig?.siteVariants);
     if (problem) throw new Error(problem);
     console.log(`${ASSEMBLED} is up to date.`);
     return;
   }
-  writeFileSync(ASSEMBLED, assembleFiles(".", locales));
+  writeFileSync(ASSEMBLED, assembleFiles(".", locales, siteConfig?.siteVariants));
   console.log(`Wrote ${ASSEMBLED} from the kit's part and ${SITE_PART}.`);
 }
 

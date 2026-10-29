@@ -10,7 +10,7 @@
 //     --pages .hostsmith/snapshot/fidelity/pages.txt \
 //     --out .hostsmith/snapshot/fidelity/shots \
 //     --fonts src/styles/theme/fonts.css --font-files public/assets/fonts \
-//     [--only home,about] [--fresh]
+//     [--reduced-motion ignore] [--only home,about] [--fresh]
 //
 // --pages lists one page per line: the export's file, then the build's path,
 // such as `about.html /about`. A line starting with # is a comment.
@@ -24,7 +24,10 @@
 // such an element shows where its animation ends. The script reads them from
 // the export's interactions, as data, never running them, and leaves the
 // start states of hover and click as they are. The build renders with its
-// scripts, so its parts are set up, and both emulate reduced motion.
+// scripts, so its parts are set up. Both emulate reduced motion, unless
+// --reduced-motion is the site's `ignore` (site-kit-motion design D164): the
+// build then plays its motion as its visitors see it, scrolled through so
+// every element comes into view, and is shot once the motion has ended.
 // --fonts adds the site's @font-face rules to the export's pages, with
 // --font-files served at /assets/fonts/, so a font the export lacks doesn't
 // count as a difference.
@@ -55,11 +58,9 @@
 // differences, but unticks every picture whose screenshots changed.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { createServer } from "node:http";
-import { createRequire } from "node:module";
-import { extname, join, relative, resolve, sep } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { find, launch, loadTool, reducedMotionOf, serve, settle, UsageError } from "./browser.mjs";
 
 const WIDTHS = [479, 767, 991, 1440];
 const HEIGHT = 900;
@@ -99,39 +100,10 @@ const SHEET = `<!doctype html>
     </div>
   </body>
 </html>`;
-const FONTS_PATH = "/assets/fonts/";
-const FONTS_CSS = "/__fidelity/fonts.css";
 // Webflow's (IX2) triggers of an entrance: page load and scroll into view.
 const ENTRANCES = new Set(["PAGE_START", "PAGE_FINISH", "SCROLL_INTO_VIEW"]);
 // What an entrance's start state sets inline.
 const START_PROPERTY = /^\s*(-(webkit|moz|ms)-)?(opacity|transform|filter)\s*$/i;
-
-const TYPES = {
-  ".html": "text/html",
-  ".htm": "text/html",
-  ".css": "text/css",
-  ".js": "text/javascript",
-  ".mjs": "text/javascript",
-  ".json": "application/json",
-  ".xml": "application/xml",
-  ".txt": "text/plain",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".avif": "image/avif",
-  ".ico": "image/x-icon",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-  ".otf": "font/otf",
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-};
-
-class UsageError extends Error {}
 
 const { values: options } = parseArgs({
   options: {
@@ -144,6 +116,7 @@ const { values: options } = parseArgs({
     "font-files": { type: "string" },
     only: { type: "string" },
     fresh: { type: "boolean" },
+    "reduced-motion": { type: "string" },
   },
 });
 
@@ -165,7 +138,8 @@ async function main(args) {
   const fontsCss = args.fonts ? readFileSync(args.fonts, "utf8") : undefined;
   const pages = readPages(args.pages);
   const only = args.only === undefined ? undefined : readOnly(args.only, pages);
-  const { chromium } = loadPlaywright(args.tools);
+  const motion = reducedMotionOf(args["reduced-motion"]);
+  const { chromium } = loadTool(args.tools, "playwright", "Playwright");
 
   mkdirSync(args.out, { recursive: true });
   const resultFile = join(args.out, "fidelity.json");
@@ -174,7 +148,7 @@ async function main(args) {
   const previous = new Map((existsSync(resultFile) ? (JSON.parse(readFileSync(resultFile, "utf8")).pages ?? []) : []).map((page) => [page.name, page]));
   const fonts = fontsKey(fontsCss, fontDir);
   const starts = entranceStartsOf(exportDir);
-  const exportSide = await serve(exportDir, { fontDir, fontsCss, starts });
+  const exportSide = await serve(exportDir, { fontDir, fontsCss, rewrite: starts ? (html) => withoutStarts(html, starts) : undefined });
   const buildSide = await serve(buildDir);
   // The screenshots, for the page that composes the pictures.
   const shotsSide = await serve(resolve(args.out));
@@ -210,7 +184,7 @@ async function main(args) {
         const exportShot = keepExport
           ? { file: relative(process.cwd(), join(dir, `${width}-export.png`)), changed: false }
           : await shoot(browser, exportSide, page.exportPath, join(dir, `${width}-export.png`), { width, scripts: false }, entry, "export");
-        const buildShot = await shoot(browser, buildSide, page.buildPath, join(dir, `${width}-build.png`), { width, scripts: true }, entry, "build");
+        const buildShot = await shoot(browser, buildSide, page.buildPath, join(dir, `${width}-build.png`), { width, scripts: true, motion }, entry, "build");
         const shots = { export: exportShot.file, build: buildShot.file, ...(await compose(sheet, shotsSide, page.name, width, dir)) };
         if (exportShot.changed || buildShot.changed) for (const picture of [shots.overview, ...shots.slices, shots.end]) changed.add(picture);
         entry.shots[width] = shots;
@@ -231,6 +205,7 @@ async function main(args) {
     // output's end finds it.
     if (starts === null) console.log("Webflow's interactions couldn't be read from the export's scripts, so what its entrance animations hide at first stays hidden in the export's screenshots.");
     else if (starts) console.log("Webflow's entrance animations start some elements hidden or moved: the export's screenshots show them where the animations end.");
+    if (motion === "ignore") console.log("The build plays its motion for every visitor, as the site's reducedMotion says: its screenshots show each element where its motion ends.");
     for (const missing of result.missing) console.log(`404: ${missing}`);
     for (const side of ["export", "build"]) {
       if (result.requested[side].length > 0) console.log(`The ${side}'s pages asked other hosts, which got nothing: ${result.requested[side].join(", ")}`);
@@ -414,73 +389,12 @@ function withoutStarts(html, { ids, classes }) {
   });
 }
 
-function loadPlaywright(tools) {
-  const require = createRequire(join(resolve(tools), "package.json"));
-  try {
-    return require("playwright");
-  } catch {
-    throw new UsageError(`Playwright isn't installed in ${tools}. Install it there as the fidelity step says, never in the site.`);
-  }
-}
-
-// Playwright's Chromium, or Google Chrome where it isn't installed.
-async function launch(chromium, tools) {
-  if (existsSync(chromium.executablePath())) return chromium.launch();
-  try {
-    return await chromium.launch({ channel: "chrome" });
-  } catch {
-    throw new UsageError(
-      `No browser for Playwright: neither its Chromium nor Google Chrome is installed. With the person's go-ahead, download Chromium (about 150 MB, outside the site): ${join(tools, "node_modules", ".bin", "playwright")} install chromium`,
-    );
-  }
-}
-
-// Serves `root` on a free local port, the way Hostsmith serves a site:
-// /about from about, about.html or about/index.html. The export's pages get
-// the site's fonts when `fontsCss` is given, and lose the entrances' start
-// states when `starts` is.
-async function serve(root, { fontDir, fontsCss, starts } = {}) {
-  const server = createServer(async (request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-    if (fontsCss && path === FONTS_CSS) return send(response, 200, "text/css", fontsCss);
-    const file = fontDir && path.startsWith(FONTS_PATH) ? inside(fontDir, path.slice(FONTS_PATH.length)) : find(root, path);
-    if (!file) {
-      const notFound = inside(root, "404.html");
-      return send(response, 404, "text/html", notFound ? await readFile(notFound) : "Not found");
-    }
-    const type = TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
-    let body = await readFile(file);
-    if (starts && type === "text/html") body = withoutStarts(body.toString("utf8"), starts);
-    if (fontsCss && type === "text/html") {
-      body = body.toString("utf8").replace(/<\/head>/i, `<link rel="stylesheet" href="${FONTS_CSS}"></head>`);
-    }
-    return send(response, 200, type, body);
-  });
-  await new Promise((done) => server.listen(0, "127.0.0.1", done));
-  return { origin: `http://127.0.0.1:${server.address().port}`, close: () => new Promise((done) => server.close(done)) };
-}
-
-function find(root, path) {
-  const candidates = path.endsWith("/") ? [`${path}index.html`] : [path, `${path}.html`, `${path}/index.html`];
-  return candidates.map((candidate) => inside(root, candidate)).find(Boolean);
-}
-
-// The file at `path` under `root`, if it exists and doesn't leave `root`.
-function inside(root, path) {
-  const file = resolve(root, `.${sep}${path}`);
-  if (relative(root, file).startsWith("..")) return undefined;
-  return existsSync(file) && statSync(file).isFile() ? file : undefined;
-}
-
-function send(response, status, type, body) {
-  response.writeHead(status, { "content-type": type });
-  response.end(body);
-}
-
 // A full-page screenshot into `file`, and whether it differs from the one
-// there before, byte for byte.
-async function shoot(browser, side, path, file, { width, scripts }, entry, name) {
-  const context = await browser.newContext({ viewport: { width, height: HEIGHT }, reducedMotion: "reduce", javaScriptEnabled: scripts });
+// there before, byte for byte. With `motion` "ignore", the page plays its
+// motion and settles first.
+async function shoot(browser, side, path, file, { width, scripts, motion = "respect" }, entry, name) {
+  const plays = motion === "ignore";
+  const context = await browser.newContext({ viewport: { width, height: HEIGHT }, reducedMotion: plays ? "no-preference" : "reduce", javaScriptEnabled: scripts });
   try {
     // Another host gets an empty page, not an abort: Chrome would show its
     // error page in a frame, such as a map's.
@@ -493,6 +407,7 @@ async function shoot(browser, side, path, file, { width, scripts }, entry, name)
     const page = await context.newPage();
     const response = await page.goto(`${side.origin}${path}`, { waitUntil: "networkidle" });
     if (response?.status() === 404) entry.missing.push(`${name} ${path}`);
+    if (plays) await settle(page, HEIGHT / 2);
     const png = await page.screenshot({ fullPage: true });
     const changed = !existsSync(file) || !readFileSync(file).equals(png);
     writeFileSync(file, png);

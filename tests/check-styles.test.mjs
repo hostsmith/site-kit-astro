@@ -219,3 +219,45 @@ describe("check:styles --built", () => {
     assert.match(result.output, /run npm run build first/);
   });
 });
+
+// site-kit-site-variants design D160.
+describe("check:styles, site variants", () => {
+  // Scenario "A site variant that selects by position".
+  it("names an element name or a position in a site variant's rule, and passes pseudo-elements and states", async () => {
+    const result = await checkStyles({
+      "src/styles/theme/sections.css": [
+        '.sk-faq[data-site-variant="boxed"] .sk-faq__item:nth-child(odd) {\n  margin: 0;\n}',
+        '.sk-faq[data-site-variant="boxed"] .sk-faq__item::before {\n  content: "";\n}',
+        '.sk-faq[data-site-variant="boxed"] li {\n  margin: 0;\n}',
+        '.sk-faq[data-site-variant="boxed"] {\n  & .sk-faq__item:first-child {\n    margin: 0;\n  }\n  &:hover .sk-faq__question:focus-visible {\n    margin: 0;\n  }\n}',
+        'html .sk-faq[data-site-variant="boxed"] .sk-faq__item:not([open]) {\n  margin: 0;\n}',
+        ".sk-faq .sk-faq__item:last-child {\n  margin: 0;\n}",
+      ].join("\n"),
+    });
+    assert.equal(result.code, 1, result.output);
+    assert.match(result.output, /sections\.css:1: site variant by position ":nth-child" \(a site variant selects by the kit's hooks and states/);
+    assert.match(result.output, /sections\.css:7: site variant by element "li"/);
+    assert.match(result.output, /sections\.css:11: site variant by position ":first-child"/);
+    assert.equal(result.output.match(/site variant by/g).length, 3, result.output);
+  });
+
+  // Scenarios "A site variant without a rule" and "A site variant no page uses".
+  it("warns about a site variant a page uses and no rule styles, and one no page uses", async () => {
+    const result = await checkStyles(
+      {
+        "src/site.config.ts":
+          'export const siteConfig = { url: "https://www.example.com", locales: [{ code: "en" }], collections: {}, siteVariants: { faq: { boxed: { label: "Boxed" } }, cta: { quiet: { label: "Quiet" } }, testimonials: { band: { label: "On a band" } }, steps: { numbered: { label: "Numbered" } } } } as const;\n',
+        "src/styles/theme/sections.css":
+          ".sk-section, .sk-faq, .sk-cta, .sk-cta--card, .sk-testimonials {\n  margin: 0;\n}\n.sk-cta[data-site-variant=quiet] {\n  margin: 0;\n}\n[data-site-variant='band'] .sk-section__title {\n  margin: 0;\n}\n.sk-faq[data-site-variant~=\"numbered\"] {\n  margin: 0;\n}\n.sk-testimonials[data-site-variant=\"boxed\"] {\n  margin: 0;\n}\n",
+        "dist/index.html":
+          '<section data-section="faq" data-site-variant="boxed" class="sk-section sk-faq"></section><section data-section="cta" data-site-variant="quiet" class="sk-section sk-cta sk-cta--card"></section>',
+        "dist/about/index.html": '<section data-section="faq" data-site-variant="boxed" class="sk-section sk-faq"></section><section data-section="testimonials" data-site-variant="band" class="sk-section sk-testimonials"></section>',
+      },
+      ["--built"],
+    );
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /dist\/(about\/)?index\.html: unstyled site variant "boxed" \(no rule in src\/styles\/theme\/ or site\.css styles \.sk-faq\[data-site-variant="boxed"\]\)/);
+    assert.match(result.output, /src\/site\.config\.ts: unused site variant "numbered" \(steps: no built page has a steps section with it\)/);
+    assert.equal(result.output.match(/site variant "/g).length, 2, result.output);
+  });
+});

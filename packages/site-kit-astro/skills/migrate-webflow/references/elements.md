@@ -13,7 +13,7 @@ Webflow's built-in interactive elements all run on `webflow.js`, which a kit sit
 | Slider | `w-slider`, with `w-slider-mask`, `w-slide`, `w-slider-arrow-left`, `w-slider-arrow-right` and `w-slider-nav` | a `slider` section: one slide per `w-slide`. `autoplay`, in seconds, only when the old slider played by itself (`data-autoplay="true"`, with `data-delay` in milliseconds), and at least 3. `cards` when several slides show at once |
 | Lightbox | `w-lightbox`, with its JSON in a `w-json` script | a `gallery` section with `lightbox: true`, its images and captions from the JSON's `items` |
 | Background video | `w-background-video`, with `data-video-urls` and `data-poster-url` | `video`, the MP4, and `videoWebm` on a `hero` with the variant `background` or on a `split`, with the poster as its `image` |
-| Collection list | `w-dyn-list`, with `w-dyn-items`, `w-dyn-item` and `w-dyn-empty` | a `collection-list` section, or a site-local type when its cards differ (step 6) |
+| Collection list | `w-dyn-list`, with `w-dyn-items`, `w-dyn-item` and `w-dyn-empty` | a `collection-list` section, or a site-local type when its cards show an element the kit's don't render (step 6) |
 | Pagination | `w-pagination-wrapper`, query strings such as `?a1b2c3d4_page=2` | not carried: the list shows its first page, up to its `limit`. The report lists it |
 | Rich Text | `w-richtext` | Markdown in a section's body or an entry's body (step 6, "Rich text") |
 | Native accordions | `details` and `summary` | `faq`, or the header's menu when it's the navbar's |
@@ -73,7 +73,17 @@ Find a built-in effect's element by searching the export's pages for `data-w-id=
 
 Anything else, such as hover and click effects, scroll-linked movement, loops, sequences, counters and page transitions, isn't carried. The report's "Interactions" lists each interaction with its id, what it did and what was done with it.
 
-Webflow's inline style that hides the targeted elements until its script runs, such as `html.w-mod-js:not(.w-mod-ix3) :is(.section-header_component) {visibility: hidden !important;}`, isn't carried: the kit's reveal hides nothing without its own script, and nothing under reduced motion.
+Webflow's inline style that hides the targeted elements until its script runs, such as `html.w-mod-js:not(.w-mod-ix3) :is(.section-header_component) {visibility: hidden !important;}`, isn't carried: the kit's reveal hides nothing without its own script.
+
+### Reduced motion
+
+The new site moves for a visitor who asks their device for less motion only when the old one did (`site-kit-motion` design D164). Find which, from the export, as text:
+
+- **IX2** follows the setting only when the pages' `<body>` carries `data-wf-ix-vacation`. Without it, every IX2 interaction plays for every visitor.
+- **IX3** follows it per interaction: one with `conditionalPlayback:[{type:"prefers-reduced-motion",...}]` in its `register` entry does, such as `behavior:"skip-to-end"`, which shows its end at once. One without plays for every visitor.
+- **The site's CSS** may stop its own animations and transitions in an `@media (prefers-reduced-motion: reduce)` rule.
+
+When any motion the new site carries played for every visitor on the old one, step 4 sets `reducedMotion: "ignore"` in `src/site.config.ts`, and the report's "Accessibility" notes it. When all of it followed the setting, or the site carries none, the kit's default stays. Ask nothing either way, and record what you found in the report's "Interactions".
 
 ## Not carried
 

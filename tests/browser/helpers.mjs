@@ -46,11 +46,12 @@ export function launch() {
  * with `fixture: null`. open(path, options) opens a page in a new context,
  * with `javaScriptEnabled` and `reducedMotion` as Playwright takes them, and
  * returns it with `requests`, the URLs it asked other hosts for. `before`
- * runs on the page before it loads, such as page.clock.install(). Call
- * close() after the tests.
+ * runs on the page before it loads, such as page.clock.install(). `edit`
+ * rewrites the site's files before the build, as buildFixture() takes it.
+ * Call close() after the tests.
  */
-export async function site({ fixture = "interactive", example = "webflow" } = {}) {
-  const build = await buildFixture(fixture, { example });
+export async function site({ fixture = "interactive", example = "webflow", edit = {} } = {}) {
+  const build = await buildFixture(fixture, { example, edit });
   assertBuilt(build);
   const server = await serve(build.dist);
   const browser = await launch();

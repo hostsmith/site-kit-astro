@@ -177,7 +177,7 @@ describe("npm run decap-config", () => {
     try {
       await cp(join(BASICS, "public", "admin"), join(dir, "public", "admin"), { recursive: true });
       await writeFile(join(dir, ASSEMBLED), text.replace("label: Hero", "label: Big hero"));
-      assert.match(staleness(dir, EN), /public\/admin\/config\.yml doesn't match the kit's part and public\/admin\/config\.site\.yml\. Edit public\/admin\/config\.site\.yml.*npm run decap-config/);
+      assert.match(staleness(dir, EN), /public\/admin\/config\.yml doesn't match the kit's part, public\/admin\/config\.site\.yml and the site variants in src\/site\.config\.ts\. Edit public\/admin\/config\.site\.yml or src\/site\.config\.ts.*npm run decap-config/);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

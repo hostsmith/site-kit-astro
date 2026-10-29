@@ -28,11 +28,13 @@ Expect a call to action band repeated on several pages, and cards repeated in a 
 
 ## Pick each section's type
 
-For each section, in this order:
+Give each section the first of these forms that can show it, as the kit's `AGENTS.md` says:
 
-1. **A library type** whose structure matches: the same parts, in the same order. The kit's README, "Section types", lists each type's props, variants and tones. The theme then restyles it to the old look. A hero, a call to action, questions and answers, prices, a numbered process or a list of entries often match. Every library type with a title also takes an `eyebrow`, so Client-First's section header, a small label above the heading, never makes a section site-local by itself.
-2. **A variant** of a site-local type you've already made, when only the layout differs.
-3. **A new site-local type,** otherwise. This is the usual case for a section with a layout of its own.
+1. **A library type** that renders the elements and fields the section needs. The kit's README, "Section types", lists each type's props, variants and tones. Its look is the theme's work, from step 3: colors, a band, borders, spacing, sizes, type, capitals, decoration, the arrangement of the elements it renders, and where it changes at each width. None of these makes a section site-local. A hero, a call to action, questions and answers, prices, a numbered process, quotes, people or a list of entries often fit. Every library type with a title also takes an `eyebrow`, so Client-First's section header, a small label above the heading, never makes a section site-local by itself.
+2. **A library type with a site variant,** when one section should look different from its type's others on the site, such as one FAQ with boxed questions among plain ones: declare it in `siteVariants` in `src/site.config.ts` and set `siteVariant` on the entry, as the kit's `AGENTS.md`, "Site variants", says. Step 3's rules style it.
+3. **A site-local type,** only when no library type renders an element the section needs, such as a large portrait beside a testimonial: a variant of a site-local type you've already made, or a new one. List the element in the report's "Site-local types and Components", as a gap of the library type.
+
+Interactive parts stay the kit's: a site variant may restyle a slider or tabs, such as a slider on a colored band with quote marks the theme draws. An element of the old one that the kit's part lacks goes into the report's "Not carried over", never into a site-local copy of the part, unless the person asks for one.
 
 A site-local type is the section's markup from the export, cleaned, with its content in props:
 
@@ -41,6 +43,7 @@ A site-local type is the section's markup from the export, cleaned, with its con
 - **The schema:** `section("<type>", { ... })` in `siteSectionSchemas` in `src/site.schema.ts`, with `mediaPath` and `requireAlt` for images, `link` for links and `icon` for icons, from `@hostsmith/site-kit-astro/schema`.
 - **The Decap type:** under `section_types` in `public/admin/config.site.yml`, with a field for each prop.
 - **The styles:** in `src/styles/theme/sections.css`, or utilities in its markup, as step 3 says.
+- **A row of navigation links,** such as a page's own navbar inside its content, collapses on phones, as the kit's menu does: below the theme's nav breakpoint, behind a native disclosure, a `details` whose `summary` is the menu button, so it opens by keyboard and without scripts. Above the breakpoint, the links show as a row and the `summary` is hidden.
 
 Name a type after what it shows, such as `amenities` or `plan-cards`, never after a page or a library type. A minimal component:
 
@@ -70,7 +73,7 @@ const f = sectionFields(entry, section);
 </section>
 ```
 
-`{...f.root}` goes on the section's root element: it carries the section's type and its `reveal`. `sk-container` gives the content the theme's width and gutter.
+`{...f.root}` goes on the section's root element: it carries the section's type, its `reveal` and, for a library type, its site variant. `sk-container` gives the content the theme's width and gutter.
 
 After adding or changing a type, run `npm run decap-config` and `npx site-kit schema`.
 

@@ -26,6 +26,7 @@ To port a design:
 | `tokens/type.css` | the fonts and the text scale, which shrinks below `lg` and `md` | with `fonts.css` and the font files |
 | `tokens/shape.css` | radii and shadows | yes. Shadows take their color from `--color-fg` |
 | `tokens/space.css` | content width, section spacing, gutter, breakpoints | no: the layout CSS is tuned to them |
+| `tokens/motion.css` | the `motion-safe` and `motion-reduce` variants, which follow the site's `reducedMotion`. The reveal's motion is written under `motion-safe` | yes |
 | `fonts.css` | `@font-face` for `/assets/fonts/`: none, with system fonts | with `type.css` |
 | `base.css` | element defaults close to Webflow's: headings, paragraphs, lists, blockquote, figure, form controls, focus ring, reduced motion | no |
 | `layout.css` | skip link, header, menu and submenus, breadcrumb, footer | no |

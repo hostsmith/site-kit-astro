@@ -7,7 +7,7 @@ How hooks change:
 - A minor release can add a hook, a state, a variant, a tone or a section type.
 - A rename or a removal takes two releases. First a minor release deprecates the hook: it keeps working, a renamed hook's element carries the old class and the new one, and its row moves to [Deprecated](#deprecated) with its replacement. A later major release removes it, never the same one.
 - The release notes say what to change in a site's theme and content, under "Deprecated" and then "Removed". `npm run check:styles` warns about every deprecated hook a site's theme still styles.
-- The nesting of the kit's elements isn't API. A minor release can change it, keeping the hooks.
+- The order and nesting of the kit's elements aren't API. A minor release can change them, keeping the hooks. So select by hooks and states, not by element names or position: `.sk-faq .sk-faq__item`, not `.sk-faq li:first-child`.
 
 How the hooks are named:
 
@@ -82,6 +82,7 @@ Unstyled, a kit page is a readable HTML document. Some elements the kit hides wi
 | `data-open` | `sk-menu` | The menu is open |
 | `aria-expanded` | `sk-header__menu-button` | `true` while the menu is open |
 | `aria-current` | `sk-nav__link`, `sk-breadcrumb__current`, `sk-locales__link` | `page` on the link to the current page, on the breadcrumb's last step, and on the switcher's current locale |
+| `data-sk-motion` | `html` | `always` on a site with `reducedMotion: "ignore"` in `src/site.config.ts`, set by a head script before the page renders: the site plays its motion for every visitor, as the old site it came from did. Write motion under Tailwind's `motion-safe` variant, which the theme's `tokens/motion.css` makes hold here too, and keep a reduced motion reset off it with `:root:not([data-sk-motion="always"])`. Without scripts it's missing, so nothing moves |
 
 ## Other attributes
 
@@ -91,6 +92,9 @@ Attributes that name something rather than a state. A theme may select on them, 
 | --- | --- | --- |
 | `data-icon` | `sk-icon` | The icon's name, such as `menu` or `x`, to tell icons apart. Show one of the menu button's icons with `[aria-expanded="true"]` |
 | `data-section` | `sk-section` | The section's type, the same as its block class. Prefer the block class |
+| `data-site-variant` | `sk-section` | The site variant the section's entry sets, one of the site's own looks for its type, declared in `src/site.config.ts`. Its values are the site's, so this file lists none |
+
+A site variant's rules select the section's root by its block class and `data-site-variant`, and its elements only by hooks and states: `.sk-faq[data-site-variant="boxed"] .sk-faq__item`. Pseudo-elements, such as `::before`, and states, such as `:hover`, are fine. `npm run check:styles` fails on an element name, such as `li`, or a position, such as `:nth-child`, in a rule with `[data-site-variant`.
 
 ## Shared parts
 
@@ -438,7 +442,7 @@ Behaviors that sit on the layout or on a section type, each with its own hooks a
 
 | State | Element | Means |
 | --- | --- | --- |
-| `data-reveal` | a section's root, each item of a list section that sets `revealItems`, or any element of the site's own markup | Its entrance animation: `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`. Hide it only under `[data-sk-ready]`, and only inside `prefers-reduced-motion: no-preference` |
+| `data-reveal` | a section's root, each item of a list section that sets `revealItems`, or any element of the site's own markup | Its entrance animation: `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`. Hide it only under `[data-sk-ready]`, and only inside `prefers-reduced-motion: no-preference` or under `[data-sk-motion="always"]`: Tailwind's `motion-safe`, as the theme's `tokens/motion.css` defines it |
 | `data-revealed` | the same element | It has entered the viewport: animate it to its place |
 | `data-sk-ready` | `html` | The reveal script has run, before the page renders. Without scripts it's missing, so nothing is hidden |
 

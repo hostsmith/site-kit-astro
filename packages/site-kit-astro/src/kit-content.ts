@@ -19,6 +19,7 @@ import { FACT_NAME, factsFrom, hasPlaceholder, readFacts, withFacts } from "./li
 import { formatPath, type PathPart } from "./core/field.ts";
 import { type Locale, LOCALE_KEY, resolveLocales, withLocale } from "./lib/locales.ts";
 import { icon, itemList, labeledLink, link, mediaPath, requireAlt, revealItems, section, type UiString } from "./lib/schema.ts";
+import { readSiteVariants } from "../scripts/site-variants.mjs";
 
 // What src/site.schema.ts exports. `siteUi` is optional: a site without it
 // has only the kit's interface strings.
@@ -395,7 +396,7 @@ export function defineKitContent(siteConfig: SiteConfig, { siteSectionSchemas, s
   checkSiteUi(siteUi);
   // Every site's content is in a folder per locale (site-kit-locales design D48).
   const locales = resolveLocales(siteConfig.locales);
-  const library = librarySectionSchemas(Object.keys(siteConfig.collections) as [string, ...string[]]);
+  const library = withSiteVariants(librarySectionSchemas(Object.keys(siteConfig.collections) as [string, ...string[]]), siteConfig.siteVariants);
   for (const type of Object.keys(siteSectionSchemas)) {
     if (Object.hasOwn(library, type)) {
       throw new Error(`Site-local section type "${type}" in src/site.schema.ts has the same name as a library type. Rename it.`);
@@ -426,6 +427,37 @@ export function defineKitContent(siteConfig: SiteConfig, { siteSectionSchemas, s
       ...Object.fromEntries(Object.entries(siteCollections).map(([name, collection]) => [name, siteCollection(name, collection, locales)])),
     },
   };
+}
+
+// Each library type the site declares site variants for gets `siteVariant`,
+// one of their names, with their labels for the editors (site-kit-site-variants
+// design D159). A type without any has no such field, so its sections can't
+// set one.
+function withSiteVariants(library: LibrarySectionSchemas, declared: SiteConfig["siteVariants"]): Record<string, SectionSchema> {
+  const schemas: Record<string, SectionSchema> = { ...library };
+  const kitVariants = Object.fromEntries(Object.entries(schemas).map(([type, schema]) => [type, kitVariantsOf(schema)]));
+  for (const [type, variants] of Object.entries(readSiteVariants(declared, kitVariants))) {
+    const names = Object.keys(variants) as [string, ...string[]];
+    const labels = Object.fromEntries(names.map((name) => [name, variants[name].label]));
+    schemas[type] = schemas[type]
+      .safeExtend({ siteVariant: z.enum(names).meta({ "x-labels": labels }).optional() })
+      .superRefine((value, ctx) => {
+        const { siteVariant, variant } = value as { siteVariant?: string; variant?: string };
+        const goesWith: string[] | undefined = siteVariant === undefined ? undefined : variants[siteVariant]?.variants;
+        if (goesWith && variant !== undefined && !goesWith.includes(variant)) {
+          const allowed = goesWith.map((name) => `"${name}"`).join(", ");
+          ctx.addIssue({ code: "custom", path: ["siteVariant"], message: `site variant "${siteVariant}" goes only with the variant${goesWith.length > 1 ? "s" : ""} ${allowed}, not "${variant}"` });
+        }
+      });
+  }
+  return schemas;
+}
+
+// A library type's kit variants, from its schema's `variant`, or none.
+function kitVariantsOf(schema: SectionSchema): string[] {
+  let variant = schema.shape.variant as z.ZodType | undefined;
+  if (variant instanceof z.ZodDefault) variant = variant.unwrap() as z.ZodType;
+  return variant instanceof z.ZodEnum ? (variant.options as string[]) : [];
 }
 
 const checkSections = (sectionSchemas: Record<string, SectionSchema>) => (items: unknown[], ctx: z.RefinementCtx<unknown[]>) => {

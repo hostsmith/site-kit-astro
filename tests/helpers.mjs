@@ -19,7 +19,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { EXPORT_FILE } from "../packages/site-kit-astro/scripts/core/schema-export.mjs";
 import { ASSEMBLED, assembleFiles } from "../packages/site-kit-astro/scripts/decap-config.mjs";
-import { localeCodes } from "../packages/site-kit-astro/scripts/site-config.mjs";
+import { readSiteConfig } from "../packages/site-kit-astro/scripts/site-config.mjs";
 import { readHooks } from "../packages/site-kit-astro/scripts/hooks-reference.mjs";
 
 // The kit repository, the package and the examples.
@@ -77,7 +77,8 @@ export async function buildFixture(fixture, { example = "basics", files = {}, ed
     await writeFile(join(dir, path), content);
   }
   if (!Object.hasOwn(files, ASSEMBLED) && !Object.hasOwn(edit, ASSEMBLED)) {
-    await writeFile(join(dir, ASSEMBLED), assembleFiles(dir, await localeCodes(dir)));
+    const siteConfig = await readSiteConfig(dir);
+    await writeFile(join(dir, ASSEMBLED), assembleFiles(dir, siteConfig.locales.map((locale) => locale.code), siteConfig.siteVariants));
   }
   if (!Object.hasOwn(files, EXPORT_FILE) && !Object.hasOwn(edit, EXPORT_FILE)) {
     await rm(join(dir, EXPORT_FILE), { force: true });

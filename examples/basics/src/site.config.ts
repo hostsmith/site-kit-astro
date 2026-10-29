@@ -13,6 +13,18 @@
 // entry and the sitemap. Hostsmith has no redirects, so a migrated site keeps
 // the old site's base path, for example Webflow's "/post". A base path starts
 // with "/", has no trailing slash and may have several segments.
+//
+// `siteVariants` adds the site's own looks for library section types, each
+// with the label the CMS shows, such as
+//
+//   siteVariants: { faq: { boxed: { label: "Boxed, with a border" } } },
+//
+// A section entry then picks one with `siteVariant: boxed`, and the theme's
+// sections.css styles `.sk-faq[data-site-variant="boxed"]`. Run
+// `npm run decap-config` after a change, so the CMS offers it.
+//
+// This file is plain TypeScript without imports: the kit's commands read it
+// outside the build.
 export const siteConfig = {
   url: "https://www.example.com",
   locales: [{ code: "en", tag: "en-US" }],
