@@ -54,8 +54,9 @@
 // the overviews worst first, and the output prints the largest and the
 // average, against the last run's, to show the review's rounds converging.
 // The number decides only when the rounds stop (site-kit-migration-cost
-// D177): when the average fell by less than 0.5 points against a run of the
-// same pages and widths. Until then, the review opens every picture.
+// D177): from the third rerun of every page, when the average fell by less
+// than 0.5 points against the run before. Until then, the review opens every
+// picture.
 //
 // A rerun, after a fix (D141), shoots the build again, but keeps the export's
 // screenshots unless what they depend on changed: the export's page file, the
@@ -84,8 +85,11 @@ const GAP = 16;
 // The width both screenshots are scaled to for the measured difference.
 const MEASURE_WIDTH = 240;
 // The review's rounds stop when a rerun lowers the average by less than this,
-// in points (site-kit-migration-cost D177).
+// in points, from the third rerun of every page, round 4 (site-kit-migration-cost
+// D177): the first two reruns, which check the first rounds' fixes, are
+// always reviewed.
 const ROUNDS_STOP = 0.5;
+const STOP_FROM_ROUND = 4;
 // Part of each export screenshot's key: change it when the way the script
 // shoots changes, so a rerun shoots the export again.
 const SHOT_VERSION = `2 ${WIDTHS.join(",")} ${HEIGHT}`;
@@ -159,7 +163,8 @@ async function main(args) {
   const resultFile = join(args.out, "fidelity.json");
   const reviewFile = join(args.out, "review.md");
   // The last run's pages, by name, for what a rerun keeps.
-  const previous = new Map((existsSync(resultFile) ? (JSON.parse(readFileSync(resultFile, "utf8")).pages ?? []) : []).map((page) => [page.name, page]));
+  const last = existsSync(resultFile) ? JSON.parse(readFileSync(resultFile, "utf8")) : {};
+  const previous = new Map((last.pages ?? []).map((page) => [page.name, page]));
   const fonts = fontsKey(fontsCss, fontDir);
   const starts = entranceStartsOf(exportDir);
   const exportSide = await serve(exportDir, { fontDir, fontsCss, rewrite: starts ? (html) => withoutStarts(html, starts) : undefined });
@@ -216,6 +221,16 @@ async function main(args) {
     }
     result.missing = [...new Set(result.pages.flatMap((page) => page.missing ?? []))];
     for (const side of ["export", "build"]) result.requested[side] = [...new Set(result.pages.flatMap((page) => page.requested?.[side] ?? []))].sort();
+    // The last run's average, only when it measured the same pages and
+    // widths: not after step 5's sample, which measured a few.
+    const measured = measuredOf(result.pages);
+    const now = new Set(measured.map((m) => `${m.name} ${m.width}`));
+    const before = measuredOf([...previous.values()]).filter((m) => now.has(`${m.name} ${m.width}`));
+    const comparable = measured.length > 0 && before.length === measured.length;
+    // Step 9's round: its first run of every page is round 1, and each rerun
+    // of the same pages the next. Step 5's sample, --only some pages, is none.
+    const sample = only !== undefined && pages.some((page) => !only.has(page.name));
+    result.round = sample ? 0 : comparable && last.round ? last.round + 1 : 1;
     writeFileSync(resultFile, `${JSON.stringify(result, null, 2)}\n`);
     const review = reviewList(result.pages, existsSync(reviewFile) ? readFileSync(reviewFile, "utf8") : "", changed);
     writeFileSync(reviewFile, review.text);
@@ -230,15 +245,10 @@ async function main(args) {
     }
     console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width. New pictures: ${pictures}.`);
     console.log(`Pages shot at ${WIDTHS.join(", ")} px: ${counts.shot}, with the export's screenshots kept from the last run for ${counts.exportsKept}. Pages kept as they were: ${counts.kept}.${counts.left > 0 ? ` Pages left out by --only, not shot yet: ${counts.left}.` : ""} In ${args.out}`);
-    const measured = measuredOf(result.pages);
     if (measured.length > 0) {
-      // The last run's average, only when it measured the same pages and
-      // widths: not after step 5's sample, which measured a few.
-      const now = new Set(measured.map((m) => `${m.name} ${m.width}`));
-      const before = measuredOf([...previous.values()]).filter((m) => now.has(`${m.name} ${m.width}`));
-      const comparable = before.length === measured.length;
       const largest = measured.slice(0, 5).map((m) => `${m.name} at ${m.width} px, ${m.difference}%`).join("; ");
-      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${comparable ? `, against ${average(before)}% in the last run: ${roundsVerdict(average(before), average(measured))}` : "."}`);
+      const against = !comparable ? "." : sample ? `, against ${average(before)}% in the last run.` : `, against ${average(before)}% in the last run, in round ${result.round}: ${roundsVerdict(average(before), average(measured), result.round)}`;
+      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${against}`);
     }
     console.log(`Pictures to open in ${reviewFile}, in its order, three or four at a time: ${review.open} of ${review.count}.`);
   } finally {
@@ -593,12 +603,12 @@ function measuredOf(pages) {
     .sort((a, b) => b.difference - a.difference);
 }
 
-// Whether the review's rounds go on, from the last run's average and this
-// one's (site-kit-migration-cost D177).
-function roundsVerdict(before, now) {
+// Whether the review's rounds go on, from the last run's average, this one's
+// and its round (site-kit-migration-cost D177).
+function roundsVerdict(before, now, round) {
   const change = Math.round((before - now) * 10) / 10;
   if (change < 0) return `up ${-change} points. The last fixes made pages differ more: review the pictures it unticked for what they broke.`;
-  if (change < ROUNDS_STOP) return `down ${change} points, less than ${ROUNDS_STOP}, so the review's rounds stop here. Open none of the pictures it unticked: list them under the report's "Not compared".`;
+  if (change < ROUNDS_STOP && round >= STOP_FROM_ROUND) return `down ${change} points, less than ${ROUNDS_STOP}, so the review's rounds stop here. Open none of the pictures it unticked: list them under the report's "Not compared".`;
   return `down ${change} points. Review the pictures it unticked.`;
 }
 
