@@ -6,7 +6,7 @@ scope: any
 
 Turn each Webflow CMS collection into a collection of the site, one Markdown file per item and locale, from its CSV export in `.hostsmith/snapshot/cms/`.
 
-Read the CSVs with a parser that handles quoted fields holding commas, quotes and line breaks, since rich text fields hold all three. Write it in `.hostsmith/snapshot/work/`, with Node's built-in modules only.
+Read the CSVs with the skill's reader, `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/csv.mjs`. Run on a CSV, it prints its rows and columns, with how many rows have a value in each, and with `--columns Slug,Author`, those columns of every row, long values cut short. A script of your own in `.hostsmith/snapshot/work/`, such as one that writes the entries, imports its `readCsv` by the file's path from the script's folder: it gives the columns and the rows by column name, and reads the quoted fields that hold commas, quotes and line breaks, as rich text fields do.
 
 ## Each collection
 
@@ -77,7 +77,7 @@ The owner's contact details that step 4 made facts, such as the email and the ph
 
 ## Images in the CMS
 
-Each image URL in a CSV, in an image field or in a rich text body, is a file on Webflow's CDN, which step 7 downloads. Write its local path into the entry now: `/assets/images/<name>`, from the file's name after the CDN's ids, lowercase, with the image's own extension, so `64f1a2b3c4d5e6f708192a3c_64f1a2b3c4d5e6f708192a3d_acme-laptops-coffee.jpeg` becomes `acme-laptops-coffee.jpg`. List each URL with its local name in `.hostsmith/snapshot/work/cms-images.txt`, for step 7.
+Each image URL in a CSV, in an image field or in a rich text body, is a file on Webflow's CDN, which step 7 downloads. Write its local path into the entry now: `/assets/images/<name>`, from the file's name after the CDN's ids, lowercase, with the image's own extension, so `64f1a2b3c4d5e6f708192a3c_64f1a2b3c4d5e6f708192a3d_acme-laptops-coffee.jpeg` becomes `acme-laptops-coffee.jpg`. List each URL with its local name in `.hostsmith/snapshot/work/cms-images.txt`, one image per line, the URL, a space, then the name, for step 7 and the fidelity check.
 
 An empty image field is allowed: the entry has no image there. List the entries without one in the report's "Missing pieces", such as "Team: 3 entries without a photo".
 
@@ -107,6 +107,47 @@ A description pattern that is one field alone, such as the summary, needs no key
 ## Collection lists
 
 A collection list on a page, `w-dyn-list`, exports empty: only its empty state, `w-dyn-empty`, shows. Map it to a `collection-list` section, or to a site-local type when its cards show an element the kit's cards don't render. A difference of look is the theme's, from step 3. For each, ask the person its limit, its sort order and its filters, unless the page makes them plain. `collection-list` shows the newest entries first, by `date`, up to its `limit`. Another order or a filter needs a site-local type, or goes into the report.
+
+## The fill file
+
+Webflow exports each template and each collection list empty, so step 9's fidelity check fills them from the CSVs as it shoots the export, to compare them with the build's entries. Write the map you made into `.hostsmith/snapshot/fidelity/fill.json`:
+
+```json
+{
+  "templates": {
+    "detail_blog.html": {
+      "csv": "acme - Blog Posts - 64f1a2b3c4d5e6f708192a3b.csv",
+      "fields": [
+        "Name",
+        "Summary",
+        { "column": "Published On", "date": { "month": "long", "day": "numeric", "year": "numeric" } },
+        { "column": "Author", "ref": { "csv": "acme - Team - 64f1a2b3c4d5e6f708192a3c.csv", "column": "Name" } },
+        "Main Image",
+        "Post Body"
+      ]
+    }
+  },
+  "lists": {
+    "index.html": [
+      {
+        "csv": "acme - Blog Posts - 64f1a2b3c4d5e6f708192a3b.csv",
+        "entries": ["hot-desk-or-private-office", "inside-our-calendar", "from-mill-to-workspace"],
+        "fields": ["Main Image", { "column": "Published On", "date": { "month": "short", "day": "numeric" } }, "Name", "Summary"]
+      }
+    ]
+  }
+}
+```
+
+- **`templates`:** for each `detail_<collection>.html`, its CSV, by its name in `.hostsmith/snapshot/cms/`, and the columns that fill its empty elements, those marked `w-dyn-bind-empty` outside its lists, in their order in the page, as its outline shows them.
+- **`lists`:** for each page with collection lists, a template too, its lists in their order in the page, each with its CSV, the entries the build shows in it, by their Slug and in the build's order, and the columns that fill its item's empty elements, in their order.
+- **A field** is a column's name, as the CSV's header has it, or:
+  - a date: `{ "column": ..., "date": ... }`, with the `Intl.DateTimeFormat` options that show it as the build does;
+  - a reference: `{ "column": ..., "ref": { "csv": ..., "column": ... } }`, the column of the referenced entry that the element shows;
+  - `null`, for an element the build leaves empty, such as one Webflow shows only when its field is set.
+- **A list the build shows empty** has `"entries": []`, so the export shows its empty state too.
+
+Images come from `cms-images.txt`, by their URLs. On a large site with subagents, the collections' subagent writes the file, and says so in its summary.
 
 ## Localized sites
 

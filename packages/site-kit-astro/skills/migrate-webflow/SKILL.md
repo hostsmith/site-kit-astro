@@ -51,9 +51,10 @@ Then run `npm ci` if `node_modules` is missing, and `npm run build`, to see that
   - `outline.mjs`: export pages as outlines, their text, links, images, forms and interactions, with the classes to look up. Name every page a step reads in one call, so the header and the footer print once.
   - `css-rules.mjs`: the export's stylesheets, by `--variables`, `--elements`, `--fonts` or class names, with the variables the rules use.
   - `props.mjs`: the section types and their props, from `.hostsmith/schema.json`, and with a type's name, its props in full and its hooks, in place of `src/kit-content.ts` and the sections of `HOOKS.md`.
+  - `csv.mjs`: the CMS's CSV exports, their columns and how many rows fill each, and with `--columns`, those columns of every row. Your own scripts import its `readCsv`.
 
   Read a page's HTML or a stylesheet only for what a helper leaves out, and then only the lines you need.
-- **Your own scripts.** A script you write for the migration, such as a CSV reader, goes in `.hostsmith/snapshot/work/`, which git ignores, and uses only Node's built-in modules. Never add a package to the site.
+- **Your own scripts.** A script you write for the migration, such as one that writes a collection's entries, goes in `.hostsmith/snapshot/work/`, which git ignores, and uses only Node's built-in modules. Never add a package to the site.
 - **Webflow's code stays out.** Read `webflow.js` and Webflow's CSS as text, and never run, import or copy them. No `w-` class, Webflow class name, `data-wf-` attribute or Webflow host reaches the site.
 
 ## With subagents

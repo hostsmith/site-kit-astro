@@ -10,10 +10,24 @@
 //     --pages .hostsmith/snapshot/fidelity/pages.txt \
 //     --out .hostsmith/snapshot/fidelity/shots \
 //     --fonts src/styles/theme/fonts.css --font-files public/assets/fonts \
+//     --fill .hostsmith/snapshot/fidelity/fill.json \
 //     [--reduced-motion ignore] [--only home,about] [--fresh]
 //
 // --pages lists one page per line: the export's file, then the build's path,
-// such as `about.html /about`. A line starting with # is a comment.
+// such as `about.html /about`. A line starting with # is a comment. A third
+// word, `anew`, marks a page step 5 wrote anew, such as a 404 page when the
+// export has only Webflow's near-default one (site-kit-fidelity-cms-stubs
+// design D184): it's shot and reviewed for the site's look, but left out of
+// the measured average and the rounds' rule. A template is listed up to three
+// times, each with one of its entries (D183).
+//
+// --fill is step 6's fill file (D181, D182): the export's CMS templates and
+// collection lists, which Webflow exports empty, are served filled with the
+// entries the build shows, from the CSVs in the snapshot's cms/ folder,
+// beside --export, with the images that its work/cms-images.txt names, from
+// the build. A template or list the file doesn't account for is shot as it
+// is, and named. Without the file, as in step 5's sample, every page is shot
+// as exported. fill.mjs says what the file holds.
 //
 // Both sides are served on localhost by this script. Every request to another
 // host gets an empty answer, so no page reaches Webflow's CDNs or an embed's
@@ -51,12 +65,16 @@
 //
 // It measures each page and width (D166): the share of the taller side that
 // differs, with both screenshots scaled to 240 px wide. The checklist lists
-// the overviews worst first, and the output prints the largest and the
-// average, against the last run's, to show the review's rounds converging.
-// The number decides only when the rounds stop (site-kit-migration-cost
-// D177): from the third rerun of every page, when the average fell by less
-// than 0.5 points against the run before. Until then, the review opens every
-// picture.
+// the overviews worst first. Of a template listed with several entries, it
+// puts up at each width the entry that differs most, and lists the others as
+// measured. The output prints the largest and the average over the pages it
+// counts, which leave out those written anew and count a template once per
+// width, by that entry, and each counted page's average over its widths
+// against the last run's, to show the review's rounds converging. The numbers
+// decide only when the rounds stop (site-kit-fidelity-cms-stubs D185,
+// revising site-kit-migration-cost D177): from the third rerun of every page,
+// when no counted page's average moved by 1 point or more against the run
+// before. Until then, the review opens every picture.
 //
 // A rerun, after a fix (D141), shoots the build again, but keeps the export's
 // screenshots unless what they depend on changed: the export's page file, the
@@ -68,9 +86,10 @@
 // differences, but unticks every picture whose screenshots changed.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import { find, launch, loadTool, reducedMotionOf, serve, settle, UsageError } from "./browser.mjs";
+import { fillPage, readFill, readImages } from "./fill.mjs";
 
 const WIDTHS = [479, 767, 991, 1440];
 const HEIGHT = 900;
@@ -84,17 +103,19 @@ const LABEL_HEIGHT = 24;
 const GAP = 16;
 // The width both screenshots are scaled to for the measured difference.
 const MEASURE_WIDTH = 240;
-// The review's rounds stop when a rerun lowers the average by less than this,
-// in points, from the third rerun of every page, round 4 (site-kit-migration-cost
-// D177): the first two reruns, which check the first rounds' fixes, are
-// always reviewed.
-const ROUNDS_STOP = 0.5;
+// The review's rounds stop when a rerun moves no counted page's average by
+// this much, in points, from the third rerun of every page, round 4
+// (site-kit-fidelity-cms-stubs D185): the first two reruns, which check the
+// first rounds' fixes, are always reviewed.
+const PAGE_MOVE = 1;
 const STOP_FROM_ROUND = 4;
 // Part of each export screenshot's key: change it when the way the script
 // shoots changes, so a rerun shoots the export again.
 const SHOT_VERSION = `2 ${WIDTHS.join(",")} ${HEIGHT}`;
 const SLICES = "Slices where an overview shows a difference";
 const DIFFERENCES = "Differences found";
+const ANEW = "Pages written anew";
+const ENTRIES = "Other entries of the templates, measured";
 const DIFFERENCES_HEAD = ["| Page | Width | Difference | Cause, or how it was fixed |", "| --- | --- | --- | --- |"];
 
 // The page that composes the pictures: a pane for each side, holding its
@@ -135,6 +156,7 @@ const { values: options } = parseArgs({
     only: { type: "string" },
     fresh: { type: "boolean" },
     "reduced-motion": { type: "string" },
+    fill: { type: "string" },
   },
 });
 
@@ -158,6 +180,11 @@ async function main(args) {
   const only = args.only === undefined ? undefined : readOnly(args.only, pages);
   const motion = reducedMotionOf(args["reduced-motion"]);
   const { chromium } = loadTool(args.tools, "playwright", "Playwright");
+  const fill = readFill(args.fill);
+  // The snapshot beside the export holds the CSVs, and step 6's list of the
+  // images they link to.
+  const cms = join(dirname(exportDir), "cms");
+  const images = readImages(join(dirname(exportDir), "work", "cms-images.txt"));
 
   mkdirSync(args.out, { recursive: true });
   const resultFile = join(args.out, "fidelity.json");
@@ -167,7 +194,18 @@ async function main(args) {
   const previous = new Map((last.pages ?? []).map((page) => [page.name, page]));
   const fonts = fontsKey(fontsCss, fontDir);
   const starts = entranceStartsOf(exportDir);
-  const exportSide = await serve(exportDir, { fontDir, fontsCss, rewrite: starts ? (html) => withoutStarts(html, starts) : undefined });
+  // The pages filled from the CMS, as their export screenshots show them, by
+  // the page's name, which the URL's ?fill= gives.
+  const served = new Map();
+  const exportSide = await serve(exportDir, {
+    fontDir,
+    fontsCss,
+    fillDir: buildDir,
+    rewrite: (html, url) => {
+      const page = served.get(url.searchParams.get("fill"))?.html ?? html;
+      return starts ? withoutStarts(page, starts) : page;
+    },
+  });
   const buildSide = await serve(buildDir);
   // The screenshots, for the page that composes the pictures.
   const shotsSide = await serve(resolve(args.out));
@@ -178,10 +216,13 @@ async function main(args) {
     // The sheet takes the screenshots' origin, so its canvas may read them.
     await sheet.goto(`${shotsSide.origin}/`);
     await sheet.setContent(SHEET);
-    const result = { widths: WIDTHS, pages: [], missing: [], requested: { export: [], build: [] } };
+    // `fill`: whether it read a fill file (D182).
+    const result = { widths: WIDTHS, fill: Boolean(fill), pages: [], missing: [], requested: { export: [], build: [] } };
     // The pictures whose screenshots changed, which lose their ticks.
     const changed = new Set();
     const counts = { shot: 0, exportsKept: 0, kept: 0, left: 0 };
+    // What the fill did on each page shot, for the output.
+    const fills = [];
     let pictures = 0;
     for (const page of pages) {
       const before = previous.get(page.name);
@@ -195,9 +236,17 @@ async function main(args) {
       }
       const dir = join(args.out, page.name);
       mkdirSync(dir, { recursive: true });
-      const key = exportKey(exportDir, page.exportPath, fonts);
+      const filled = fillOf(exportDir, page, { fill, cms, images });
+      if (filled?.parts.length) fills.push(filled);
+      if (filled?.changed) served.set(page.name, filled);
+      const key = exportKey(exportDir, page.exportPath, fonts, filled?.changed ? filledKey(filled, buildDir) : undefined);
       const keepExport = !args.fresh && same && before.key === key && WIDTHS.every((width) => existsSync(join(dir, `${width}-export.png`)));
-      const entry = { name: page.name, export: page.exportPath, build: page.buildPath, key, shots: {}, missing: [], requested: { export: [], build: [] } };
+      const entry = { name: page.name, export: page.exportPath, build: page.buildPath, ...(page.anew ? { anew: true } : {}), key, shots: {}, missing: [], requested: { export: [], build: [] } };
+      if (filled?.parts.length) {
+        entry.filled = filled.parts.every((part) => part.filled);
+        entry.fill = filled.parts.map(({ part, filled, problem }) => ({ part, filled, ...(problem ? { problem } : {}) }));
+      }
+      const exportPath = filled?.changed ? `${page.exportPath}?fill=${encodeURIComponent(page.name)}` : page.exportPath;
       if (keepExport) {
         entry.missing.push(...(before.missing ?? []).filter((missing) => missing.startsWith("export ")));
         entry.requested.export.push(...(before.requested?.export ?? []));
@@ -206,14 +255,15 @@ async function main(args) {
       for (const width of WIDTHS) {
         const exportShot = keepExport
           ? { file: relative(process.cwd(), join(dir, `${width}-export.png`)), changed: false }
-          : await shoot(browser, exportSide, page.exportPath, join(dir, `${width}-export.png`), { width, scripts: false }, entry, "export");
+          : await shoot(browser, exportSide, exportPath, join(dir, `${width}-export.png`), { width, scripts: false }, entry, "export");
         const buildShot = await shoot(browser, buildSide, page.buildPath, join(dir, `${width}-build.png`), { width, scripts: true, motion }, entry, "build");
         const shots = { export: exportShot.file, build: buildShot.file, ...(await compose(sheet, shotsSide, page.name, width, dir)) };
         if (exportShot.changed || buildShot.changed) for (const picture of [shots.overview, ...shots.slices, shots.end]) changed.add(picture);
         entry.shots[width] = shots;
         pictures += shots.slices.length + 2;
       }
-      entry.missing = [...new Set(entry.missing)];
+      // A page written anew needn't be in the export.
+      entry.missing = [...new Set(entry.missing)].filter((missing) => !page.anew || !missing.startsWith("export "));
       entry.requested.export = [...new Set(entry.requested.export)].sort();
       entry.requested.build = [...new Set(entry.requested.build)].sort();
       result.pages.push(entry);
@@ -221,11 +271,14 @@ async function main(args) {
     }
     result.missing = [...new Set(result.pages.flatMap((page) => page.missing ?? []))];
     for (const side of ["export", "build"]) result.requested[side] = [...new Set(result.pages.flatMap((page) => page.requested?.[side] ?? []))].sort();
-    // The last run's average, only when it measured the same pages and
-    // widths: not after step 5's sample, which measured a few.
-    const measured = measuredOf(result.pages);
+    // The pages counted (D183, D184), and the last run's, only when it
+    // measured the same pages and widths: not after step 5's sample, which
+    // measured a few.
+    const units = unitsOf(result.pages);
+    const measured = cellsOf(units);
     const now = new Set(measured.map((m) => `${m.name} ${m.width}`));
-    const before = measuredOf([...previous.values()]).filter((m) => now.has(`${m.name} ${m.width}`));
+    const lastUnits = unitsOf([...previous.values()]);
+    const before = cellsOf(lastUnits).filter((m) => now.has(`${m.name} ${m.width}`));
     const comparable = measured.length > 0 && before.length === measured.length;
     // Step 9's round: its first run of every page is round 1, and each rerun
     // of the same pages the next. Step 5's sample, --only some pages, is none.
@@ -239,6 +292,7 @@ async function main(args) {
     if (starts === null) console.log("Webflow's interactions couldn't be read from the export's scripts, so what its entrance animations hide at first stays hidden in the export's screenshots.");
     else if (starts) console.log("Webflow's entrance animations start some elements hidden or moved: the export's screenshots show them where the animations end.");
     if (motion === "ignore") console.log("The build plays its motion for every visitor, as the site's reducedMotion says: its screenshots show each element where its motion ends.");
+    for (const line of fillLines(fills, fill, args.fill)) console.log(line);
     for (const missing of result.missing) console.log(`404: ${missing}`);
     for (const side of ["export", "build"]) {
       if (result.requested[side].length > 0) console.log(`The ${side}'s pages asked other hosts, which got nothing: ${result.requested[side].join(", ")}`);
@@ -246,9 +300,15 @@ async function main(args) {
     console.log(`To review, both sides in one picture: an overview, slices and an end for each page and width. New pictures: ${pictures}.`);
     console.log(`Pages shot at ${WIDTHS.join(", ")} px: ${counts.shot}, with the export's screenshots kept from the last run for ${counts.exportsKept}. Pages kept as they were: ${counts.kept}.${counts.left > 0 ? ` Pages left out by --only, not shot yet: ${counts.left}.` : ""} In ${args.out}`);
     if (measured.length > 0) {
-      const largest = measured.slice(0, 5).map((m) => `${m.name} at ${m.width} px, ${m.difference}%`).join("; ");
-      const against = !comparable ? "." : sample ? `, against ${average(before)}% in the last run.` : `, against ${average(before)}% in the last run, in round ${result.round}: ${roundsVerdict(average(before), average(measured), result.round)}`;
-      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${against}`);
+      const largest = [...measured].sort((a, b) => b.difference - a.difference).slice(0, 5).map((m) => `${m.page} at ${m.width} px, ${m.difference}%`).join("; ");
+      const anew = result.pages.filter((page) => page.anew).map((page) => page.name);
+      const against = comparable ? `, against ${average(before)}% in the last run` : "";
+      console.log(`Measured, the share of each page that differs: the largest ${largest}. Average ${average(measured)}%${against}${anew.length > 0 ? `, without the pages written anew, ${anew.join(", ")}` : ""}.`);
+      if (comparable) {
+        const changes = changesOf(units, lastUnits);
+        console.log(`Each page's average over its widths, against the last run: ${changes.map((c) => `${c.name} ${c.now}%, ${c.change > 0 ? `up ${c.change}` : c.change < 0 ? `down ${-c.change}` : "the same"}`).join("; ")}.`);
+        if (!sample) console.log(`Round ${result.round}: ${roundsVerdict(changes, result.round)}`);
+      }
     }
     console.log(`Pictures to open in ${reviewFile}, in its order, three or four at a time: ${review.open} of ${review.count}.`);
   } finally {
@@ -264,19 +324,20 @@ function folder(path, flag) {
   return resolve(path);
 }
 
-// `about.html /about` gives the page `about`, and `index.html /` the page `home`.
+// `about.html /about` gives the page `about`, and `index.html /` the page
+// `home`. `404.html /404 anew` marks the page 404 as written anew (D184).
 function readPages(path) {
   const pages = readFileSync(path, "utf8")
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("#"))
     .map((line) => {
-      const [exportFile, buildPath, ...rest] = line.split(/\s+/);
-      if (!buildPath || rest.length > 0 || !buildPath.startsWith("/")) {
-        throw new UsageError(`${path}: "${line}" isn't "<export file> <build path>", such as "about.html /about".`);
+      const [exportFile, buildPath, mark, ...rest] = line.split(/\s+/);
+      if (!buildPath || rest.length > 0 || !buildPath.startsWith("/") || (mark !== undefined && mark !== "anew")) {
+        throw new UsageError(`${path}: "${line}" isn't "<export file> <build path>", such as "about.html /about", with "anew" after them for a page written anew.`);
       }
       const name = buildPath === "/" ? "home" : buildPath.replace(/^\/|\/$/g, "").replaceAll("/", "-");
-      return { name, exportPath: `/${exportFile.replace(/^\//, "")}`, buildPath };
+      return { name, exportPath: `/${exportFile.replace(/^\//, "")}`, buildPath, anew: mark === "anew" };
     });
   if (pages.length === 0) throw new UsageError(`${path} lists no pages.`);
   const names = pages.map((page) => page.name);
@@ -308,15 +369,59 @@ function fontsKey(fontsCss, fontDir) {
 }
 
 // What an export page's screenshots depend on, besides the rest of the
-// snapshot, which a migration never changes: its file, the fonts, and the way
-// the script shoots.
-function exportKey(exportDir, path, fonts) {
+// snapshot, which a migration never changes: its file, or, filled from the
+// CMS, filledKey(), the fonts, and the way the script shoots.
+function exportKey(exportDir, path, fonts, filled) {
   const file = find(exportDir, path);
   return createHash("sha256")
     .update(`${SHOT_VERSION}\n${fonts}\n`)
-    .update(file ? readFileSync(file) : "404")
+    .update(filled ?? (file ? readFileSync(file) : "404"))
     .digest("hex")
     .slice(0, 16);
+}
+
+// The export page of `page`, filled from the CMS (D182), as fillPage() gives
+// it, with its file in the export and whether the fill changed it. Undefined
+// when the export has no such page.
+function fillOf(exportDir, page, options) {
+  const path = find(exportDir, page.exportPath);
+  if (!path) return undefined;
+  const html = readFileSync(path, "utf8");
+  const file = relative(exportDir, path).split(sep).join("/");
+  const filled = fillPage(html, { file, buildPath: page.buildPath, ...options });
+  return { ...filled, file, changed: filled.html !== html };
+}
+
+// What a filled page's screenshots depend on: its HTML as served, with the
+// values it read, and the images it shows from the build.
+function filledKey(filled, buildDir) {
+  const sizes = filled.images.map((name) => {
+    const file = join(buildDir, "assets", "images", name);
+    return `${name} ${existsSync(file) ? statSync(file).size : "missing"}`;
+  });
+  return `${filled.html}\n${sizes.join("\n")}`;
+}
+
+// What the fill did, once for each export file and part: its fields by
+// element, for a glance at the map, or why it couldn't fill.
+function fillLines(fills, fill, path) {
+  const lines = new Set();
+  const unmapped = new Set();
+  let empty = false;
+  for (const { file, parts, unmapped: urls } of fills) {
+    for (const url of urls) unmapped.add(url);
+    for (const part of parts) {
+      if (part.filled) lines.add(`Filled from the CSVs, each element by its field: ${file}, ${part.part}: ${part.map.join("; ")}.`);
+      else if (fill) lines.add(`Not filled, shot as exported: ${file}, ${part.part}: ${part.problem}.`);
+      else empty = true;
+    }
+  }
+  if (empty) lines.add(`The export's CMS templates and collection lists are shot empty: there's no fill file${path ? ` at ${path}` : ""} yet. Step 6 writes it, and --fill names it.`);
+  if (unmapped.size > 0) {
+    const urls = [...unmapped];
+    lines.add(`Images of the CSVs that cms-images.txt doesn't name, shown empty: ${urls.slice(0, 5).join(", ")}${urls.length > 5 ? `, and ${urls.length - 5} more` : ""}.`);
+  }
+  return [...lines];
 }
 
 // The elements Webflow's entrance animations start hidden or moved, from the
@@ -536,13 +641,16 @@ async function picture(sheet, file, layout) {
   return relative(process.cwd(), file);
 }
 
-// Step 9's checklist (D139, D141): every page's overview at every width, then
-// the header and the footer at every width, on the home page or else the
-// first page, then room for the slices the agent opens, and the table of the
-// differences it finds. The paths are as fidelity.json gives them, so each
-// opens as it stands. A rerun keeps the ticks, the slices added and the
-// table, but unticks the pictures in `changed`, whose screenshots changed, and
-// drops a slice added that no longer exists.
+// Step 9's checklist (D139, D141): every page's overview at every width, of a
+// template listed with several entries the one that differs most at each
+// width (D183), then the pages written anew (D184), then the header and the
+// footer at every width, on the home page or else the first page, then room
+// for the slices the agent opens, and the table of the differences it finds.
+// The other entries of the templates are listed as measured, without a box to
+// tick. The paths are as fidelity.json gives them, so each opens as it
+// stands. A rerun keeps the ticks, the slices added and the table, but
+// unticks the pictures in `changed`, whose screenshots changed, and drops a
+// slice added that no longer exists.
 function reviewList(pages, previous, changed) {
   const first = pages.find((page) => page.name === "home") ?? pages[0];
   const ticked = new Set([...previous.matchAll(/^- \[x\] (\S+)/gim)].map((match) => match[1]).filter((path) => !changed.has(path)));
@@ -552,12 +660,19 @@ function reviewList(pages, previous, changed) {
     .split("\n")
     .filter((line) => line.startsWith("|") && !DIFFERENCES_HEAD.includes(line.trim()));
   const item = (path, note = "") => `- [${ticked.has(path) ? "x" : " "}] ${path}${note}`;
+  const share = (difference) => (typeof difference === "number" ? ` (${difference}% different)` : "");
   // The overviews worst first, by their measured difference (D166).
-  const measured = pages.flatMap((page) => WIDTHS.map((width) => ({ path: page.shots[width].overview, difference: page.shots[width].difference })));
+  const measured = unitsOf(pages).flatMap((unit) => [...unit.cells.values()]);
   measured.sort((a, b) => (b.difference ?? -1) - (a.difference ?? -1));
-  const overviews = measured.map((m) => m.path);
+  const overviews = measured.map((m) => m.overview);
+  const reviewed = new Set(overviews);
+  const others = pages
+    .filter((page) => !page.anew)
+    .flatMap((page) => WIDTHS.map((width) => page.shots[width]))
+    .filter((shots) => !reviewed.has(shots.overview));
+  const anew = pages.filter((page) => page.anew).flatMap((page) => WIDTHS.map((width) => page.shots[width].overview));
   const ends = WIDTHS.flatMap((width) => [first.shots[width].slices[0], first.shots[width].end]);
-  const listed = [...overviews, ...ends];
+  const listed = [...overviews, ...anew, ...ends];
   const text = [
     "# Fidelity review",
     "",
@@ -569,14 +684,20 @@ function reviewList(pages, previous, changed) {
     "",
     "The order of the sections, a section missing or added, and the columns at that width. Worst first, each with the share of the page that differs, as measured: a small share can still hide a missing button, so open every one.",
     "",
-    ...measured.map((m) => item(m.path, typeof m.difference === "number" ? ` (${m.difference}% different)` : "")),
+    ...measured.map((m) => item(m.overview, share(m.difference))),
     "",
+    ...(anew.length > 0
+      ? [`## ${ANEW}`, "", "Step 5 wrote these anew, so the export has no page of theirs to match: open each for the site's look, its header, footer, type and colors, not for its differences.", "", ...anew.map((path) => item(path)), ""]
+      : []),
     `## The header and the footer, at every width, on ${first.name}`,
     "",
     "Every page shares them, and they change the most between widths: a button beside the menu button, a menu that collapses, columns that stack.",
     "",
     ...ends.map((path) => item(path)),
     "",
+    ...(others.length > 0
+      ? [`## ${ENTRIES}`, "", "Not to open: at each width, the entry of its template that differs most is on the list above.", "", ...others.map((shots) => `- ${shots.overview}${share(shots.difference)}`), ""]
+      : []),
     `## ${SLICES}`,
     "",
     "Add each slice you open here, ticked.",
@@ -594,22 +715,60 @@ function reviewList(pages, previous, changed) {
   return { text, count: listed.length + added.length, open: [...listed, ...added].filter((path) => !ticked.has(path)).length };
 }
 
-// Each page and width's measured difference, the largest first, from the
-// pages' entries in fidelity.json. Entries from before D166 have none.
-function measuredOf(pages) {
-  return pages
-    .flatMap((page) => WIDTHS.map((width) => ({ name: page.name, width, difference: page.shots?.[width]?.difference })))
-    .filter((m) => typeof m.difference === "number")
-    .sort((a, b) => b.difference - a.difference);
+// The pages the average and the rounds' rule count, from their entries in
+// fidelity.json (D183, D184): each page not written anew, by its name, and a
+// template listed with several entries once, by its export file. Each holds
+// a cell per width: its overview, its measured difference, which entries
+// from before D166 lack, and, of a template's entries, the one that differs
+// most.
+function unitsOf(pages) {
+  const entries = new Map();
+  for (const page of pages) entries.set(page.export, (entries.get(page.export) ?? 0) + 1);
+  const units = new Map();
+  for (const page of pages) {
+    if (page.anew || !page.shots) continue;
+    const name = entries.get(page.export) > 1 ? page.export.replace(/^\//, "") : page.name;
+    if (!units.has(name)) units.set(name, { name, cells: new Map() });
+    const cells = units.get(name).cells;
+    for (const width of WIDTHS) {
+      const shots = page.shots[width];
+      if (!shots) continue;
+      const cell = { width, page: page.name, overview: shots.overview, difference: shots.difference };
+      if (!cells.has(width) || (cell.difference ?? -1) > (cells.get(width).difference ?? -1)) cells.set(width, cell);
+    }
+  }
+  return [...units.values()];
 }
 
-// Whether the review's rounds go on, from the last run's average, this one's
-// and its round (site-kit-migration-cost D177).
-function roundsVerdict(before, now, round) {
-  const change = Math.round((before - now) * 10) / 10;
-  if (change < 0) return `up ${-change} points. The last fixes made pages differ more: review the pictures it unticked for what they broke.`;
-  if (change < ROUNDS_STOP && round >= STOP_FROM_ROUND) return `down ${change} points, less than ${ROUNDS_STOP}, so the review's rounds stop here. Open none of the pictures it unticked: list them under the report's "Not compared".`;
-  return `down ${change} points. Review the pictures it unticked.`;
+// The counted pages' measured cells, each with its page's name in the count.
+function cellsOf(units) {
+  return units.flatMap((unit) => [...unit.cells.values()].filter((cell) => typeof cell.difference === "number").map((cell) => ({ ...cell, name: unit.name })));
+}
+
+// Each counted page's average over its widths, against the last run's, and
+// its change, up when it differs more, the largest change first.
+function changesOf(units, lastUnits) {
+  const last = new Map(lastUnits.map((unit) => [unit.name, unit]));
+  return units
+    .filter((unit) => cellsOf([unit]).length > 0 && cellsOf([last.get(unit.name) ?? { cells: new Map() }]).length > 0)
+    .map((unit) => {
+      const now = average(cellsOf([unit]));
+      const change = Math.round((now - average(cellsOf([last.get(unit.name)]))) * 10) / 10;
+      return { name: unit.name, now, change };
+    })
+    .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+}
+
+// Whether the review's rounds go on, from each counted page's change and the
+// round (site-kit-fidelity-cms-stubs D185).
+function roundsVerdict(changes, round) {
+  const rose = changes.filter((c) => c.change >= PAGE_MOVE).map((c) => c.name);
+  if (rose.length > 0) {
+    return `${rose.join(", ")} differ${rose.length === 1 ? "s" : ""} more, by ${PAGE_MOVE} point or more: the last fixes broke something. Review the pictures it unticked, ${rose.length === 1 ? "that page's" : "those pages'"} for what the fixes broke.`;
+  }
+  if (changes.some((c) => -c.change >= PAGE_MOVE)) return "Review the pictures it unticked.";
+  if (round >= STOP_FROM_ROUND) return `no page moved by ${PAGE_MOVE} point or more, so the review's rounds stop here. Open none of the pictures it unticked: list them under the report's "Not compared".`;
+  return `no page moved by ${PAGE_MOVE} point or more, but the first two reruns are always reviewed. Review the pictures it unticked.`;
 }
 
 // A declaration, not a const: main() runs before this point of the file.

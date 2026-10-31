@@ -48,14 +48,18 @@ Compare each page of the build with the same page of the export, as screenshots 
    .hostsmith/snapshot/fidelity/tools/node_modules/.bin/playwright install chromium
    ```
 
-2. **List the pages** in `.hostsmith/snapshot/fidelity/pages.txt`, one per line: the export's file, then the build's path. Step 5 wrote it for its sample: complete it. Every static page, the 404 page, and each template with one of its entries:
+2. **List the pages** in `.hostsmith/snapshot/fidelity/pages.txt`, one per line: the export's file, then the build's path. Step 5 wrote it for its sample: complete it, and keep its `anew` marks. Every static page, the 404 page, and each template with up to three of its entries: the one with the longest body, the one with the shortest, and one without an image, when one has none:
 
    ```
    index.html /
    about.html /about
-   404.html /404
+   404.html /404 anew
    detail_blog.html /blog/from-woolen-mill-to-workspace
+   detail_blog.html /blog/hot-desk-dedicated-desk-or-private-office
+   detail_blog.html /blog/inside-our-community-calendar
    ```
+
+   The script measures every entry, puts up for review, at each width, the one that differs most, and counts the template as one page.
 
 3. **Check the content first,** with a script that compares each export page with its build page as HTML, so the review is left only the look:
 
@@ -81,24 +85,26 @@ Compare each page of the build with the same page of the export, as screenshots 
      --pages .hostsmith/snapshot/fidelity/pages.txt \
      --out .hostsmith/snapshot/fidelity/shots \
      --fonts src/styles/theme/fonts.css --font-files public/assets/fonts \
+     --fill .hostsmith/snapshot/fidelity/fill.json \
      --reduced-motion ignore
    ```
 
-   Leave out `--fonts` and `--font-files` while the site has no font files of its own. With them, the export's pages get the site's fonts, so a font the export lacks isn't a difference. Pass `--reduced-motion ignore` only when `src/site.config.ts` has `reducedMotion: "ignore"`, as step 4 set it.
+   Leave out `--fonts` and `--font-files` while the site has no font files of its own. With them, the export's pages get the site's fonts, so a font the export lacks isn't a difference. `--fill` names step 6's fill file: the export's templates and collection lists are shot filled from the CSVs, with the entries the build shows. Pass `--reduced-motion ignore` only when `src/site.config.ts` has `reducedMotion: "ignore"`, as step 4 set it.
 
-   Read all of its output, a few lines: what went wrong first, such as the pages that answered 404, then what it shot, what it kept from the last run, the largest measured differences and their average, and how many pictures to open. The script measures each page and width as the share of the page that differs, to order the review and to show the rounds converging. The number decides nothing.
+   Read all of its output, a few lines: first, each template's and list's map, element by field, and each one it couldn't fill, with why, then what else went wrong, such as the pages that answered 404, then what it shot, what it kept from the last run, the largest measured differences, their average, each page's change against the last run, and how many pictures to open. Check each map at a glance, since a column in the wrong element shows as a difference: fix the fill file where it's wrong, or where the script couldn't fill, and run it again. The script measures each page and width as the share of the page that differs, to order the review and to show the rounds converging, leaving out the pages written anew. The numbers decide only when the rounds stop, in item 7.
 
    **In a sandbox,** the script may fail to serve on `localhost`, such as with `EPERM` on `listen`, or its browser may fail to start. Never work around a sandbox. Say what it must allow: in Claude Code, `sandbox.network.allowLocalBinding: true` lets it serve on `localhost`. If the browser still can't start, as Google Chrome can't inside Claude Code's sandbox on macOS, say that the person can run the command above outside the sandbox, or skip the check. Record the check as not run, and why, in the report's "Fidelity check", and go on to the person's comparison.
 
 5. **Review every picture on the checklist first,** `.hostsmith/snapshot/fidelity/shots/review.md`, which the script writes, and fix nothing until you have. Each picture holds both sides, the export on the left and the build on the right, each labelled. Open them in the checklist's order, worst first, three or four in one turn, never one at a time, and tick each one in the file once you've looked at it. A small measured share can still hide a missing button, so open every one. Don't skip a width because another looked fine: most layout changes show only at the narrow widths. Don't open the full-page screenshots, `<width>-export.png` and `<width>-build.png`: a picture that tall reaches you too shrunk to see a button. The checklist holds:
-   1. **Every page's overview at every width,** `<width>-overview.png`, worst first: the order of the sections, a section missing or added, and the columns at that width.
-   2. **The header and the footer at every width,** on the home page: its first slice, `<width>-slice-01.png`, and its end, `<width>-end.png`. Every page shares them, and they change the most between widths: a button beside the menu button, a menu that collapses, columns that stack.
-   3. **The slices where an overview shows a difference,** `<width>-slice-<n>.png`, a screen each at full size, to see it in detail. Add each one you open to the checklist. Both sides are cut at the same offset, so below a section of another height they drift apart: find the same content in the next slice.
+   1. **Every page's overview at every width,** `<width>-overview.png`, worst first: the order of the sections, a section missing or added, and the columns at that width. Of a template's entries, the one that differs most at each width. The others it lists as measured, without a box: don't open them.
+   2. **The pages written anew,** their overviews, for the site's look, its header, footer, type and colors, not for their differences.
+   3. **The header and the footer at every width,** on the home page: its first slice, `<width>-slice-01.png`, and its end, `<width>-end.png`. Every page shares them, and they change the most between widths: a button beside the menu button, a menu that collapses, columns that stack.
+   4. **The slices where an overview shows a difference,** `<width>-slice-<n>.png`, a screen each at full size, to see it in detail. Add each one you open to the checklist. Both sides are cut at the same offset, so below a section of another height they drift apart: find the same content in the next slice.
 
    Write each difference you see into the checklist's table, "Differences found", as you go: its page, its width or `all`, what differs, and the cause where you see it.
 
    Look at the layout, the order, the spacing, the type, the colors, the images and what shows at each width. `fidelity.json` lists a page that answered 404 on either side, which usually means a wrong line in `pages.txt`.
-   - **CMS areas:** a collection list, and a template's bound fields, are empty in the export. Check those areas against the collection's entries instead of the picture.
+   - **CMS areas:** the export's templates and collection lists show the entries the build shows, filled from the CSVs. One the script couldn't fill is empty in the export: check that area against the collection's entries instead of the picture.
    - **Fonts:** while the site uses a fallback, its type differs from the export's in every picture. Note it once.
 
    **With subagents,** such as Claude Code's, hand the review to them, so the pictures stay out of your own context and fresh eyes judge them: start new ones, never one that ported the pages. Give each a group of pages, about 16 pictures, and one the header and the footer. Tell each the checklist's path, the pictures it reviews, what to look for, as above, and to open three or four at a time, to open the slices where an overview shows a difference, and to change no file. Each returns the pictures it opened, and its differences as rows of the table. Then tick its pictures, add its slices to the checklist, and put its rows into the table.
@@ -123,11 +129,11 @@ Compare each page of the build with the same page of the export, as screenshots 
    - **The export's screenshots are kept,** so a rerun shoots only the build. `--fresh` shoots the export again too, which only a change to the snapshot needs.
    - **The rerun unticks every picture whose screenshots changed,** and keeps the rest of the checklist. Review the unticked pictures as in item 5, in new subagents where you have them, say in the table how each difference was fixed, and fix what the round finds as in item 6.
    - **Stop** when a round finds only differences that may stay, by the table in item 6, or the same ones as the round before, and after five rounds at most. The average the script prints should fall from round to round.
-   - **Stop sooner** from the third rerun, round 4, when its average fell by less than 0.5 points against the run before, as the script then says: open none of the pictures it unticked, and list them under the report's "Not compared", unreviewed because the rounds had converged. The first two reruns are always reviewed, since they check the first rounds' fixes. When the average rose, in any round, the last fixes made pages differ more: review the unticked pictures for what they broke, fix that, and run again.
+   - **Stop sooner** from the third rerun, round 4, when no page's average over its widths moved by 1 point or more against the run before, as the script then says: open none of the pictures it unticked, and list them under the report's "Not compared", unreviewed because the rounds had converged. The script prints each page's change, leaving out the pages written anew and counting each template once, so a gap that stays the same from round to round, such as a form the kit doesn't carry yet, holds no round open. The first two reruns are always reviewed, since they check the first rounds' fixes. When a page differs more, by 1 point or more, in any round, the script names it: the last fixes broke something there. Review the unticked pictures, that page's for what broke, fix that, and run again.
 
 8. **Record it** in the report's "Fidelity check":
    - **the differences left:** each row of the checklist's table that isn't fixed, as a row of the report's table, never as a list, with the row of the table above that lets it stay in the last column: a kit part lacks it, a deliberate choice, or content the export lacks. A difference CSS can reach is never left. "No differences." when none is left;
-   - **what you compared,** from the checklist: the ticked pictures under "Compared", and every one left unticked under "Not compared", with the reason. Never write that a page or width was compared when you didn't open its picture;
+   - **what you compared,** from the checklist: the ticked pictures under "Compared", and every one left unticked under "Not compared", with the reason, and the templates' other entries, which it lists as measured, as measured only. Never write that a page or width was compared when you didn't open its picture;
    - **the rounds:** how many ran, and the script's average after each, such as "3 rounds: 14.2%, 6.1%, 5.8%";
    - **the content check's gaps left,** each with why it stays.
 
