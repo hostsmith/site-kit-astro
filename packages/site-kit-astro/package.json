@@ -1,6 +1,6 @@
 {
   "name": "@hostsmith/site-kit-astro",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "A reusable kit for building websites with Astro: typed sections in Markdown, header and footer blocks, guidelines for AI agents and example designs, with a deploy workflow for Hostsmith.",
   "license": "MIT",
   "type": "module",
