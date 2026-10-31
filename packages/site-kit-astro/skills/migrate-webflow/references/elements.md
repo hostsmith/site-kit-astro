@@ -28,12 +28,13 @@ Webflow's built-in interactive elements all run on `webflow.js`, which a kit sit
 | Video in Rich Text | a `figure` with an `iframe`, `w-richtext-figure-type-video` | a link to the video alone in its paragraph (step 6) |
 | Embed with code | `w-embed` with a `script`, a `style` or HTML that isn't a frame | not copied. A `style` is site CSS, ported in step 3. Anything else goes in the report, with its page |
 
-For each frame, the person chooses how it loads, and the report records the choice:
+Each frame loads as it did on the old site, and nobody is asked (`site-kit-webflow-migration` D196):
 
-- **On a click,** the default: `load: click`, or no `load`. The page shows a placeholder, and sends nothing to the provider until the visitor asks.
-- **Directly:** `load: direct`, only when the site's privacy notice names the provider.
-- **Instead, a link or a still image:** a `rich-text` or `split` section that links to the content. The image is a screenshot the person provides.
-- **Not at all:** it's dropped, and the report says so.
+- **With the page:** an `iframe` with its `src`, a `w-video`, a rich text figure's video and a `w-widget-map` all load as the page does, which is how Webflow shows them. Step 4 sets `embedLoad: "direct"` in `src/site.config.ts`, and the sections set no `load`, so every frame and every video link in a body loads at once, as before.
+- **Held back by a consent tool:** an `iframe` without a `src`, or with its URL in a `data-` attribute such as `data-src`, beside a cookie consent script. Its section gets `load: click`: the page shows a placeholder, and sends nothing to the provider until the visitor asks. When every frame was held back, the site keeps the default, `"click"`.
+- **An answer given in advance** wins for the embed it names, such as `load: click` for a map the owner wants on a click.
+
+The report's "Embeds" notes each frame that loads with the page: the provider gets each visitor's IP address, and may set cookies, before the visitor chooses anything, as on the old site, so the site's privacy notice must name it. `embedLoad: "click"` puts every placeholder back.
 
 The frame's `title` becomes the section's `title`, and its aspect ratio its `aspect`: `16:9`, `4:3`, `1:1` or `21:9`, the nearest one. A frame's URL must use `https`.
 

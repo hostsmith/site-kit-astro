@@ -6,7 +6,7 @@ The site <site name> moved from Webflow to this repository on <date>, from the e
 
 ## For the owner to approve
 
-<!-- Every decision below that the owner makes, as a checklist: fonts, embeds, pages written anew, alt text written, differences left as they are, and whether to fix the gaps under "Accessibility" after the move. -->
+<!-- Every decision below that the owner makes, as a checklist: fonts, the embeds that load with the page, pages written anew, alt text written, differences left as they are, and whether to fix the gaps under "Accessibility" after the move. -->
 
 - [ ] <decision, and where it's described below>
 
@@ -40,7 +40,7 @@ The snapshot is in `.hostsmith/snapshot/`, which git ignores. It can be deleted 
 
 ## Embeds
 
-<!-- Step 5. Each embed with its page, its provider, and the person's choice: on a click, directly, a link or image, or dropped. -->
+<!-- Steps 4 and 5. Each embed with its page, its provider, and how it loads: with the page, or on a click. The migration carries them as the old site loaded them and asks nothing, so for those that load with the page, as on the old site, say that the provider gets each visitor's IP address, and may set cookies, before the visitor chooses anything, so the site's privacy notice must name the provider, and give the change that loads them on a click: `embedLoad: "click"` in `src/site.config.ts`. An embed an answer given in advance decided says so. With none: "No embeds". -->
 
 ## Forms
 
@@ -83,6 +83,8 @@ To use the theme's own styles instead, delete `src/styles/theme/builder-defaults
 **Compared:** <!-- The ticked pictures of .hostsmith/snapshot/fidelity/shots/review.md, as a list, never a table: each page's overview at each width, of a template the entry that differs most, the pages written anew, the home page's first slice and end at each width, and the slices by page, width and number. -->
 
 **Not compared:** <!-- Each picture left unticked on the checklist, with the reason, and the templates' other entries, which the checklist lists as measured, with their measured differences, or "None". -->
+
+**Results per page:** <!-- Step 10. The table of .hostsmith/snapshot/fidelity/shots/results.md from the fidelity check's last run, under this line, as it is: the share of each page's screenshot that differs from the export's at each width, and its average. -->
 
 <!-- Each difference left as it is gets a row of this table, from the checklist's table of differences, never a list or bullets: its page, its width or "all", what differs, and why it stays. Only three kinds may stay, and the last column names which: "a kit part lacks it", "a deliberate choice", such as a map that loads on a click, or "content the export lacks". A difference CSS can reach, such as a color, a band, a border, spacing, a size, type, capitals, a decoration, the arrangement of a type's elements or a breakpoint, is fixed in the theme or with a site variant, and an element a library type doesn't render gets a site-local type: neither is listed here. With none left, replace the table with the line "No differences." -->
 

@@ -16,6 +16,7 @@ In `src/site.config.ts`:
 - **`breadcrumb`:** the kit's layout shows a breadcrumb on every page whose path has more than one segment, such as a page in a Webflow folder, `/services/painting`. Webflow has no breadcrumb element, so set `breadcrumb: false` unless one of those pages has a trail of links home its designer built. Step 6 sets each collection's own switch. Record it in the report's "Collections".
 
 - **`reducedMotion`:** `"ignore"` when any motion the site carries played for every visitor on the old site, as step 2 found, so the new site moves as the old one did. Leave it out when all of it followed the visitor's setting, or the site carries none. Ask nothing: the report's "Accessibility" notes it, with the one-line change that follows the setting, `reducedMotion: "respect"`.
+- **`embedLoad`:** `"direct"` when any frame the site carries loaded with the page on the old site, as step 2 found, so its maps and videos show as they did. Leave it out when a consent tool held every frame back, or the site has none. Ask nothing: the report's "Embeds" notes it, with the one-line change that loads them on a click, `embedLoad: "click"`.
 
 Run `npx site-kit schema` after a change to the locales.
 

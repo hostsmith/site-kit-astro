@@ -109,7 +109,7 @@ Its body stays empty. In the sections:
 
 ## Webflow's elements
 
-Map each one through the element mapping: tabs, sliders, lightboxes, background video, dropdowns, embeds, video in rich text, forms and the rest. For each embed with a frame, ask the person how it loads: on a click, the default; directly, only when the site's privacy notice names the provider; as a link or a still image instead; or not at all. Record each answer in the report's "Embeds".
+Map each one through the element mapping: tabs, sliders, lightboxes, background video, dropdowns, embeds, video in rich text, forms and the rest. Carry each embed with a frame as the old site loaded it, and ask nothing: its `embed` section sets no `load`, so `embedLoad` from step 4 decides. Only a frame a consent tool held back while others loaded with the page gets `load: click`, and an answer given in advance about an embed wins for it. Record each embed in the report's "Embeds", with how it loads.
 
 A form isn't carried yet, but the text around it is: keep its heading and its intro as a section, such as a `rich-text`, in the form's place, so the page keeps its order and the form has a place when the kit's contact form comes. Only the form itself goes into the report's "Forms".
 
