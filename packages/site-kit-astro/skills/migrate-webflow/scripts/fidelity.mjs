@@ -54,7 +54,9 @@
 // It writes <out>/<page>/<width>-export.png and <width>-build.png, and
 // <out>/fidelity.json, which lists the screenshots, the pages either side
 // answered with 404, and the hosts each side's pages asked for. And
-// <out>/review.md, the checklist of step 9's review.
+// <out>/review.md, the checklist of step 9's review, and <out>/results.md,
+// the results per page that step 10 copies into the report
+// (site-kit-webflow-migration design D197).
 //
 // For the review, it also puts both sides in one picture, the export on the
 // left and the build on the right, each labelled (site-kit-webflow-migration
@@ -287,6 +289,7 @@ async function main(args) {
     writeFileSync(resultFile, `${JSON.stringify(result, null, 2)}\n`);
     const review = reviewList(result.pages, existsSync(reviewFile) ? readFileSync(reviewFile, "utf8") : "", changed);
     writeFileSync(reviewFile, review.text);
+    writeFileSync(join(args.out, "results.md"), resultsTable(result.pages, result.round));
     // What went wrong first, and what to do next last, where a look at the
     // output's end finds it.
     if (starts === null) console.log("Webflow's interactions couldn't be read from the export's scripts, so what its entrance animations hide at first stays hidden in the export's screenshots.");
@@ -774,6 +777,38 @@ function roundsVerdict(changes, round) {
 // A declaration, not a const: main() runs before this point of the file.
 function average(measured) {
   return Math.round((measured.reduce((sum, m) => sum + m.difference, 0) / measured.length) * 10) / 10;
+}
+
+// The results per page for the report (site-kit-webflow-migration design
+// D197), as Markdown: each page's measured difference at each width and its
+// average, by its path in the build; a template listed with several entries on
+// one row, by its entry that differs most at each width, with each entry on a
+// row under it; a page written anew, not counted; then the average over the
+// pages counted.
+function resultsTable(pages, round) {
+  const cell = (difference) => (typeof difference === "number" ? `${difference}%` : "-");
+  const row = (label, cells) => {
+    const measured = cells.filter((c) => typeof c?.difference === "number");
+    return `| ${label} | ${WIDTHS.map((width) => cell(cells.find((c) => c?.width === width)?.difference)).join(" | ")} | ${measured.length ? `${average(measured)}%` : "-"} |`;
+  };
+  const cellsOfPage = (page) => WIDTHS.map((width) => ({ width, difference: page.shots?.[width]?.difference }));
+  const entries = new Map();
+  for (const page of pages) entries.set(page.export, [...(entries.get(page.export) ?? []), page]);
+  const units = new Map(unitsOf(pages).map((unit) => [unit.name, unit]));
+  const lines = [`| Page | ${WIDTHS.map((width) => `${width} px`).join(" | ")} | Average |`, `| --- |${WIDTHS.map(() => " --- |").join("")} --- |`];
+  for (const [file, group] of entries) {
+    if (group.length === 1) {
+      const [page] = group;
+      lines.push(row(page.anew ? `${page.build}, written anew, not counted` : page.build, cellsOfPage(page)));
+      continue;
+    }
+    lines.push(row(`${file.replace(/^\//, "")}, a template: its entry that differs most`, [...(units.get(file.replace(/^\//, ""))?.cells.values() ?? [])]));
+    for (const page of group) lines.push(row(`an entry: ${page.build}`, cellsOfPage(page)));
+  }
+  const counted = cellsOf([...units.values()]);
+  const when = round > 0 ? `after round ${round} of the review` : "on step 5's sample";
+  const summary = counted.length ? `The share of each page's screenshot that differs from the export's, ${when}. Average over the pages counted: ${average(counted)}%.` : "Nothing was measured.";
+  return `${lines.join("\n")}\n\n${summary}\n`;
 }
 
 // A PNG's height, from its header.

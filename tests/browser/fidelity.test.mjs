@@ -611,6 +611,30 @@ describe("fidelity script, with several entries of a template", () => {
     assert.ok(expected > 20, `the entries differ by ${cells.join(", ")}`);
     assert.match(result.stdout, new RegExp(`\\. Average ${expected}%\\.\\n`));
   });
+
+  // site-kit-webflow-migration design D197.
+  it("writes the results per page for the report: the template by its worst entry, each entry under it, and the average", async () => {
+    const report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
+    const at = (name, width) => report.pages.find((p) => p.name === name).shots[width].difference;
+    const worst = { 479: "blog-a", 767: "blog-b", 991: "blog-b", 1440: "blog-c" };
+    const mean = (values) => Math.round((values.reduce((sum, d) => sum + d, 0) / values.length) * 10) / 10;
+    const row = (label, values) => `| ${label} | ${values.map((d) => `${d}%`).join(" | ")} | ${mean(values)}% |`;
+    const results = await readFile(join(dir, "shots", "results.md"), "utf8");
+    const all = WIDTHS.flatMap((width) => [at("about", width), at(worst[width], width)]);
+    assert.equal(
+      results,
+      [
+        "| Page | 479 px | 767 px | 991 px | 1440 px | Average |",
+        "| --- | --- | --- | --- | --- | --- |",
+        row("/about", WIDTHS.map((width) => at("about", width))),
+        row("detail_post.html, a template: its entry that differs most", WIDTHS.map((width) => at(worst[width], width))),
+        ...["a", "b", "c"].map((entry) => row(`an entry: /blog/${entry}`, WIDTHS.map((width) => at(`blog-${entry}`, width)))),
+        "",
+        `The share of each page's screenshot that differs from the export's, after round 1 of the review. Average over the pages counted: ${mean(all)}%.`,
+        "",
+      ].join("\n"),
+    );
+  });
 });
 
 // site-kit-fidelity-cms-stubs design D184: a page step 5 wrote anew is shot
@@ -651,6 +675,12 @@ describe("fidelity script, with a page written anew", () => {
 
   it("leaves it out of the average, which is the other pages'", () => {
     assert.match(result.stdout, /: the largest about at \d+ px, 0%; [^\n]*\. Average 0%, without the pages written anew, 404\.\n/);
+  });
+
+  it("lists it in the results per page as not counted", async () => {
+    const results = await readFile(join(dir, "shots", "results.md"), "utf8");
+    assert.match(results, /^\| \/404, written anew, not counted \| [\d.]+% \| [\d.]+% \| [\d.]+% \| [\d.]+% \| [\d.]+% \|$/m);
+    assert.match(results, /Average over the pages counted: 0%\.\n$/);
   });
 
   it("names the marks pages.txt takes", async () => {
