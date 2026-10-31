@@ -60,7 +60,7 @@ Tell the person, and write each into the report's "Missing pieces":
 - **Fonts:** each `@font-face` in `.hostsmith/snapshot/code/css/` whose `src` points at no file, such as `url('../images/')`, or at a file the export doesn't hold. Webflow's export leaves out uploaded fonts. Step 3 looks into each one.
 - **Utility pages:** `404.html` and `401.html`, which Webflow exports only once they've been edited. Without `404.html`, step 5 writes the 404 page.
 - **Collections:** each `detail_<collection>.html` in the export is a collection's template page, and each needs its CSV. So does a collection without a template whose items a page lists. Ask for every missing CSV now: step 6 can't start without them.
-- **What the export never holds:** CMS content, which comes from the CSVs; localized content, which comes from a CSV per locale; code components; and each collection list's settings, which step 6 asks for.
+- **What the export never holds:** CMS content, which comes from the CSVs; a localized collection's entries, which come from a CSV per locale; a static page's text in another locale, which no export holds and Webflow publishes only on the live site (step 5); code components; and each collection list's settings, which step 6 asks for.
 
 ## Start the report
 

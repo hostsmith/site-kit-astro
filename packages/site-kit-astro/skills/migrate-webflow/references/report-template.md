@@ -99,7 +99,7 @@ The kit's own guarantees, such as keyboard use, focus rings, alt text and the co
 
 ## To translate
 
-<!-- A localized site only: each page and settings file copied into another locale with the primary locale's text. Otherwise: "The site has one locale." -->
+<!-- A localized site only: each page and settings file copied into another locale with the primary locale's text, and that the static pages' translations are published only on the live site, which no export holds, for the person to bring over or translate again. Otherwise: "The site has one locale." -->
 
 ## DNS switch checklist
 

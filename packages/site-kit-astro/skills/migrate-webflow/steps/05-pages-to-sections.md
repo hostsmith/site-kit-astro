@@ -139,6 +139,8 @@ These go into the report's "Not carried over":
 
 Copy each page into every other locale, such as `about.de.md` beside `about.en.md`, keeping its section ids, with its `localSlug` from its alternate URL in the sitemap: `/de/uber-uns` gives `localSlug: uber-uns`. Its text stays the primary locale's. List each copy in the report's "To translate".
 
+No export holds a static page's text in another locale: Webflow publishes it only on the live site, which the skill never reads (SKILL.md). Say so in "To translate": the person can bring the translations over from their published site themselves, under Webflow's terms, or from their translator's files, or have the pages translated again.
+
 ## Then
 
 Run `npm run build`. It fails, naming the file, on a missing prop, an unknown key, a component without a schema or a schema without a component. Images show as missing until step 7 copies them. Record each page's sections and types in the report's "Pages".
