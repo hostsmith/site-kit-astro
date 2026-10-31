@@ -15,6 +15,7 @@
 // strings (site-kit-locales design D54). Only a localized site, with more than
 // one locale, gets `dir`, alternates and `og:locale` (D51).
 import "/src/styles/global.css";
+import { siteConfig } from "virtual:site-kit/config";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import EmbedScript from "../components/EmbedScript.astro";
 import FooterBlock from "../components/FooterBlock.astro";
@@ -97,6 +98,9 @@ const bottom = settings.footer?.bottom ?? [];
 const content = await Astro.slots.render("default");
 const reveal = / data-reveal="/.test(content);
 const embeds = content.includes('class="sk-embed__placeholder"');
+// A site that plays its motion for every visitor, as the old site it came
+// from did (site-kit-motion design D164).
+const always = siteConfig.reducedMotion === "ignore";
 ---
 
 <!doctype html>
@@ -123,11 +127,21 @@ const embeds = content.includes('class="sk-embed__placeholder"');
     {xDefault && <link rel="alternate" hreflang="x-default" href={absoluteUrl(xDefault.path, Astro.site)} />}
     {
       /*
+        Motion for every visitor (site-kit-motion design D164): on a site with
+        `reducedMotion: "ignore"`, marks <html> before the page renders, so the
+        theme's motion and the parts' scripts play under reduced motion too.
+        Without scripts, nothing moves or hides.
+      */
+      always && <script is:inline>document.documentElement.setAttribute("data-sk-motion", "always");</script>
+    }
+    {
+      /*
         Reveal (site-kit-webflow-example design D104): runs before the page
         renders and sets `data-sk-ready` on <html>, so a theme can hide a reveal
         element under it without a flash. Then it sets `data-revealed` on each
         element with `data-reveal` once it enters the viewport. A theme animates
-        on that, only without reduced motion. Without scripts, nothing is hidden.
+        on that, only without reduced motion, or under `data-sk-motion="always"`.
+        Without scripts, nothing is hidden.
         Elements of one section that come into view together, such as a list's
         items, get their place in their row as `--sk-reveal-order`, from 0, so a
         theme can bring them in one after another (site-kit-webflow-migration

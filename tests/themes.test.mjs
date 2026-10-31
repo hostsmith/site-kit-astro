@@ -55,6 +55,7 @@ const IMPORTS = [
   '"./theme/tokens/type.css"',
   '"./theme/tokens/shape.css"',
   '"./theme/tokens/space.css"',
+  '"./theme/tokens/motion.css"',
   '"./theme/fonts.css"',
   '"./theme/base.css" layer(base)',
   '"./theme/layout.css" layer(components)',
@@ -223,7 +224,7 @@ for (const example of examples) {
     // site-kit-themes, "A theme is one folder".
     describe("files", () => {
       it("has the theme's files and at least one color preset", () => {
-        for (const file of ["README.md", "tokens/colors.css", ...Object.keys(TOKEN_FILES), "fonts.css", ...STYLE_FILES]) {
+        for (const file of ["README.md", "tokens/colors.css", ...Object.keys(TOKEN_FILES), "tokens/motion.css", "fonts.css", ...STYLE_FILES]) {
           assert.ok(existsSync(join(dir, file)), `${example} has no theme/${file}`);
         }
         assert.ok(presets.length > 0, `${example} has no preset in theme/presets/colors/`);

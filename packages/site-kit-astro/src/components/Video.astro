@@ -2,7 +2,8 @@
 // A muted, looping video with a pause and play button, for `hero` (variant
 // `background`) and `split` (site-kit-webflow-example design D103, D104). Its
 // HTML has no `autoplay`: the script starts it only when the visitor hasn't
-// asked for reduced motion, and the button plays it either way. Without the
+// asked for reduced motion, or the site plays its motion for every visitor
+// (site-kit-motion design D164), and the button plays it either way. Without the
 // script, the poster shows. With `alt`, the video is the section's media and
 // carries its text alternative; without, it's decorative and hidden from
 // assistive technology.
@@ -51,7 +52,9 @@ const ui = await partUi(locale, "video", ["videoPause", "videoPlay"]);
     const video = wrapper.querySelector("video");
     const button = wrapper.querySelector(".sk-video__button");
     if (!video || !button) continue;
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    // Reduced motion, unless the site plays its motion for every visitor, as
+    // the head script marks (site-kit-motion design D164).
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches && document.documentElement.getAttribute("data-sk-motion") !== "always";
     const playing = (on) => {
       wrapper.toggleAttribute("data-playing", on);
       button.setAttribute("aria-label", on ? button.dataset.pause : button.dataset.play);
@@ -61,6 +64,6 @@ const ui = await partUi(locale, "video", ["videoPause", "videoPlay"]);
     button.addEventListener("click", () => (video.paused ? video.play().catch(() => playing(false)) : video.pause()));
     button.hidden = false;
     wrapper.setAttribute("data-ready", "");
-    if (!reduced.matches) video.play().catch(() => playing(false));
+    if (!reduced) video.play().catch(() => playing(false));
   }
 </script>

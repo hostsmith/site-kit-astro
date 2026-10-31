@@ -15,6 +15,8 @@ In `src/site.config.ts`:
 - **A localized site's other locales:** from the sitemap's alternates, each with its tag, its `hreflang`, and its `path`, the folder its URLs start with, such as `/de`. Confirm the list with the person before you write it.
 - **`breadcrumb`:** the kit's layout shows a breadcrumb on every page whose path has more than one segment, such as a page in a Webflow folder, `/services/painting`. Webflow has no breadcrumb element, so set `breadcrumb: false` unless one of those pages has a trail of links home its designer built. Step 6 sets each collection's own switch. Record it in the report's "Collections".
 
+- **`reducedMotion`:** `"ignore"` when any motion the site carries played for every visitor on the old site, as step 2 found, so the new site moves as the old one did. Leave it out when all of it followed the visitor's setting, or the site carries none. Ask nothing: the report's "Accessibility" notes it, with the one-line change that follows the setting, `reducedMotion: "respect"`.
+
 Run `npx site-kit schema` after a change to the locales.
 
 ## The primary locale's settings
@@ -31,7 +33,7 @@ Write `src/content/settings/site.<code>.yml` from the export's navbar and footer
   - the address, phone and email as `contact`, and opening hours as `hours`;
   - a paragraph as `text`, and the copyright line as `copyright`;
   - a newsletter form goes to the report's "Forms", for the kit's contact form in a later release.
-- **`facts`:** each fact the site shows in more than one place, such as its phone number, email or address, written once here. Every text that shows it, in the settings and in the content, writes `{name}`, such as `{phone}`.
+- **`facts`:** each fact the site shows in more than one place, such as its phone number, email or address, written once here. Every text that shows it, in the settings and in the content, writes `{name}`, such as `{phone}`. Make each fact the value as the texts show it: where sentences name the street alone and the footer shows the whole address, the street is a fact, and the address writes `{street}` with the rest.
 - **`seo.description`:** the home page's meta description, the default for pages without their own.
 - **`seo.ogImage`:** the Open Graph image the pages share, if they share one. When no page has one, ask the person whether to add a default.
 - **`ui`:** the kit's interface strings. Keep the example's keys, in the site's language and voice: the parts the site uses need theirs, and the build names any that are missing.

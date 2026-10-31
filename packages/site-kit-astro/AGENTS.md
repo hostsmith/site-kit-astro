@@ -4,13 +4,13 @@ The rules of the Hostsmith site kit, for any agent working in a site built on it
 
 ## The rules
 
-- **Kit sections only.** A page is built from library sections and the site's own section types. A layout that no library type covers becomes a variant of a site-local type, or a new site-local type with its component, Zod schema and Decap type (see [Section types](#section-types)). Never write one-off markup into a page.
-- **Kit parts first.** Tabs, sliders, lightboxes, background video, embeds, entrance animations and dropdowns in the nav come from the kit (see [Interactive parts](#interactive-parts)). Make a custom version, as a site-local type, only when the person asks for one. When a kit section can't show part of the old content, keep the kit's part, never drop the content silently: say so, list it in the migration report's "Not carried over", and ask the person when one is there.
+- **Kit sections only, in this order.** A page is built from library sections and the site's own section types. Give each section the first of these forms that can show it, in every edit, an owner's request included: a library type, restyled by the theme; a library type with a site variant, when one instance should look different from the type's others; a site-local type, only when no library type renders the elements the section needs (see [Section types](#section-types) and [Site variants](#site-variants)). Never write one-off markup into a page.
+- **Kit parts first.** Tabs, sliders, lightboxes, background video, embeds, entrance animations and dropdowns in the nav come from the kit (see [Interactive parts](#interactive-parts)). A site variant may restyle one, such as a slider on a colored band. Make a custom version, as a site-local type, only when the person asks for one. When a kit section can't show part of the old content, keep the kit's part, never drop the content silently: say so, list it in the migration report's "Not carried over", and ask the person when one is there.
 - **The theme's tokens only.** Raw colors only in the theme's `tokens/colors.css` and `presets/colors/`, font names only in `tokens/type.css` and `fonts.css`, and no arbitrary Tailwind values, such as `p-[13px]`. Style the kit's parts through their hooks in the theme, never in the kit, and the site's own markup with utilities built from the theme's roles (see [Styling](#styling)).
 - **No hardcoded text.** Visible text comes from content or settings. A label in the site's own markup is an interface string (see [Interface strings](#interface-strings)).
 - **Keep old URLs.** Never rename or move the file of a published page or entry, change its `localSlug`, or change a collection's base path. Each is part of a URL, and Hostsmith has no redirects (see [Content](#content)).
-- **Keep configs in sync.** The site's Decap part (`public/admin/config.site.yml`), its Zod schemas (`src/site.schema.ts`) and its components change together, in the same commit. Then `npm run decap-config` assembles `public/admin/config.yml` from the parts.
-- **Kit code stays in the package.** Use it only through its exports, and never edit `node_modules`. To change a library section for one site, copy it under a new name (see [The site's files](#the-sites-files)). Kit releases come in through `npm install` on a `kit-update/v<version>` branch (see [Kit updates](#kit-updates)).
+- **Keep configs in sync.** The site's Decap part (`public/admin/config.site.yml`), its Zod schemas (`src/site.schema.ts`) and its components change together, in the same commit, and so do its site variants in `src/site.config.ts` and their rules in the theme. Then `npm run decap-config` assembles `public/admin/config.yml` from the parts.
+- **Kit code stays in the package.** Use it only through its exports, and never edit `node_modules`. To change how a library section looks for one site, restyle it in the theme or give it a site variant. Copy it under a new name only for an element it doesn't render (see [The site's files](#the-sites-files)). Kit releases come in through `npm install` on a `kit-update/v<version>` branch (see [Kit updates](#kit-updates)).
 - **Section ids.** Get every new id from `npm run section-id -- <page file>`. Never edit, copy or reuse an id, except that a translation keeps its source's ids.
 - **Content dialect.** Write content in the portable dialect, and never replace a media file in place (see [Content](#content)).
 - **Dependencies.** Only the packages in [Dependencies](#dependencies), pinned exactly.
@@ -45,7 +45,7 @@ Never edit files in `node_modules`: the next install replaces them.
 
 Every file in the site repository is the site's. The kit reads these from it, so keep them where they are:
 
-- `src/site.config.ts`: the production site URL, the site's locales and each collection's base path;
+- `src/site.config.ts`: the production site URL, the site's locales, each collection's base path, the site variants and `reducedMotion`, which a migration sets to `"ignore"` when the old site played its motion for every visitor. Keep it plain TypeScript without imports: the kit's commands read it outside the build;
 - `src/content/`: the pages, each collection's entries and the settings, one file each per locale, with the locale's code before the extension, such as `src/content/pages/about.en.md` and `src/content/settings/site.en.yml`;
 - `src/site.schema.ts`: the site-local section types, the site's collections, each declared by its schema alone, and its interface strings (`siteUi`). The kit loads the collections: never give one a `loader`;
 - `src/components/sections/site/<type>.astro`: site-local section types;
@@ -55,11 +55,11 @@ Every file in the site repository is the site's. The kit reads these from it, so
 - `src/icons/<name>.svg`: the site's own icons, if it has any;
 - `src/styles/global.css`: the site's stylesheet. It imports Tailwind, the theme in `src/styles/theme/` and the site's own `src/styles/site.css`.
 
-To change a library section for this site, copy it from the kit into `src/components/sections/site/` under a new name, change its imports to the package names above, and register the copy as a site-local type: its schema in `src/site.schema.ts`, its Decap type in `public/admin/config.site.yml`. The copy may keep the kit's `sk-` classes, so the site's styles apply to it, only while its markup keeps their structure. Once it differs, give it classes of its own.
+To change how a library section looks for this site, restyle it in the theme, or give one instance a site variant (see [Site variants](#site-variants)). Only when it doesn't render an element the section needs, copy it from the kit into `src/components/sections/site/` under a new name, change its imports to the package names above, and register the copy as a site-local type: its schema in `src/site.schema.ts`, its Decap type in `public/admin/config.site.yml`. The copy may keep the kit's `sk-` classes, so the site's styles apply to it, only while its markup keeps their structure. Once it differs, give it classes of its own.
 
 Don't edit `public/admin/config.yml`. Edit `public/admin/config.site.yml`, then run `npm run decap-config`, which assembles `config.yml` from it and the kit's part. The build fails while `config.yml` is stale.
 
-After a change to `src/site.schema.ts` or to the locales in `src/site.config.ts`, run `npx site-kit schema` and commit `.hostsmith/schema.json`. The build fails while it is stale.
+After a change to `src/site.schema.ts`, or to the locales or the site variants in `src/site.config.ts`, run `npx site-kit schema` and commit `.hostsmith/schema.json`. The build fails while it is stale.
 
 ## Content
 
@@ -96,11 +96,23 @@ Pick the library type that fits a block before writing a site-local one:
 - address, hours, phone, email and a map link: `hours-location`;
 - a call to action: `cta`. Keep one accent call to action per screen.
 
-When no library type fits a block, try a library type's other variants, or a new variant of a site-local type. Otherwise add a site-local type, in one commit: its component in `src/components/sections/site/<type>.astro`, its schema with `section` in `siteSectionSchemas` in `src/site.schema.ts`, and its Decap type under `section_types` in `public/admin/config.site.yml`. Then add it to the page as a section entry, with an id from `npm run section-id`. Never write a block's markup into a page template or a hand-written page instead: the CMS can't edit it there, and no other page can use it.
+A library type fits a block when it renders the elements and fields the block needs: its look, such as colors, bands, borders, spacing, capitals or the arrangement of its elements, is the theme's work, and one instance that looks different from the others gets a site variant (see [Site variants](#site-variants)). Try the type's other variants and tones too. When no library type renders the elements a block needs, such as a large portrait beside a testimonial, use a site-local type: a new variant of an existing one, or a new one, in one commit: its component in `src/components/sections/site/<type>.astro`, its schema with `section` in `siteSectionSchemas` in `src/site.schema.ts`, and its Decap type under `section_types` in `public/admin/config.site.yml`. Then add it to the page as a section entry, with an id from `npm run section-id`. Never write a block's markup into a page template or a hand-written page instead: the CMS can't edit it there, and no other page can use it.
 
 `icon` takes one of the kit's icons, `calendar`, `check`, `clock`, `file-text`, `hammer`, `house`, `mail`, `map-pin`, `paint-roller`, `phone`, `ruler`, `shield-check`, `sparkles`, `star`, `users`, `wrench`, or one of the site's own, named after its file in `src/icons/`. Any other name fails the build. A site icon is drawn in `currentColor`, with a `viewBox` and no script, style, event handler or outside link, or the build fails. After adding one, run `npm run decap-config`, so the CMS offers it. List a third-party icon in `CREDITS.md`.
 
 A section's `title`, and any other prop named `title`, may mark words for the theme to highlight with `==` on both sides, such as `Work ==together==`. The kit removes the marks wherever the title isn't shown, such as in the page's `<title>`. Site code renders such a title with `Title.astro` or `titleHtml`.
+
+## Site variants
+
+A site variant is one of the site's own looks for a library type, for one instance that should look different from the type's others, such as one FAQ with boxed questions among plain ones. It keeps the type's markup, so it keeps the kit's fixes. Never copy a library type into a site-local one for a different look. To add one:
+
+1. Look for a site variant of the type that the site already has and that fits.
+2. Declare it in `siteVariants` in `src/site.config.ts`, under its type: a kebab-case name for a look that can serve any section of the type, such as `boxed` or `on-blue`, never one named after one instance, such as `home-faq`; a `label` the owner understands in the CMS, such as "Boxed, with a border"; and `variants`, the kit variants it was designed for, when it suits only some. The kit's README, "Site variants", has the declaration.
+3. Set `siteVariant: <name>` on the section's entry, beside its `variant` and `tone`.
+4. Style it in the theme's `sections.css`, beside the site-local types' styles. Select the root by its block class and the attribute, and the section's elements only by their hooks and states, such as `.sk-faq[data-site-variant="boxed"] .sk-faq__item`, never by an element name, such as `li`, or a position, such as `:nth-child`: `npm run check:styles` fails on them. Take colors from a tone where one fits, and let the site variant add shape, layout and decoration. A new text and background pair gets a row in the theme's contrast table.
+5. Run `npm run decap-config` and `npx site-kit schema`, so the CMS offers it, and commit the generated files with the change.
+
+`npm run check:styles -- --built` warns about a site variant no page uses: use it or remove it.
 
 ## Interactive parts
 
@@ -151,13 +163,13 @@ Add third-party code, fonts or images to the site only under a license that allo
 
 ## Styling
 
-The kit ships no CSS. Its markup carries the `sk-` classes and state attributes in `HOOKS.md`, and the site's stylesheet styles them. To change how a kit part looks, edit the site's styles, never the kit. Style a kit part through its hook, such as `.sk-hero__title`. Don't depend on the nesting of its elements, which can change in a minor release. A hook is renamed or removed only in a major release, after a minor one has deprecated it (`HOOKS.md`, "Deprecated").
+The kit ships no CSS. Its markup carries the `sk-` classes and state attributes in `HOOKS.md`, and the site's stylesheet styles them. To change how a kit part looks, edit the site's styles, never the kit. Style a kit part through its hook, such as `.sk-hero__title`. Don't depend on the order or nesting of its elements, which can change in a minor release. A hook is renamed or removed only in a major release, after a minor one has deprecated it (`HOOKS.md`, "Deprecated").
 
 The site's look is its theme, in `src/styles/theme/`. Its `README.md` lists the theme's token roles, color schemes and contrast pairs, the section types and parts it styles, and the breakpoint where its header shows its nav:
 
 - Kit parts are styled in the theme's plain CSS files (`layout.css`, `sections.css`, `prose.css`), on the theme's variables, such as `var(--color-accent)`. A rule that reads a text role sets all four of its properties: `font-size: var(--text-h2)`, plus its `--line-height`, `--letter-spacing` and `--font-weight`. Don't use `@apply` or `@layer`: `global.css` puts these files in Tailwind's `components` layer, so utilities still win over them.
 - Switch layouts in theme CSS with `@variant` on the theme's breakpoints, such as `@variant md` or `@variant max-lg`, never a hand-written media query. A token that changes per breakpoint changes in a `:root` rule under the variant, in its token file.
-- A rule that sets `display` on an element the kit or a part's script hides with `hidden`, such as `.sk-header__menu-button` or a tab panel, needs `:not([hidden])` in its selector. Hide or collapse a part's content only under its `data-ready`, and a reveal element only under `[data-sk-ready]` and without reduced motion.
+- A rule that sets `display` on an element the kit or a part's script hides with `hidden`, such as `.sk-header__menu-button` or a tab panel, needs `:not([hidden])` in its selector. Hide or collapse a part's content only under its `data-ready`, and a reveal element only under `[data-sk-ready]` and `@variant motion-safe`, which the theme's `tokens/motion.css` makes follow the site's `reducedMotion`.
 - When a page uses a type or part the theme's `README.md` doesn't list, style its hooks in the theme, and add it to the list. The parts are `highlight`, `nested-nav`, `lightbox`, `video` and `reveal`, each with its hooks under "Parts" in `HOOKS.md`.
 - The site's own markup (custom pages, collection templates, site sections) uses Tailwind utilities built from the tokens, such as `bg-surface`, `text-h2` or `md:grid-cols-2`. Tailwind's default colors, text sizes, radii, shadows and containers don't exist. Never write an arbitrary value, such as `p-[13px]` or `text-[#333]`.
 - Colors belong only in `tokens/colors.css` and `presets/colors/`, and font names only in `tokens/type.css` and `fonts.css`. Any other color is mixed from a color role, such as `color-mix(in oklch, var(--color-fg) 8%, transparent)`. Run `npm run check:styles` after a style change: it fails on a raw value anywhere else.

@@ -47,8 +47,34 @@ Then run `npm ci` if `node_modules` is missing, and `npm run build`, to see that
 - **Questions together.** Ask only what the exports can't tell. Collect a step's questions and ask them at once, and record each answer in the report.
 - **Answers given in advance.** Before asking a question, look for its answer in the prompt and in `.hostsmith/snapshot/answers.md`. Use an answer you find without asking, and record it in the report's "Answers" as given in advance. Ask only what's left. When no one can answer, such as in an unattended run, stop at the first question nothing answers, and say exactly what you need.
 - **The text as it is.** Copy the old site's text exactly. Don't rewrite, shorten or correct it, apart from what a step names. List a typo you notice in the report, for the owner.
+- **Read through the helpers.** Everything you read stays in your context, and is read again on every turn after. So read the export and the kit through the skill's helpers in `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/`, never whole:
+  - `outline.mjs`: export pages as outlines, their text, links, images, forms and interactions, with the classes to look up. Name every page a step reads in one call, so the header and the footer print once.
+  - `css-rules.mjs`: the export's stylesheets, by `--variables`, `--elements`, `--fonts` or class names, with the variables the rules use.
+  - `props.mjs`: the section types and their props, from `.hostsmith/schema.json`, and with a type's name, its props in full and its hooks, in place of `src/kit-content.ts` and the sections of `HOOKS.md`.
+
+  Read a page's HTML or a stylesheet only for what a helper leaves out, and then only the lines you need.
 - **Your own scripts.** A script you write for the migration, such as a CSV reader, goes in `.hostsmith/snapshot/work/`, which git ignores, and uses only Node's built-in modules. Never add a package to the site.
 - **Webflow's code stays out.** Read `webflow.js` and Webflow's CSS as text, and never run, import or copy them. No `w-` class, Webflow class name, `data-wf-` attribute or Webflow host reaches the site.
+
+## With subagents
+
+On a large site, one whose export has more than 15 HTML pages, its templates and utility pages counted, and where you can hand work to subagents, such as Claude Code's, lead the migration and keep your own context small: everything you read stays in it, and is read again on every turn after. Never read the export's HTML or CSS, the screenshots or the kit's long references yourself. Hand each heavy phase to a fresh subagent:
+
+| Phase | Subagents |
+| --- | --- |
+| The look: steps 3 and 4, and step 5's sample, with the sample's images | one |
+| The pages: step 5's other groups | one per group of four or five pages, side by side |
+| The collections: step 6 | one, beside the page groups |
+| The review: step 9's pictures | one per group of about 16 pictures, as step 9 says |
+| The fixes: step 9's differences | one for the theme, and one for each type or page, side by side where they touch different files |
+
+Do steps 1, 2, 7's other images, 8, 10 and 11 yourself, run the checks and the scripts, and keep step 9's checklist.
+
+- **What each gets:** the steps it does, by their paths, the paths of the report and `.hostsmith/snapshot/`, what earlier phases made, such as the types, the site variants and the settings' facts, and the answers given in advance. Its text writes each fact's placeholder, such as `{street}`, never its value.
+- **What each does:** reads what its phase needs, does it, commits, writes its findings and answers into the report, and returns a short summary: what it made, what it couldn't carry, and the questions left. Never its files' contents.
+- **Questions:** a subagent asks the person nothing. It returns the questions that the answers given in advance don't answer. Ask the person yourself, and hand the answers to the same subagent, where you can continue it, or to a new one.
+
+On a smaller site, do every step yourself, in order, and hand only step 9's review to subagents, as step 9 says: your context stays small enough, and each subagent would read the export, the schema and the steps again. Without subagents, do every step yourself.
 
 ## Steps
 
@@ -56,13 +82,13 @@ Then run `npm ci` if `node_modules` is missing, and `npm run build`, to see that
 2. [URL map](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/02-url-map.md): every URL the old site serves, in `.hostsmith/old-urls.txt`, with each collection's base path, the forms, the embeds and the interactions.
 3. [Theme](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/03-theme.md): the old design's tokens, fonts, header and footer on the `webflow` example's theme.
 4. [Settings](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/04-settings.md): the locales, the header, the footer, the facts and the head.
-5. [Pages to sections](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/05-pages-to-sections.md): each page as section entries, with site-local types for the old sections, and Webflow's elements as the kit's parts.
+5. [Pages to sections](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/05-pages-to-sections.md): each page as section entries: library types first, a site variant for one section's own look, and a site-local type only for an element no library type renders, with Webflow's elements as the kit's parts. A sample of pages first, to settle the theme, then the rest in bulk.
 6. [CMS to collections](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/06-cms-to-collections.md): each CMS collection from its CSV, with its detail template.
 7. [Media](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/07-media.md): images, icons and videos into `public/assets/` and `src/icons/`, with their credits.
-8. [Brief](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/08-brief.md): `.hostsmith/brief.md`, filled in.
-9. [Verify](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/09-verify.md): the checks, the fidelity check against the export, and the person's comparison with the old site.
+8. [Brief](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/08-brief.md): `.hostsmith/brief.md`, filled in, right after step 2, while your context is small.
+9. [Verify](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/09-verify.md): the checks, the content check, the fidelity check against the export in rounds until it converges, the accessibility check, and the person's comparison with the old site.
 10. [Report](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/10-report.md): `.hostsmith/migration-report.md`, complete, for the owner to approve.
-11. [Clean up](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/11-clean-up.md): the example's content removed, and the DNS switch checklist.
+11. [Clean up](node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/steps/11-clean-up.md): the example's content removed, by a script, and the DNS switch checklist.
 
 The references the steps use:
 

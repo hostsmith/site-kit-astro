@@ -34,7 +34,18 @@ export type SiteConfig = {
   // Whether pages whose path has more than one segment show the breadcrumb:
   // on unless false (site-kit-webflow-migration design D132).
   breadcrumb?: boolean;
+  // The site's own looks for library section types, by type and name, each
+  // with its label and the kit variants it goes with, such as
+  // { faq: { boxed: { label: "Boxed, with a border" } } }
+  // (site-kit-site-variants design D159, scripts/site-variants.mjs).
+  siteVariants?: Record<string, Record<string, { label: string; variants?: readonly string[] }>>;
+  // Whether the site's motion follows a visitor's reduced motion setting:
+  // "respect", the default, or "ignore", for a site migrated from one that
+  // played its motion for every visitor (site-kit-motion design D164).
+  reducedMotion?: "respect" | "ignore";
 };
+
+const REDUCED_MOTION = ["respect", "ignore"];
 
 const CONFIG_MODULE = "virtual:site-kit/config";
 const SITE_SCHEMA_MODULE = "virtual:site-kit/site-schema";
@@ -66,8 +77,11 @@ export default function siteKit(siteConfig: SiteConfig): AstroIntegration {
         }
         // Fails early, naming what to fix, on locales the kit can't serve.
         const locales = resolveLocales(siteConfig.locales);
+        if (siteConfig.reducedMotion !== undefined && !REDUCED_MOTION.includes(siteConfig.reducedMotion)) {
+          throw new Error(`reducedMotion in src/site.config.ts is ${JSON.stringify(siteConfig.reducedMotion)}. It is "respect", the default, or "ignore".`);
+        }
         if (command === "build") {
-          const problem = staleness(root, locales.map((locale) => locale.code));
+          const problem = staleness(root, locales.map((locale) => locale.code), siteConfig.siteVariants);
           if (problem) throw new Error(problem);
         }
 

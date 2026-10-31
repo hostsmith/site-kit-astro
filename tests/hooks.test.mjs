@@ -116,7 +116,7 @@ describe("hook reference", () => {
   it("keeps attributes that aren't states apart", () => {
     assert.deepEqual([...parseHooks(reference).attributes], ["data-icon"]);
     const { states, attributes } = readHooks();
-    assert.deepEqual([...attributes].sort(), ["data-icon", "data-section"]);
+    assert.deepEqual([...attributes].sort(), ["data-icon", "data-section", "data-site-variant"]);
     assert.ok(!states.has("data-icon"), "data-icon is no state");
   });
 

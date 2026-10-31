@@ -83,7 +83,11 @@ const status = (current: number) => ui("sliderStatus", { current, total: slides.
   // slide nearest its start. Inline, so it runs where the slider is, and only
   // on pages that have one.
   for (const slider of document.querySelectorAll(".sk-slider:not([data-ready])")) {
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    // Reduced motion, unless the site plays its motion for every visitor, as
+    // the head script marks (site-kit-motion design D164).
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const always = document.documentElement.getAttribute("data-sk-motion") === "always";
+    const reduced = { get matches() { return media.matches && !always; } };
     const list = slider.querySelector(".sk-slider__list");
     const controls = slider.querySelector(".sk-slider__controls");
     if (!list || !controls) continue;
@@ -114,7 +118,8 @@ const status = (current: number) => ui("sliderStatus", { current, total: slides.
     controls.querySelector(".sk-slider__previous")?.addEventListener("click", () => show(current - 1));
     controls.querySelector(".sk-slider__next")?.addEventListener("click", () => show(current + 1));
 
-    // Rotation: only with autoplay, and never by itself under reduced motion.
+    // Rotation: only with autoplay, and never by itself under reduced motion
+    // on a site that respects it.
     // It waits while the slider is hovered or holds focus, other than on the
     // pause button, and stops when that button is pressed.
     const seconds = Number(controls.dataset.autoplay);

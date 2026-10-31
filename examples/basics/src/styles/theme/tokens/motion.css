@@ -1,0 +1,25 @@
+/* Motion and the site's reduced motion setting (site-kit-motion design D164).
+
+   Tailwind's motion-safe and motion-reduce variants follow the visitor's
+   reduced motion setting. A site that plays its motion for every visitor sets
+   `reducedMotion: "ignore"` in src/site.config.ts, and the kit then marks
+   <html> with data-sk-motion="always": these two variants follow that mark
+   too, so motion-safe holds and motion-reduce doesn't. Write the theme's
+   motion under @variant motion-safe, and the site's markup with motion-safe:
+   utilities. */
+@custom-variant motion-safe {
+  @media (prefers-reduced-motion: no-preference) {
+    @slot;
+  }
+  &:where([data-sk-motion="always"], [data-sk-motion="always"] *) {
+    @slot;
+  }
+}
+
+@custom-variant motion-reduce {
+  @media (prefers-reduced-motion: reduce) {
+    &:where(:not([data-sk-motion="always"], [data-sk-motion="always"] *)) {
+      @slot;
+    }
+  }
+}

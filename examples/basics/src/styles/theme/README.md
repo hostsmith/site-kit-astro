@@ -21,6 +21,7 @@ The theme doesn't style the parts in `HOOKS.md`'s "Parts", or a section type it 
 | `tokens/type.css` | the fonts and the text scale | with `fonts.css` and the font files |
 | `tokens/shape.css` | radii and shadows | yes. Shadows take their color from `--color-fg` |
 | `tokens/space.css` | content width, section spacing, gutter, breakpoint | no: the layout CSS is tuned to it |
+| `tokens/motion.css` | the `motion-safe` and `motion-reduce` variants, which follow the site's `reducedMotion` | yes |
 | `fonts.css` | `@font-face` for `/assets/fonts/` | with `type.css` |
 | `base.css` | element defaults: page colors, fonts, focus ring, reduced motion | no |
 | `layout.css` | skip link, header and menu, breadcrumb, footer | no |

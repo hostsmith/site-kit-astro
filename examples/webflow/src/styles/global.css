@@ -14,6 +14,7 @@
 @import "./theme/tokens/type.css";
 @import "./theme/tokens/shape.css";
 @import "./theme/tokens/space.css";
+@import "./theme/tokens/motion.css";
 @import "./theme/fonts.css";
 @import "./theme/base.css" layer(base);
 @import "./theme/layout.css" layer(components);

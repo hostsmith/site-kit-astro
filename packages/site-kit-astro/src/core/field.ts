@@ -20,6 +20,9 @@ export interface SectionAttrs {
   "data-section": string;
   // The section's entrance animation, when its entry sets `reveal`.
   "data-reveal"?: string;
+  // The site's own look for the section, when its entry sets `siteVariant`
+  // (site-kit-site-variants design D159).
+  "data-site-variant"?: string;
 }
 
 // Joins prop names with "." and writes list indexes as "[n]".
@@ -46,12 +49,17 @@ export function fieldsFor(collection: string, entryId: string) {
   return (...path: PathPart[]): FieldAttrs => field(`${collection}/${entryId}`, ...path);
 }
 
-// `item` goes on each item of a list section: its entrance animation, when the
-// entry sets `revealItems` (site-kit-webflow-migration design D143).
-export function sectionFields(entry: string, section: { id: string; type: string; reveal?: string; revealItems?: string }) {
+// `root` goes on the section's root: its type, and its entrance animation and
+// site variant when the entry sets them. `item` goes on each item of a list
+// section: its entrance animation, when the entry sets `revealItems`
+// (site-kit-webflow-migration design D143).
+export function sectionFields(entry: string, section: { id: string; type: string; reveal?: string; revealItems?: string; siteVariant?: string }) {
   const prefix = `sections[${section.id}]`;
+  const root: SectionAttrs = { "data-section": section.type };
+  if (section.reveal) root["data-reveal"] = section.reveal;
+  if (section.siteVariant) root["data-site-variant"] = section.siteVariant;
   return {
-    root: (section.reveal ? { "data-section": section.type, "data-reveal": section.reveal } : { "data-section": section.type }) as SectionAttrs,
+    root,
     item: (section.revealItems ? { "data-reveal": section.revealItems } : {}) as { "data-reveal"?: string },
     field: (...path: PathPart[]): FieldAttrs => {
       const rest = formatPath(path);

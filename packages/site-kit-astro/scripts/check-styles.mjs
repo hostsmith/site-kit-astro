@@ -13,14 +13,18 @@
 // - in theme/ and site.css, `sk-` classes and their data-/aria- attributes
 //   that the installed kit's HOOKS.md doesn't list;
 // - color presets that define other color names than the active one, or
-//   that fail a contrast pair from the theme's README.md.
+//   that fail a contrast pair from the theme's README.md;
+// - element names and positions in a site variant's rules.
 // It warns about hooks HOOKS.md lists as deprecated.
 //
 // The output check warns about every `sk-` class in the built pages that no
-// rule in theme/ or site.css styles. Only errors fail the command.
+// rule in theme/ or site.css styles, every site variant a page uses that no
+// rule styles, and every one the site declares and no page uses. Only errors
+// fail the command.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { readHooks } from "./hooks-reference.mjs";
+import { readSiteConfig } from "./site-config.mjs";
 
 const THEME = "src/styles/theme/";
 const SITE_CSS = "src/styles/site.css";
@@ -120,9 +124,11 @@ export function astroFindings(text) {
 // rules it is nested in, and its own declarations, such as "display: none".
 // At-rules (@media, @variant) hold rules but are none themselves: a
 // declaration inside one nested in a rule belongs to that rule. Strings are
-// blanked, so a declaration's quoted value reads as spaces.
+// blanked, so a declaration's quoted value reads as spaces. `source` is the
+// selector with its strings, such as [data-site-variant="boxed"].
 export function cssRules(css) {
-  const text = withoutComments(css).replace(/"[^"\n]*"|'[^'\n]*'/g, (s) => " ".repeat(s.length));
+  const plain = withoutComments(css);
+  const text = plain.replace(/"[^"\n]*"|'[^'\n]*'/g, (s) => " ".repeat(s.length));
   const rules = [];
   const stack = [];
   let start = 0;
@@ -138,7 +144,13 @@ export function cssRules(css) {
       const selector = prelude.trim();
       const rule =
         selector && !selector.startsWith("@")
-          ? { selector, line: lineAt(css, start + prelude.length - prelude.trimStart().length), ancestors: stack.filter(Boolean).map((parent) => parent.selector), declarations: [] }
+          ? {
+              selector,
+              source: plain.slice(start, i).trim(),
+              line: lineAt(css, start + prelude.length - prelude.trimStart().length),
+              ancestors: stack.filter(Boolean).map((parent) => parent.selector),
+              declarations: [],
+            }
           : null;
       if (rule) rules.push(rule);
       stack.push(rule);
@@ -169,6 +181,64 @@ export function styledHooks(css) {
     }
   }
   return hooks;
+}
+
+// A site variant's rules select by the kit's hooks and states, never by the
+// elements of its markup or their order, which a minor release may change
+// (site-kit-site-variants design D160). The element names and positions in a
+// rule with [data-site-variant], or nested in one, each with its line.
+// `html` and `body` aren't the kit's markup.
+const POSITION = /:(?:nth-(?:last-)?(?:child|of-type)|(?:first|last|only)-(?:child|of-type))(?![\w-])/g;
+const ELEMENT = /(?:^|[\s>+~,(])([a-z][a-z0-9-]*)/gi;
+const NOT_MARKUP = new Set(["html", "body"]);
+
+export function siteVariantFindings(css) {
+  const findings = [];
+  for (const { selector, line, ancestors } of cssRules(css)) {
+    if (![selector, ...ancestors].some((s) => s.includes("[data-site-variant"))) continue;
+    for (const [position] of selector.matchAll(POSITION)) findings.push({ line, kind: "site variant by position", value: position });
+    // Attribute selectors and the positions' arguments hold no element names.
+    const names = selector.replace(/\[[^\]]*\]/g, (s) => " ".repeat(s.length)).replace(/(:nth-[a-z-]+)\([^)]*\)/g, "$1");
+    for (const [, name] of names.matchAll(ELEMENT)) {
+      if (!NOT_MARKUP.has(name.toLowerCase())) findings.push({ line, kind: "site variant by element", value: name });
+    }
+  }
+  return findings;
+}
+
+// The site variants a CSS file's rules style: for each compound selector with
+// [data-site-variant], `matches`, which tells whether it selects a name as
+// CSS would, and the section `types` it names by block class or
+// data-section, or none for every type.
+const SITE_VARIANT = /\[\s*data-site-variant\s*(?:([~|^$*]?=)\s*(?:"([^"]*)"|'([^']*)'|([^\s\]]+)))?\s*(?:[is]\s*)?\]/;
+const BLOCK_CLASS = /\.sk-([a-z0-9]+(?:-[a-z0-9]+)*)(?![\w-])/g;
+const SECTION_TYPE = /\[\s*data-section\s*=\s*["']?([a-z0-9-]+)/g;
+const OPERATORS = {
+  "=": (name, value) => name === value,
+  "~=": (name, value) => name === value,
+  "|=": (name, value) => name === value || name.startsWith(`${value}-`),
+  "^=": (name, value) => name.startsWith(value),
+  "$=": (name, value) => name.endsWith(value),
+  "*=": (name, value) => name.includes(value),
+};
+
+export function styledSiteVariants(css) {
+  const styled = [];
+  for (const { source } of cssRules(css)) {
+    // Compounds, split at combinators and commas outside attribute selectors.
+    for (const compound of source.split(/\s*[>+~,]\s*(?![^[]*\])|\s+(?![^[]*\])/)) {
+      const attribute = compound.match(SITE_VARIANT);
+      if (!attribute) continue;
+      const [, operator, ...values] = attribute;
+      const value = values.find((v) => v !== undefined);
+      const blocks = [...compound.matchAll(BLOCK_CLASS)].map((match) => match[1]).filter((block) => block !== "section" && !block.startsWith("tone-"));
+      styled.push({
+        matches: (name) => (operator ? OPERATORS[operator](name, value) : true),
+        types: [...blocks, ...[...compound.matchAll(SECTION_TYPE)].map((match) => match[1])],
+      });
+    }
+  }
+  return styled;
 }
 
 // A color as linear sRGB channels, or null when it can't be computed. `vars`
@@ -307,6 +377,9 @@ export function checkStyles(root, { hooks = readHooks() } = {}) {
       if (old) warnings.push({ file, line, kind: "deprecated hook", value: name, detail: old.replacement ? `use ${old.replacement}` : "no replacement" });
       else if (!known.has(name)) errors.push({ file, line, kind: "unknown hook", value: name, detail: "the installed kit's HOOKS.md doesn't list it" });
     }
+    for (const finding of siteVariantFindings(text)) {
+      errors.push({ file, ...finding, detail: "a site variant selects by the kit's hooks and states, since a minor release may change its elements and their order (HOOKS.md)" });
+    }
   }
   errors.push(...presetFindings(root));
   return { files, errors, warnings };
@@ -328,24 +401,38 @@ const RULELESS = /^(group|peer)(\/.*)?$|^language-/;
 
 // The output check: `sk-` classes in root/dist that no theme or site.css rule
 // styles, and other classes that no rule in the built CSS matches, such as a
-// Tailwind default the theme resets (site-kit-design-system design D34).
-export function checkBuilt(root) {
+// Tailwind default the theme resets (site-kit-design-system design D34). Then
+// the site variants that pages use and no rule styles, and the ones
+// `siteVariants`, the site config's, declares and no page uses
+// (site-kit-site-variants design D160).
+export function checkBuilt(root, { siteVariants } = {}) {
   const dist = join(root, "dist");
   if (!existsSync(dist)) return { pages: 0, errors: [{ file: "dist", kind: "no build", value: "dist/", detail: "run npm run build first" }], warnings: [] };
   const styled = new Set();
+  const styledVariants = [];
   for (const path of filesUnder(join(root, "src", "styles"), /\.css$/)) {
     if (!stylesHooks(relativeTo(root, path))) continue;
-    for (const { name, kind } of styledHooks(readFileSync(path, "utf8"))) if (kind === "class") styled.add(name);
+    const css = readFileSync(path, "utf8");
+    for (const { name, kind } of styledHooks(css)) if (kind === "class") styled.add(name);
+    styledVariants.push(...styledSiteVariants(css));
   }
   const built = new Set();
   for (const path of filesUnder(dist, /\.css$/)) for (const name of cssClasses(readFileSync(path, "utf8"))) built.add(name);
   const unstyled = new Map();
   const ruleless = new Map();
+  // Each site variant a page uses, by its type and name, with the first page.
+  const used = new Map();
   let pages = 0;
   for (const path of filesUnder(dist, /\.html$/)) {
     pages++;
     const page = relativeTo(dist, path);
-    for (const [, list] of readFileSync(path, "utf8").matchAll(/\sclass="([^"]*)"/g)) {
+    const html = readFileSync(path, "utf8");
+    for (const [tag] of html.matchAll(/<[a-z]+\s[^>]*\sdata-site-variant="[^"]*"[^>]*>/g)) {
+      const type = tag.match(/\sdata-section="([^"]*)"/)?.[1];
+      const name = tag.match(/\sdata-site-variant="([^"]*)"/)[1];
+      if (!used.has(`${type} ${name}`)) used.set(`${type} ${name}`, { type, name, page });
+    }
+    for (const [, list] of html.matchAll(/\sclass="([^"]*)"/g)) {
       for (const name of list.split(/\s+/)) {
         if (!name) continue;
         if (name.startsWith("sk-")) {
@@ -364,6 +451,19 @@ export function checkBuilt(root) {
       value: name,
       detail: "the built CSS has no rule for it: a Tailwind default the theme resets, a plugin's class or a typo. Use the theme's tokens",
     })),
+    ...[...used.values()]
+      .filter(({ type, name }) => !styledVariants.some((rule) => rule.matches(name) && (rule.types.length === 0 || rule.types.includes(type))))
+      .map(({ type, name, page }) => ({
+        file: `dist/${page}`,
+        kind: "unstyled site variant",
+        value: name,
+        detail: `no rule in src/styles/theme/ or site.css styles .sk-${type}[data-site-variant="${name}"]`,
+      })),
+    ...Object.entries(siteVariants ?? {}).flatMap(([type, names]) =>
+      Object.keys(names ?? {})
+        .filter((name) => !used.has(`${type} ${name}`))
+        .map((name) => ({ file: "src/site.config.ts", kind: "unused site variant", value: name, detail: `${type}: no built page has a ${type} section with it` })),
+    ),
   ];
   return { pages, errors: [], warnings };
 }
@@ -371,9 +471,9 @@ export function checkBuilt(root) {
 const format = ({ file, line, kind, value, detail }) => `  ${file}${line ? `:${line}` : ""}: ${kind} ${JSON.stringify(value)}${detail ? ` (${detail})` : ""}`;
 
 // `site-kit check-styles [--built]` (bin/site-kit.mjs), in the site's root.
-export function cli(args = []) {
+export async function cli(args = []) {
   const built = args.includes("--built");
-  const result = built ? checkBuilt(process.cwd()) : checkStyles(process.cwd());
+  const result = built ? checkBuilt(process.cwd(), { siteVariants: (await readSiteConfig())?.siteVariants }) : checkStyles(process.cwd());
   if (result.warnings.length > 0) {
     console.warn(`${result.warnings.length} warnings:`);
     for (const warning of result.warnings) console.warn(format(warning));

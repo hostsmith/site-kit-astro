@@ -169,10 +169,13 @@ button {
   outline-offset: 2px;
 }
 
+/* Under reduced motion, nothing moves, unless the site plays its motion for
+   every visitor (data-sk-motion="always", tokens/motion.css). */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
+  :root:not([data-sk-motion="always"]),
+  :root:not([data-sk-motion="always"]) *,
+  :root:not([data-sk-motion="always"]) ::before,
+  :root:not([data-sk-motion="always"]) ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

@@ -41,7 +41,7 @@ Each example is a complete site, and each release deploys it from this repositor
 | Path | What it is |
 | --- | --- |
 | `src/content/` | pages, collection entries and settings, with the [locale](#locales) in each file's name, such as `pages/about.en.md` |
-| `src/site.config.ts` | the production site URL, the [locales](#locales) and each collection's base path |
+| `src/site.config.ts` | the production site URL, the [locales](#locales), each collection's base path and the [site variants](#site-variants). Plain TypeScript without imports, since the kit's commands read it |
 | `src/site.schema.ts` | the site's own section types, collections and [interface strings](#interface-strings) |
 | `src/components/sections/site/` | the site's own section types |
 | `src/components/collections/` | one detail template per collection |
@@ -98,6 +98,47 @@ The library's section types. Variants change the markup's order or grouping; ton
 Every section may also set `reveal`, an entrance animation (see [Interactive parts](#interactive-parts)), and every section with a title may set `eyebrow`, a short label above it, such as "About us", as Webflow's section headers often have. Any prop named `title` may mark words for the theme to highlight with `==` on both sides, such as `Work ==together== by the river`: they render in a `span` with the class `sk-highlight`, which adds no meaning, and the marks go wherever the title isn't shown as such, such as in the page's `<title>`, `og:title` and breadcrumb. Marks pair from the left and don't nest, and a lone `==` shows as written. Site code renders such a title with `@hostsmith/site-kit-astro/components/Title.astro`, or with `titleHtml` from `@hostsmith/site-kit-astro/title`.
 
 An `icon` prop takes one of the kit's icons: `calendar`, `check`, `clock`, `file-text`, `hammer`, `house`, `mail`, `map-pin`, `paint-roller`, `phone`, `ruler`, `shield-check`, `sparkles`, `star`, `users`, `wrench`. They are [Lucide](https://lucide.dev) icons, drawn in the current text color. It also takes one of the site's own icons, an SVG file in `src/icons/` named after it, such as `src/icons/phone-booth.svg` for `icon: phone-booth`, which the CMS offers after the kit's once `npm run decap-config` has run. A site icon renders inline as the kit's do, so the build fails, naming the file and the reason, on one that has a kit icon's name or a name other than lowercase letters, digits and hyphens, that has no `viewBox`, that sets a color other than `currentColor` or `none`, or that holds a `script`, `foreignObject` or `style` element, a `style` or event handler attribute, or a link to anything but an element in the same file. Without a `fill` of its own, it fills in the current text color.
+
+### Site variants
+
+A site variant is one of the site's own looks for a library section type, as a combo class gives one Webflow block a look of its own: a FAQ with boxed questions beside the plain ones, or services on a blue band. It keeps the type's markup and fields, so it keeps the kit's fixes, and only its CSS is the site's. The site declares its site variants in `src/site.config.ts`, by type and name, each with the label the CMS shows and, optionally, the kit variants it goes with:
+
+```ts
+export const siteConfig = {
+  // url, locales and collections as before
+  siteVariants: {
+    faq: { boxed: { label: "Boxed, with a border" } },
+    "services-grid": { "on-blue": { label: "On a blue band", variants: ["cards"] } },
+  },
+} as const;
+```
+
+A section entry picks one with `siteVariant`, beside its `variant` and `tone`, which still apply:
+
+```yaml
+- id: k3m9
+  type: faq
+  siteVariant: boxed
+  items:
+    - { question: Do you deliver?, answer: Yes, within 20 miles. }
+```
+
+The section's root then carries `data-site-variant="boxed"`, with its markup otherwise the same, and the theme's `sections.css` styles it. A rule selects the root by its block class and the attribute, and the section's elements only by their hooks and states:
+
+```css
+.sk-faq[data-site-variant="boxed"] .sk-faq__item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+```
+
+After a change, run `npm run decap-config`: the CMS then offers each type's site variants in a "Site variant" select, by their labels, and `npx site-kit schema` lists them with their labels. A section has at most one site variant, and a type the site declares none for has no such field.
+
+- The build fails, naming the file, the section and what's allowed, on a site variant its type doesn't declare, or one used with a kit variant its `variants` doesn't list. It fails, naming the type and the name, on a declared type that isn't a library type, a name that isn't kebab-case or is one of the type's kit variants, and a declaration without a label.
+- `npm run check:styles` fails on an element name, such as `li`, or a position, such as `:nth-child`, in a rule with `[data-site-variant`, since a minor release may change a section's elements and their order while its hooks stay. Pseudo-elements, such as `::before`, and states, such as `:hover`, are fine.
+- `npm run check:styles -- --built` warns about a site variant a page uses that no rule styles, and about one the site declares that no page uses.
+
+`src/site.config.ts` stays plain TypeScript without imports, since the kit's commands, such as `npm run decap-config`, read it outside the build.
 
 ## Header and footer
 
@@ -284,7 +325,20 @@ The kit's interactive parts replace the built-in elements of site builders such 
 
 Each part follows the WAI-ARIA Authoring Practices pattern of its kind, and works by keyboard: the tabs with the arrow keys, Home and End; the slider with previous and next buttons, a status line and, when it rotates, a pause button; the lightbox as a modal dialog that Escape closes, returning focus to the image; a submenu as a disclosure button. Without scripts, every part's content is there: every tab panel under its label, the slides as a list that scrolls sideways, the images as links to their files, the video's poster, the embed's placeholder with its link, the children under their parent, and every revealed section. A part's script runs only on the pages that render the part, and marks it `data-ready`, under which a theme hides or collapses what the script controls.
 
-Nothing moves unless the content asks: a slider rotates only with `autoplay`, and pauses while hovered or focused. A video plays only when the visitor hasn't asked for reduced motion, and its HTML has no `autoplay`. Under reduced motion, both can still be played with their buttons. `reveal` takes `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`. The kit sets `data-sk-ready` on `<html>` before the page renders, and `data-revealed` on an element as it scrolls into view, and the theme animates on those, without reduced motion only. `revealItems`, with the same values, animates each item of a list on its own: on `services-grid`, `pricing-list`, `steps`, `team`, `testimonials`, `trust-bar`, `stats`, `gallery`, `collection-list` and `faq`. Items that scroll into view together get their place in their row as `--sk-reveal-order`, from 0, so a theme can bring them in one after another; the `webflow` theme waits 0.2 s per place. A section may set both: it comes in as a whole, and its items after one another.
+Nothing moves unless the content asks: a slider rotates only with `autoplay`, and pauses while hovered or focused. A video plays only when the visitor hasn't asked for reduced motion, unless the site plays its motion for every visitor (see [Reduced motion](#reduced-motion)), and its HTML has no `autoplay`. Under reduced motion, both can still be played with their buttons. `reveal` takes `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`. The kit sets `data-sk-ready` on `<html>` before the page renders, and `data-revealed` on an element as it scrolls into view, and the theme animates on those, without reduced motion only. `revealItems`, with the same values, animates each item of a list on its own: on `services-grid`, `pricing-list`, `steps`, `team`, `testimonials`, `trust-bar`, `stats`, `gallery`, `collection-list` and `faq`. Items that scroll into view together get their place in their row as `--sk-reveal-order`, from 0, so a theme can bring them in one after another; the `webflow` theme waits 0.2 s per place. A section may set both: it comes in as a whole, and its items after one another.
+
+### Reduced motion
+
+A site follows a visitor's reduced motion setting unless `src/site.config.ts` says otherwise:
+
+```ts
+export const siteConfig = {
+  // url, locales and the rest as before
+  reducedMotion: "ignore",
+} as const;
+```
+
+`"respect"` is the default. `"ignore"` is for a site migrated from one that played its motion for every visitor, as Webflow's IX2 interactions do, so the new site moves as the old one did. The kit's head script then marks `<html>` with `data-sk-motion="always"`, a theme's `motion-safe` rules apply under it too, as the theme's `tokens/motion.css` defines the variant, and a slider with `autoplay` rotates and a background video starts for every visitor. `ignore` keeps the slider's pause button, the video's play and pause button, rotation that waits while the slider is hovered or focused, and every part's content without scripts. WCAG 2.1 AA, the European Accessibility Act's level, doesn't ask a site to follow the setting for short motion, but WCAG 2.3.3 (AAA) does: a migration notes it in its report, and `"respect"` follows the setting again. Any other value fails the build.
 
 An embed shows a placeholder until the visitor presses its button, so the page sends nothing to the provider before that: no thumbnail, and no early connection. The placeholder names the host the frame loads from and links to the content on the provider's site. YouTube loads from `youtube-nocookie.com`, and Vimeo with `dnt=1`. The `url` must use `https`, and a `video` embed must be a YouTube or Vimeo video. `load: direct` loads the frame at once: use it only when the site's privacy notice names the provider. In a Markdown body, a paragraph that holds only a link to a YouTube or Vimeo video renders as the same placeholder, with the link's text as the frame's title. These two are the only external URLs the content holds.
 
@@ -477,6 +531,7 @@ src/styles/
       type.css           fonts and the text scale
       shape.css          radii and shadows
       space.css          content width, section spacing, gutter, breakpoints
+      motion.css         motion-safe and motion-reduce, which follow the site's reducedMotion
     presets/
       colors/
         navy.css         a color scheme
@@ -541,7 +596,7 @@ To give a site another example's look:
 
 1. Copy `src/styles/theme/` and `public/assets/fonts/` from that example, at the release tag of the kit version the site uses. To keep the site's colors, keep its `tokens/colors.css` and its own preset, and check that the preset defines the new theme's color roles.
 2. Run `npm run check:styles`, `npm run build` and `npm run check:styles -- --built`.
-3. Review the site's own markup, whose colors and fonts follow the tokens but whose spacing was tuned to the old look, and its content's tones and variants.
+3. Review the site's own markup, whose colors and fonts follow the tokens but whose spacing was tuned to the old look, and its content's tones and variants. The site variants' rules were in the old theme's `sections.css`: `npm run check:styles -- --built` names each site variant without one.
 
 ## What a site may rely on
 

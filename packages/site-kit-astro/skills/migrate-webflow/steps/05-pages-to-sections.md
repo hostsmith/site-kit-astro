@@ -6,6 +6,17 @@ scope: kit
 
 Rebuild each static page of the export as a page entry made of sections, keeping its text, its images and their order. Read the element mapping, `node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/references/elements.md`, first.
 
+Read the pages you port as outlines, all in one call, such as `node node_modules/@hostsmith/site-kit-astro/skills/migrate-webflow/scripts/outline.mjs .hostsmith/snapshot/code/index.html .hostsmith/snapshot/code/about.html`, the types with `props.mjs`, and a section's CSS with `css-rules.mjs` and its classes, as the skill's "Read through the helpers" says.
+
+## In two passes
+
+The look most pages share, their type, colors, spacing, buttons, header and footer, is settled once, on a sample, before the rest is built on it. The sections below say how to port each page, in either pass.
+
+1. **A sample first.** Pick two or three pages that between them hold most of the site's kinds of section, the home page first. Port them, copy the images, as step 7 says, since the comparison needs them, then compare them with the export, with step 9's fidelity check limited to them: install its tools as step 9 says, write `.hostsmith/snapshot/fidelity/pages.txt` with every page, build, and run the script with `--only` and the sample's names, such as `--only home,features,pricing`. Open their overviews, and the home page's first slices and ends, and fix the theme until they match. Fix the look in the theme, for every page, never for one page. On a large site with subagents, the subagent that did steps 3 and 4 does the sample too, as the skill's "With subagents" says, and returns the sample's pages and what it settled.
+2. **The rest in bulk.** Port the other pages on the settled theme, styling each section from the export's CSS rules, as step 3 says, and run no fidelity check: step 9 compares every page at once, in rounds.
+   - **On a large site with subagents,** as the skill's "With subagents" says, port the pages in groups of four or five, so their HTML stays out of your own context, and run the groups side by side, not one after another. First make the types, site variants and Components that more than one group needs, yourself or with one group that goes first. Then start every other group at once, each with its pages, the types and site variants made so far, this step's rules and the element mapping. Each writes its pages' entries and any type or site variant only its pages use, named after what it shows, and returns what it made and what it couldn't carry. The files they share, such as `src/site.config.ts`, `src/site.schema.ts` and `sections.css`, take small edits: an edit that fails because another subagent changed the file is read again and made again. Then build, and check that no two types or site variants do the same: merge those that do.
+   - **Otherwise,** port them in turn yourself.
+
 ## Split each page
 
 A page built with Client-First is a `page-wrapper` holding the navbar, a `main-wrapper` and the footer. The `main-wrapper` holds the top-level sections, named `section_*`. For each page in the URL map, and for `404.html`:
@@ -28,11 +39,13 @@ Expect a call to action band repeated on several pages, and cards repeated in a 
 
 ## Pick each section's type
 
-For each section, in this order:
+Give each section the first of these forms that can show it, as the kit's `AGENTS.md` says:
 
-1. **A library type** whose structure matches: the same parts, in the same order. The kit's README, "Section types", lists each type's props, variants and tones. The theme then restyles it to the old look. A hero, a call to action, questions and answers, prices, a numbered process or a list of entries often match. Every library type with a title also takes an `eyebrow`, so Client-First's section header, a small label above the heading, never makes a section site-local by itself.
-2. **A variant** of a site-local type you've already made, when only the layout differs.
-3. **A new site-local type,** otherwise. This is the usual case for a section with a layout of its own.
+1. **A library type** that renders the elements and fields the section needs. `props.mjs` lists each type's props, and `props.mjs <type>` its props in full, with its variants, tones and hooks. Its look is the theme's work, from step 3: colors, a band, borders, spacing, sizes, type, capitals, decoration, the arrangement of the elements it renders, and where it changes at each width. None of these makes a section site-local. A hero, a call to action, questions and answers, prices, a numbered process, quotes, people or a list of entries often fit. Every library type with a title also takes an `eyebrow`, so Client-First's section header, a small label above the heading, never makes a section site-local by itself.
+2. **A library type with a site variant,** when one section should look different from its type's others on the site, such as one FAQ with boxed questions among plain ones: declare it in `siteVariants` in `src/site.config.ts` and set `siteVariant` on the entry, as the kit's `AGENTS.md`, "Site variants", says. Step 3's rules style it.
+3. **A site-local type,** only when no library type renders an element the section needs, such as a large portrait beside a testimonial: a variant of a site-local type you've already made, or a new one. List the element in the report's "Site-local types and Components", as a gap of the library type.
+
+Interactive parts stay the kit's: a site variant may restyle a slider or tabs, such as a slider on a colored band with quote marks the theme draws. An element of the old one that the kit's part lacks goes into the report's "Not carried over", never into a site-local copy of the part, unless the person asks for one.
 
 A site-local type is the section's markup from the export, cleaned, with its content in props:
 
@@ -41,6 +54,7 @@ A site-local type is the section's markup from the export, cleaned, with its con
 - **The schema:** `section("<type>", { ... })` in `siteSectionSchemas` in `src/site.schema.ts`, with `mediaPath` and `requireAlt` for images, `link` for links and `icon` for icons, from `@hostsmith/site-kit-astro/schema`.
 - **The Decap type:** under `section_types` in `public/admin/config.site.yml`, with a field for each prop.
 - **The styles:** in `src/styles/theme/sections.css`, or utilities in its markup, as step 3 says.
+- **A row of navigation links,** such as a page's own navbar inside its content, collapses on phones, as the kit's menu does: below the theme's nav breakpoint, behind a native disclosure, a `details` whose `summary` is the menu button, so it opens by keyboard and without scripts. Above the breakpoint, the links show as a row and the `summary` is hidden.
 
 Name a type after what it shows, such as `amenities` or `plan-cards`, never after a page or a library type. A minimal component:
 
@@ -70,7 +84,7 @@ const f = sectionFields(entry, section);
 </section>
 ```
 
-`{...f.root}` goes on the section's root element: it carries the section's type and its `reveal`. `sk-container` gives the content the theme's width and gutter.
+`{...f.root}` goes on the section's root element: it carries the section's type, its `reveal` and, for a library type, its site variant. `sk-container` gives the content the theme's width and gutter.
 
 After adding or changing a type, run `npm run decap-config` and `npx site-kit schema`.
 
@@ -97,6 +111,8 @@ Its body stays empty. In the sections:
 
 Map each one through the element mapping: tabs, sliders, lightboxes, background video, dropdowns, embeds, video in rich text, forms and the rest. For each embed with a frame, ask the person how it loads: on a click, the default; directly, only when the site's privacy notice names the provider; as a link or a still image instead; or not at all. Record each answer in the report's "Embeds".
 
+A form isn't carried yet, but the text around it is: keep its heading and its intro as a section, such as a `rich-text`, in the form's place, so the page keeps its order and the form has a place when the kit's contact form comes. Only the form itself goes into the report's "Forms".
+
 Never copy raw HTML, a script or a style into the content or a component. What has no replacement goes into the report's "Not carried over", with its page.
 
 ## Interactions
@@ -122,6 +138,8 @@ These go into the report's "Not carried over":
 ## Localized sites
 
 Copy each page into every other locale, such as `about.de.md` beside `about.en.md`, keeping its section ids, with its `localSlug` from its alternate URL in the sitemap: `/de/uber-uns` gives `localSlug: uber-uns`. Its text stays the primary locale's. List each copy in the report's "To translate".
+
+No export holds a static page's text in another locale: Webflow publishes it only on the live site, which the skill never reads (SKILL.md). Say so in "To translate": the person can bring the translations over from their published site themselves, under Webflow's terms, or from their translator's files, or have the pages translated again.
 
 ## Then
 

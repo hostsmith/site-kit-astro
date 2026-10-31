@@ -106,7 +106,7 @@ A description pattern that is one field alone, such as the summary, needs no key
 
 ## Collection lists
 
-A collection list on a page, `w-dyn-list`, exports empty: only its empty state, `w-dyn-empty`, shows. Map it to a `collection-list` section, or to a site-local type when its cards differ from the kit's. For each, ask the person its limit, its sort order and its filters, unless the page makes them plain. `collection-list` shows the newest entries first, by `date`, up to its `limit`. Another order or a filter needs a site-local type, or goes into the report.
+A collection list on a page, `w-dyn-list`, exports empty: only its empty state, `w-dyn-empty`, shows. Map it to a `collection-list` section, or to a site-local type when its cards show an element the kit's cards don't render. A difference of look is the theme's, from step 3. For each, ask the person its limit, its sort order and its filters, unless the page makes them plain. `collection-list` shows the newest entries first, by `date`, up to its `limit`. Another order or a filter needs a site-local type, or goes into the report.
 
 ## Localized sites
 

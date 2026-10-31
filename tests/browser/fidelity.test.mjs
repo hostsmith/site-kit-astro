@@ -12,6 +12,7 @@ import { dirname, join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { promisify } from "node:util";
 import { PACKAGE, REPO } from "../helpers.mjs";
+import { launch } from "./helpers.mjs";
 
 const SCRIPT = join(PACKAGE, "skills", "migrate-webflow", "scripts", "fidelity.mjs");
 const WIDTHS = [479, 767, 991, 1440];
@@ -103,7 +104,7 @@ describe("fidelity script", () => {
   });
 
   it("ends its output with what it shot and what to open, after what went wrong", () => {
-    assert.match(result.stdout, /^404: export \/missing\.html\n404: build \/missing\nThe export's pages asked other hosts[^\n]*\nTo review[^\n]*\nPages shot at [^\n]*\nPictures to open [^\n]*\n$/);
+    assert.match(result.stdout, /^404: export \/missing\.html\n404: build \/missing\nThe export's pages asked other hosts[^\n]*\nTo review[^\n]*\nPages shot at [^\n]*\nMeasured, [^\n]*\nPictures to open [^\n]*\n$/);
     assert.doesNotMatch(result.stdout, /Webflow's (entrance animations|interactions)/);
   });
 
@@ -122,13 +123,15 @@ describe("fidelity script", () => {
     }
   });
 
-  it("writes the review's checklist: every overview, then the home page's header and footer", async () => {
+  it("writes the review's checklist: every overview, worst first, then the home page's header and footer", async () => {
     const review = await readFile(join(dir, "shots", "review.md"), "utf8");
-    const items = [...review.matchAll(/^- \[ \] (\S+)$/gm)].map((match) => match[1]);
-    assert.deepEqual(items, [
-      ...["home", "about", "missing"].flatMap((name) => WIDTHS.map((width) => `shots/${name}/${width}-overview.png`)),
-      ...WIDTHS.flatMap((width) => [`shots/home/${width}-slice-01.png`, `shots/home/${width}-end.png`]),
-    ]);
+    const items = [...review.matchAll(/^- \[ \] (\S+)/gm)].map((match) => match[1]);
+    const overviews = ["home", "about", "missing"].flatMap((name) => WIDTHS.map((width) => `shots/${name}/${width}-overview.png`));
+    assert.deepEqual([...items.slice(0, 12)].sort(), [...overviews].sort());
+    assert.deepEqual(items.slice(12), WIDTHS.flatMap((width) => [`shots/home/${width}-slice-01.png`, `shots/home/${width}-end.png`]));
+    const shares = [...review.matchAll(/-overview\.png \(([\d.]+)% different\)$/gm)].map((match) => Number(match[1]));
+    assert.equal(shares.length, 12);
+    assert.deepEqual(shares, [...shares].sort((a, b) => b - a));
   });
 
   // site-kit-webflow-migration design D141: reruns.
@@ -136,7 +139,7 @@ describe("fidelity script", () => {
     const file = () => join(dir, "shots", "review.md");
     const again = (...extra) => run(dir, [...ARGS, ...extra]);
     const modified = async (name, width, side) => (await stat(shot(name, width, side))).mtimeMs;
-    const ticked = (review, path) => new RegExp(`^- \\[x\\] ${path.replaceAll(".", "\\.")}$`, "m").test(review);
+    const ticked = (review, path) => new RegExp(`^- \\[x\\] ${path.replaceAll(".", "\\.")}( \\([\\d.]+% different\\))?$`, "m").test(review);
 
     it("keeps the export's screenshots, and unticks only the pictures whose build changed", async () => {
       const review = await readFile(file(), "utf8");
@@ -246,5 +249,212 @@ describe("fidelity script, with Webflow's entrance animations", () => {
     assert.ok(result.ok, result.stderr);
     assert.match(result.stdout, /Webflow's interactions couldn't be read from the export's scripts/);
     assert.ok((await size(join(dir, "shots", "home", "1440-export.png"))).height >= 5000);
+  });
+});
+
+// site-kit-webflow-migration design D166: each page and width measured, the
+// checklist's overviews worst first, and the average against the last run's.
+describe("fidelity script, measured", () => {
+  const block = (color, height = 800) => `<div style="height: ${height}px; background: ${color}"></div>`;
+  const FILES = {
+    "export/same.html": page(block("#204060")),
+    "export/color.html": page(block("#204060")),
+    "export/short.html": page(block("#204060", 1600)),
+    "build/same/index.html": page(block("#204060")),
+    "build/color/index.html": page(block("#c08020")),
+    "build/short/index.html": page(block("#204060", 800)),
+    "pages.txt": "same.html /same\ncolor.html /color\nshort.html /short\n",
+  };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots", "--only", "same,color,short"];
+  let dir;
+  let first;
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-measured-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+    first = await run(dir, ARGS.slice(0, -2));
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("measures the share of each page that differs", async () => {
+    assert.ok(first.ok, first.stderr);
+    const report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
+    const at = (name, width) => report.pages.find((p) => p.name === name).shots[width].difference;
+    for (const width of WIDTHS) {
+      assert.equal(at("same", width), 0, `same at ${width}`);
+      // The body's margin is white on both sides.
+      assert.ok(at("color", width) > 70, `color at ${width}: ${at("color", width)}`);
+      assert.ok(at("short", width) > 30 && at("short", width) < 60, `short at ${width}: ${at("short", width)}`);
+    }
+  });
+
+  it("lists the overviews worst first, each with its share, and prints the largest and the average", async () => {
+    const review = await readFile(join(dir, "shots", "review.md"), "utf8");
+    const overviews = [...review.matchAll(/^- \[ \] (\S+-overview\.png) \(([\d.]+)% different\)$/gm)].map((m) => [m[1].split("/").at(-2), Number(m[2])]);
+    assert.equal(overviews.length, 12);
+    assert.deepEqual(overviews.map(([name]) => name).slice(0, 4), ["color", "color", "color", "color"]);
+    assert.deepEqual(overviews.map(([name]) => name).slice(-4), ["same", "same", "same", "same"]);
+    assert.deepEqual([...overviews.map(([, share]) => share)], [...overviews.map(([, share]) => share)].sort((a, b) => b - a));
+    assert.match(first.stdout, /Measured, the share of each page that differs: the largest color at \d+ px, [\d.]+%;[^\n]* Average [\d.]+%\.\n/);
+  });
+
+  it("prints the average against the last run's after a fix", async () => {
+    await writeFile(join(dir, "build", "color", "index.html"), page(block("#204060")));
+    const second = await run(dir, ARGS);
+    assert.ok(second.ok, second.stderr);
+    const [, now, before] = second.stdout.match(/Average ([\d.]+)%, against ([\d.]+)% in the last run, in round 2: down [\d.]+ points\. Review the pictures it unticked\.\n/) ?? assert.fail(second.stdout);
+    assert.ok(Number(now) < Number(before), `${now}% isn't less than ${before}%`);
+  });
+
+  // site-kit-migration-cost design D177: the first two reruns are reviewed
+  // whatever the average does, and from the third, less than half a point
+  // stops the rounds.
+  it("reviews round 3 however little the average fell", async () => {
+    const third = await run(dir, ARGS);
+    assert.ok(third.ok, third.stderr);
+    assert.match(third.stdout, /in the last run, in round 3: down 0 points\. Review the pictures it unticked\.\n/);
+  });
+
+  it("stops the rounds from round 4 when a rerun lowers the average by less than half a point", async () => {
+    const fourth = await run(dir, ARGS);
+    assert.ok(fourth.ok, fourth.stderr);
+    assert.match(fourth.stdout, /in the last run, in round 4: down 0 points, less than 0\.5, so the review's rounds stop here\. Open none of the pictures it unticked: list them under the report's "Not compared"\.\n/);
+  });
+
+  it("asks for a review of what the last fixes broke when the average rises", async () => {
+    await writeFile(join(dir, "build", "color", "index.html"), page(block("#ff0000")));
+    const fifth = await run(dir, ARGS);
+    assert.ok(fifth.ok, fifth.stderr);
+    assert.match(fifth.stdout, /in the last run, in round 5: up [\d.]+ points\. The last fixes made pages differ more: review the pictures it unticked for what they broke\.\n/);
+  });
+});
+
+// site-kit-webflow-migration design D166: step 5 compares a sample of pages
+// before it builds the rest, so --only shoots the sample alone.
+describe("fidelity script, on step 5's sample", () => {
+  const block = (color) => `<div style="height: 800px; background: ${color}"></div>`;
+  const FILES = {
+    "export/index.html": page(block("#204060")),
+    "export/about.html": page(block("#204060")),
+    "export/pricing.html": page(block("#204060")),
+    "build/index.html": page(block("#c08020")),
+    "pages.txt": "index.html /\nabout.html /about\npricing.html /pricing\n",
+  };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"];
+  let dir;
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-sample-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("shoots only the sample, and leaves out the pages it hasn't shot yet", async () => {
+    const result = await run(dir, [...ARGS, "--only", "home"]);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /Pages shot at [^\n]*: 1, [^\n]*Pages kept as they were: 0\. Pages left out by --only, not shot yet: 2\./);
+    assert.match(result.stdout, /the largest home at /);
+    const report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
+    assert.deepEqual(report.pages.map((p) => p.name), ["home"]);
+    assert.deepEqual(report.missing, []);
+    const review = await readFile(join(dir, "shots", "review.md"), "utf8");
+    assert.doesNotMatch(review, /shots\/(about|pricing)\//);
+    assert.equal(report.round, 0);
+  });
+
+  // site-kit-migration-cost design D177: the sample's runs are no round of
+  // step 9's review.
+  it("compares the sample's rerun with its last run, as no round", async () => {
+    const result = await run(dir, [...ARGS, "--only", "home"]);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /, against [\d.]+% in the last run\.\n/);
+    assert.doesNotMatch(result.stdout, /in round/);
+  });
+
+  it("shoots every page on the next run without --only, and compares no average with the sample's", async () => {
+    for (const name of ["about", "pricing"]) {
+      await mkdir(join(dir, "build", name), { recursive: true });
+      await writeFile(join(dir, "build", name, "index.html"), page(block("#204060")));
+    }
+    const result = await run(dir, ARGS);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /Pages shot at [^\n]*: 3, with the export's screenshots kept from the last run for 1\./);
+    assert.doesNotMatch(result.stdout, /in the last run/);
+  });
+});
+
+// site-kit-motion design D164: the build of a site that ignores reduced motion
+// plays its motion, and is shot with each element where its motion ends.
+describe("fidelity script, on a site that ignores reduced motion", () => {
+  // A box below the first screen, hidden and moved until it scrolls into
+  // view, as a theme's reveal is; and a block that reduced motion makes tall.
+  const BUILD = `<!doctype html><html><head><title>Page</title><style>
+    body { margin: 0; } .spacer { height: 1500px; } .box { height: 300px; background: #c00; transition: opacity 0.6s, transform 0.6s; }
+    [data-ready] .box:not([data-revealed]) { opacity: 0; transform: translateY(300px); }
+    @media (prefers-reduced-motion: reduce) { .reduced { height: 2000px; } }
+  </style></head><body><div class="spacer"></div><div class="box"></div><div class="reduced"></div><script>
+    document.documentElement.setAttribute("data-ready", "");
+    new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.setAttribute("data-revealed", ""))).observe(document.querySelector(".box"));
+  </script></body></html>`;
+  const FILES = { "export/index.html": page("<p>Export</p>"), "build/index.html": BUILD, "pages.txt": "index.html /\n" };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots", "--reduced-motion", "ignore"];
+  let dir;
+
+  // A pixel of a PNG as "r,g,b", read in the browser.
+  async function pixel(file, x, y) {
+    const browser = await launch();
+    try {
+      const sheet = await browser.newPage();
+      const data = (await readFile(file)).toString("base64");
+      return await sheet.evaluate(
+        async ({ data, x, y }) => {
+          const image = new Image();
+          image.src = `data:image/png;base64,${data}`;
+          await image.decode();
+          const canvas = Object.assign(document.createElement("canvas"), { width: image.width, height: image.height });
+          const context = canvas.getContext("2d");
+          context.drawImage(image, 0, 0);
+          return [...context.getImageData(x, y, 1, 1).data.slice(0, 3)].join(",");
+        },
+        { data, x, y },
+      );
+    } finally {
+      await browser.close();
+    }
+  }
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-motion-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("shoots a section below the first screen at rest in its place, without reduced motion", async () => {
+    const result = await run(dir, ARGS);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /The build plays its motion for every visitor/);
+    for (const width of [479, 1440]) {
+      const file = join(dir, "shots", "home", `${width}-build.png`);
+      assert.ok((await size(file)).height < 2000, `the build was shot under reduced motion at ${width}`);
+      assert.equal(await pixel(file, 10, 1510), "204,0,0", `the box isn't at rest in its place at ${width}`);
+    }
+  });
+
+  it("names the values --reduced-motion takes", async () => {
+    const result = await run(dir, [...ARGS.slice(0, -1), "sometimes"]);
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /--reduced-motion is "sometimes"\. It is the site's reducedMotion from src\/site\.config\.ts: respect, the default, or ignore\./);
   });
 });
