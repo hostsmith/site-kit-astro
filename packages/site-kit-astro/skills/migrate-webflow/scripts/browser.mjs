@@ -10,6 +10,9 @@ import { extname, join, relative, resolve, sep } from "node:path";
 
 const FONTS_PATH = "/assets/fonts/";
 const FONTS_CSS = "/__fidelity/fonts.css";
+// Where the export's pages, filled from the CMS, find the build's files, such
+// as an entry's image (site-kit-fidelity-cms-stubs design D182).
+export const FILL_PATH = "/__fill/";
 
 const TYPES = {
   ".html": "text/html",
@@ -39,19 +42,26 @@ const TYPES = {
 // Serves `root` on a free local port, the way Hostsmith serves a site:
 // /about from about, about.html or about/index.html. The pages get the
 // site's fonts when `fontsCss` is given, with `fontDir` at /assets/fonts/,
-// and `rewrite` changes each page's HTML first, when it's given.
-export async function serve(root, { fontDir, fontsCss, rewrite } = {}) {
+// `fillDir` is served at /__fill/, and `rewrite` changes each page's HTML
+// first, given the request's URL, when it's given.
+export async function serve(root, { fontDir, fontsCss, fillDir, rewrite } = {}) {
   const server = createServer(async (request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+    const url = new URL(request.url, "http://localhost");
+    const path = decodeURIComponent(url.pathname);
     if (fontsCss && path === FONTS_CSS) return send(response, 200, "text/css", fontsCss);
-    const file = fontDir && path.startsWith(FONTS_PATH) ? inside(fontDir, path.slice(FONTS_PATH.length)) : find(root, path);
+    const file =
+      fontDir && path.startsWith(FONTS_PATH)
+        ? inside(fontDir, path.slice(FONTS_PATH.length))
+        : fillDir && path.startsWith(FILL_PATH)
+          ? inside(fillDir, path.slice(FILL_PATH.length))
+          : find(root, path);
     if (!file) {
       const notFound = inside(root, "404.html");
       return send(response, 404, "text/html", notFound ? await readFile(notFound) : "Not found");
     }
     const type = TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
     let body = await readFile(file);
-    if (rewrite && type === "text/html") body = rewrite(body.toString("utf8"));
+    if (rewrite && type === "text/html") body = rewrite(body.toString("utf8"), url);
     if (fontsCss && type === "text/html") {
       body = body.toString("utf8").replace(/<\/head>/i, `<link rel="stylesheet" href="${FONTS_CSS}"></head>`);
     }

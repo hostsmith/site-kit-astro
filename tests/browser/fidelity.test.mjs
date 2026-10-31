@@ -302,34 +302,49 @@ describe("fidelity script, measured", () => {
     assert.match(first.stdout, /Measured, the share of each page that differs: the largest color at \d+ px, [\d.]+%;[^\n]* Average [\d.]+%\.\n/);
   });
 
-  it("prints the average against the last run's after a fix", async () => {
+  // site-kit-fidelity-cms-stubs design D185: each page's change against the
+  // last run, and the rounds' rule on it.
+  it("prints the average and each page's change against the last run's after a fix", async () => {
     await writeFile(join(dir, "build", "color", "index.html"), page(block("#204060")));
     const second = await run(dir, ARGS);
     assert.ok(second.ok, second.stderr);
-    const [, now, before] = second.stdout.match(/Average ([\d.]+)%, against ([\d.]+)% in the last run, in round 2: down [\d.]+ points\. Review the pictures it unticked\.\n/) ?? assert.fail(second.stdout);
+    const [, now, before] = second.stdout.match(/ Average ([\d.]+)%, against ([\d.]+)% in the last run\.\n/) ?? assert.fail(second.stdout);
     assert.ok(Number(now) < Number(before), `${now}% isn't less than ${before}%`);
+    // The largest change first.
+    const changes = second.stdout.match(/\nEach page's average over its widths, against the last run: (.*)\.\nRound 2: Review the pictures it unticked\.\n/)?.[1] ?? assert.fail(second.stdout);
+    assert.match(changes, /^color 0%, down [\d.]+; /);
+    assert.match(changes, /; same 0%, the same(;|$)/);
+    assert.match(changes, /; short [\d.]+%, the same(;|$)/);
   });
 
-  // site-kit-migration-cost design D177: the first two reruns are reviewed
-  // whatever the average does, and from the third, less than half a point
-  // stops the rounds.
-  it("reviews round 3 however little the average fell", async () => {
+  it("reviews round 3 when no page moved", async () => {
     const third = await run(dir, ARGS);
     assert.ok(third.ok, third.stderr);
-    assert.match(third.stdout, /in the last run, in round 3: down 0 points\. Review the pictures it unticked\.\n/);
+    assert.match(third.stdout, /\nRound 3: no page moved by 1 point or more, but the first two reruns are always reviewed\. Review the pictures it unticked\.\n/);
   });
 
-  it("stops the rounds from round 4 when a rerun lowers the average by less than half a point", async () => {
+  it("reviews round 4 while one page still improves by 1 point or more", async () => {
+    await writeFile(join(dir, "build", "short", "index.html"), page(block("#204060", 1000)));
     const fourth = await run(dir, ARGS);
     assert.ok(fourth.ok, fourth.stderr);
-    assert.match(fourth.stdout, /in the last run, in round 4: down 0 points, less than 0\.5, so the review's rounds stop here\. Open none of the pictures it unticked: list them under the report's "Not compared"\.\n/);
+    const [, change] = fourth.stdout.match(/[:;] short [\d.]+%, down ([\d.]+)[;.]/) ?? assert.fail(fourth.stdout);
+    assert.ok(Number(change) >= 1, `short moved by ${change}`);
+    assert.match(fourth.stdout, /\nRound 4: Review the pictures it unticked\.\n/);
   });
 
-  it("asks for a review of what the last fixes broke when the average rises", async () => {
-    await writeFile(join(dir, "build", "color", "index.html"), page(block("#ff0000")));
+  it("stops the rounds when no page moved by 1 point, though one still differs by a constant gap", async () => {
     const fifth = await run(dir, ARGS);
     assert.ok(fifth.ok, fifth.stderr);
-    assert.match(fifth.stdout, /in the last run, in round 5: up [\d.]+ points\. The last fixes made pages differ more: review the pictures it unticked for what they broke\.\n/);
+    const [, gap] = fifth.stdout.match(/[:;] short ([\d.]+)%, the same[;.]/) ?? assert.fail(fifth.stdout);
+    assert.ok(Number(gap) > 10, `short differs by ${gap}%`);
+    assert.match(fifth.stdout, /\nRound 5: no page moved by 1 point or more, so the review's rounds stop here\. Open none of the pictures it unticked: list them under the report's "Not compared"\.\n/);
+  });
+
+  it("names a page the last fixes made differ more, for a review of what they broke", async () => {
+    await writeFile(join(dir, "build", "color", "index.html"), page(block("#ff0000")));
+    const sixth = await run(dir, ARGS);
+    assert.ok(sixth.ok, sixth.stderr);
+    assert.match(sixth.stdout, /\nRound 6: color differs more, by 1 point or more: the last fixes broke something\. Review the pictures it unticked, that page's for what the fixes broke\.\n/);
   });
 });
 
@@ -375,8 +390,8 @@ describe("fidelity script, on step 5's sample", () => {
   it("compares the sample's rerun with its last run, as no round", async () => {
     const result = await run(dir, [...ARGS, "--only", "home"]);
     assert.ok(result.ok, result.stderr);
-    assert.match(result.stdout, /, against [\d.]+% in the last run\.\n/);
-    assert.doesNotMatch(result.stdout, /in round/);
+    assert.match(result.stdout, /, against [\d.]+% in the last run\.\nEach page's average over its widths, against the last run: home [\d.]+%, the same\.\n/);
+    assert.doesNotMatch(result.stdout, /Round \d/);
   });
 
   it("shoots every page on the next run without --only, and compares no average with the sample's", async () => {
@@ -456,5 +471,192 @@ describe("fidelity script, on a site that ignores reduced motion", () => {
     const result = await run(dir, [...ARGS.slice(0, -1), "sometimes"]);
     assert.equal(result.ok, false);
     assert.match(result.stderr, /--reduced-motion is "sometimes"\. It is the site's reducedMotion from src\/site\.config\.ts: respect, the default, or ignore\./);
+  });
+});
+
+// site-kit-fidelity-cms-stubs design D181, D182: the export's CMS template and
+// list, empty as Webflow exports them, served filled from the snapshot's CSVs
+// as step 6's fill file maps them. The body's block and the list's photos
+// give the export's screenshots their heights, and its empty state is tall.
+describe("fidelity script, with the CMS filled", () => {
+  const body = `<p onclick="alert(1)">First.</p><div style="height: 3000px; background: #204060"></div><iframe src="https://video.example.com/embed/1" title="Video"></iframe>`;
+  const posts = (first) => `Name,Slug,Body,Photo\nFirst Post,first,"${first.replaceAll('"', '""')}",https://cdn.example.com/64f1_photo.svg\nSecond Post,second,<p>Second.</p>,https://cdn.example.com/64f1_photo.svg\n`;
+  const FILES = {
+    "snapshot/code/detail_post.html": page(`<h1 class="post_title w-dyn-bind-empty"></h1><div class="post_body w-dyn-bind-empty w-richtext"></div>`),
+    "snapshot/code/index.html": page(`<div class="w-dyn-list"><div role="list" class="w-dyn-items"><div role="listitem" class="w-dyn-item"><p class="card_name w-dyn-bind-empty"></p><img src="" alt="" class="card_photo w-dyn-bind-empty"></div></div><div class="w-dyn-empty"><div style="height: 2000px">No items found.</div></div></div>`),
+    "snapshot/code/css/site.css": "body, p, h1 { margin: 0; } img { display: block; }",
+    "snapshot/cms/posts.csv": posts(body),
+    "snapshot/work/cms-images.txt": "https://cdn.example.com/64f1_photo.svg photo.svg\n",
+    "snapshot/fidelity/pages.txt": "index.html /\ndetail_post.html /blog/first\n",
+    "build/index.html": page("<p>Build</p>"),
+    "build/blog/first/index.html": page("<p>Build</p>"),
+    "build/css/site.css": "body, p { margin: 0; }",
+    "build/assets/images/photo.svg": `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect width="400" height="500" fill="#c08020"/></svg>`,
+  };
+  const FILL = {
+    templates: { "detail_post.html": { csv: "posts.csv", fields: ["Name", "Body"] } },
+    lists: { "index.html": [{ csv: "posts.csv", entries: ["second", "first"], fields: ["Name", "Photo"] }] },
+  };
+  const ARGS = ["--tools", REPO, "--export", "snapshot/code", "--build", "build", "--pages", "snapshot/fidelity/pages.txt", "--out", "snapshot/fidelity/shots", "--fill", "snapshot/fidelity/fill.json"];
+  let dir;
+  let first;
+  const heights = async (name) => Promise.all(WIDTHS.map(async (width) => (await size(join(dir, "snapshot", "fidelity", "shots", name, `${width}-export.png`))).height));
+  const report = async () => JSON.parse(await readFile(join(dir, "snapshot", "fidelity", "shots", "fidelity.json"), "utf8"));
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-fill-"));
+    for (const [path, text] of Object.entries({ ...FILES, "snapshot/fidelity/fill.json": JSON.stringify(FILL) })) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+    first = await run(dir, ARGS);
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("shoots the template and the list with the entries' values, and the list without its empty state", async () => {
+    assert.ok(first.ok, first.stderr);
+    const { fill, pages } = await report();
+    assert.equal(fill, true);
+    assert.deepEqual(pages.map(({ name, filled, fill }) => ({ name, filled, fill })), [
+      { name: "home", filled: true, fill: [{ part: "list 1", filled: true }] },
+      { name: "blog-first", filled: true, fill: [{ part: "template", filled: true }] },
+    ]);
+    for (const height of await heights("blog-first")) assert.ok(height >= 3000, `the post's body isn't in the export: ${height} px`);
+    for (const height of await heights("home")) assert.ok(height >= 1000 && height < 2000, `the list isn't two photos without its empty state: ${height} px`);
+    assert.match(first.stdout, /^Filled from the CSVs, each element by its field: index\.html, list 1: p\.card_name = Name; img\.card_photo = Photo\.\nFilled from the CSVs, each element by its field: detail_post\.html, template: h1\.post_title = Name; \.post_body\.w-richtext = Body\.\n/);
+  });
+
+  it("drops the body's frame, so its host is never asked", async () => {
+    assert.deepEqual((await report()).requested.export, []);
+  });
+
+  it("shoots the export again when a value it fills changes, and keeps the others", async () => {
+    await writeFile(join(dir, "snapshot", "cms", "posts.csv"), posts(body.replace("First.", "First, changed.")));
+    const result = await run(dir, ARGS);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /Pages shot at [^\n]*: 2, with the export's screenshots kept from the last run for 1\./);
+  });
+
+  it("shoots a template the fill file doesn't account for as it is, and names its element", async () => {
+    await writeFile(join(dir, "snapshot", "fidelity", "fill.json"), JSON.stringify({ ...FILL, templates: { "detail_post.html": { csv: "posts.csv", fields: ["Name"] } } }));
+    const result = await run(dir, ARGS);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /\nNot filled, shot as exported: detail_post\.html, template: the fill file names 1 field for its 2 empty elements: the 2nd, \.post_body\.w-richtext, has none\.\n/);
+    const post = (await report()).pages.find((p) => p.name === "blog-first");
+    assert.equal(post.filled, false);
+    assert.match(post.fill[0].problem, /the 2nd, \.post_body\.w-richtext, has none/);
+    for (const height of await heights("blog-first")) assert.ok(height < 3000, `the template was filled: ${height} px`);
+  });
+
+  it("shoots every page as exported without a fill file, and says so", async () => {
+    await rm(join(dir, "snapshot", "fidelity", "fill.json"));
+    const result = await run(dir, ARGS);
+    assert.ok(result.ok, result.stderr);
+    assert.match(result.stdout, /^The export's CMS templates and collection lists are shot empty: there's no fill file at snapshot\/fidelity\/fill\.json yet\. Step 6 writes it, and --fill names it\.\n/);
+    const unfilled = await report();
+    assert.equal(unfilled.fill, false);
+    assert.deepEqual(unfilled.pages.map((p) => p.filled), [false, false]);
+    for (const height of await heights("home")) assert.ok(height >= 2000, `the list's empty state is gone: ${height} px`);
+  });
+});
+
+// site-kit-fidelity-cms-stubs design D183: three entries of a template, each
+// differing most at other widths. The checklist puts up the worst entry at
+// each width, lists the others as measured, and the average counts the
+// template once per width.
+describe("fidelity script, with several entries of a template", () => {
+  const red = (media) => page(`<style>@media ${media} { .block { background: #c00020 !important; } }</style><div class="block" style="height: 800px; background: #204060"></div>`);
+  const FILES = {
+    "export/detail_post.html": page(`<div class="block" style="height: 800px; background: #204060"></div>`),
+    "export/about.html": page(`<div style="height: 800px; background: #204060"></div>`),
+    "build/blog/a/index.html": red("(max-width: 600px)"),
+    "build/blog/b/index.html": red("(min-width: 700px) and (max-width: 1200px)"),
+    "build/blog/c/index.html": red("(min-width: 1201px)"),
+    "build/about/index.html": page(`<div style="height: 800px; background: #204060"></div>`),
+    "pages.txt": "about.html /about\ndetail_post.html /blog/a\ndetail_post.html /blog/b\ndetail_post.html /blog/c\n",
+  };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"];
+  let dir;
+  let result;
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-entries-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+    result = await run(dir, ARGS);
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("puts up, at each width, the entry that differs most, and lists the others as measured", async () => {
+    assert.ok(result.ok, result.stderr);
+    const review = await readFile(join(dir, "shots", "review.md"), "utf8");
+    const boxes = [...review.matchAll(/^- \[ \] shots\/(blog-\w)\/(\d+)-overview\.png/gm)].map((m) => `${m[1]} ${m[2]}`).sort();
+    assert.deepEqual(boxes, ["blog-a 479", "blog-b 767", "blog-b 991", "blog-c 1440"]);
+    const others = review.split("\n## Other entries of the templates, measured\n")[1]?.split("\n## ")[0] ?? assert.fail(review);
+    const listed = [...others.matchAll(/^- shots\/(blog-\w)\/(\d+)-overview\.png \(([\d.]+)% different\)$/gm)];
+    assert.equal(listed.length, 8);
+    assert.ok(listed.every((m) => Number(m[3]) < 5), others);
+  });
+
+  it("counts the template once per width, by that entry", async () => {
+    const report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
+    const at = (name, width) => report.pages.find((p) => p.name === name).shots[width].difference;
+    const worst = { 479: "blog-a", 767: "blog-b", 991: "blog-b", 1440: "blog-c" };
+    const cells = WIDTHS.flatMap((width) => [at("about", width), at(worst[width], width)]);
+    const expected = Math.round((cells.reduce((sum, d) => sum + d, 0) / cells.length) * 10) / 10;
+    assert.ok(expected > 20, `the entries differ by ${cells.join(", ")}`);
+    assert.match(result.stdout, new RegExp(`\\. Average ${expected}%\\.\\n`));
+  });
+});
+
+// site-kit-fidelity-cms-stubs design D184: a page step 5 wrote anew is shot
+// and put up for the site's look, but left out of the average and the rule.
+describe("fidelity script, with a page written anew", () => {
+  const FILES = {
+    "export/about.html": page(`<div style="height: 800px; background: #204060"></div>`),
+    "build/about/index.html": page(`<div style="height: 800px; background: #204060"></div>`),
+    "build/404.html": page(`<div style="height: 1600px; background: #c08020"></div>`),
+    "pages.txt": "about.html /about\n404.html /404 anew\n",
+  };
+  const ARGS = ["--tools", REPO, "--export", "export", "--build", "build", "--pages", "pages.txt", "--out", "shots"];
+  let dir;
+  let result;
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "fidelity-anew-"));
+    for (const [path, text] of Object.entries(FILES)) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), text);
+    }
+    result = await run(dir, ARGS);
+  });
+
+  after(() => rm(dir, { recursive: true, force: true }));
+
+  it("shoots a page marked anew and puts it up for the site's look, though the export has no such page", async () => {
+    assert.ok(result.ok, result.stderr);
+    const report = JSON.parse(await readFile(join(dir, "shots", "fidelity.json"), "utf8"));
+    const written = report.pages.find((p) => p.name === "404");
+    assert.equal(written.anew, true);
+    assert.deepEqual(report.missing, []);
+    assert.doesNotMatch(result.stdout, /^404: /m);
+    const review = await readFile(join(dir, "shots", "review.md"), "utf8");
+    const anew = review.split("\n## Pages written anew\n")[1]?.split("\n## ")[0] ?? assert.fail(review);
+    assert.deepEqual([...anew.matchAll(/^- \[ \] (\S+)$/gm)].map((m) => m[1]), WIDTHS.map((width) => `shots/404/${width}-overview.png`));
+  });
+
+  it("leaves it out of the average, which is the other pages'", () => {
+    assert.match(result.stdout, /: the largest about at \d+ px, 0%; [^\n]*\. Average 0%, without the pages written anew, 404\.\n/);
+  });
+
+  it("names the marks pages.txt takes", async () => {
+    await writeFile(join(dir, "pages.txt"), "about.html /about\n404.html /404 new\n");
+    const wrong = await run(dir, ARGS);
+    assert.equal(wrong.ok, false);
+    assert.match(wrong.stderr, /pages\.txt: "404\.html \/404 new" isn't "<export file> <build path>", such as "about\.html \/about", with "anew" after them for a page written anew\./);
   });
 });

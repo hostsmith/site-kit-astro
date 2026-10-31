@@ -80,9 +80,9 @@ To use the theme's own styles instead, delete `src/styles/theme/builder-defaults
 
 <!-- Step 9. The differences between the build and the export, per page and width, and what the person found comparing the site with the old one in a browser. When the check couldn't run, such as in a sandbox, say so, why, and what would let it run. -->
 
-**Compared:** <!-- The ticked pictures of .hostsmith/snapshot/fidelity/shots/review.md, as a list, never a table: each page's overview at each width, the home page's first slice and end at each width, and the slices by page, width and number. -->
+**Compared:** <!-- The ticked pictures of .hostsmith/snapshot/fidelity/shots/review.md, as a list, never a table: each page's overview at each width, of a template the entry that differs most, the pages written anew, the home page's first slice and end at each width, and the slices by page, width and number. -->
 
-**Not compared:** <!-- Each picture left unticked on the checklist, with the reason, or "None". -->
+**Not compared:** <!-- Each picture left unticked on the checklist, with the reason, and the templates' other entries, which the checklist lists as measured, with their measured differences, or "None". -->
 
 <!-- Each difference left as it is gets a row of this table, from the checklist's table of differences, never a list or bullets: its page, its width or "all", what differs, and why it stays. Only three kinds may stay, and the last column names which: "a kit part lacks it", "a deliberate choice", such as a map that loads on a click, or "content the export lacks". A difference CSS can reach, such as a color, a band, a border, spacing, a size, type, capitals, a decoration, the arrangement of a type's elements or a breakpoint, is fixed in the theme or with a site variant, and an element a library type doesn't render gets a site-local type: neither is listed here. With none left, replace the table with the line "No differences." -->
 
