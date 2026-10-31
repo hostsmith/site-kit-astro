@@ -128,6 +128,8 @@ describe("a video link in a markdown prop", () => {
       assert.match(html, /<p>Watch <a href="https:\/\/youtu\.be\/3URtTIdnXIk">the tour<\/a> or read on\.<\/p>/);
       assert.match(html, /data-src="https:\/\/www\.youtube-nocookie\.com\/embed\/3URtTIdnXIk" data-title="The tour of the mill"/);
       assert.match(html, /<a href="https:\/\/youtu\.be\/3URtTIdnXIk" class="sk-embed__link">Open on youtube\.com<\/a>/);
+      // The placeholder's caption says which video it is (site-kit-webflow-migration design D198).
+      assert.match(html, /<figcaption class="sk-embed__caption">The tour of the mill<\/figcaption>/);
       assert.equal(html.split(SCRIPTS.embed).length - 1, 1);
     } finally {
       await build.cleanup();
@@ -150,7 +152,7 @@ describe("embedLoad", () => {
     const build = await buildFixture("interactive", {
       example: "webflow",
       edit: { ...setting("direct"), "src/content/pages/embed.en.md": (text) => text.replace('    aspect: "21:9"\n', '    aspect: "21:9"\n    load: click\n') },
-      files: { "src/content/pages/prop-video.en.md": page("  - id: r1v1\n    type: rich-text\n    body: |-\n      [The tour of the mill](https://youtu.be/3URtTIdnXIk)\n") },
+      files: { "src/content/pages/prop-video.en.md": page("  - id: r1v1\n    type: rich-text\n    body: |-\n      [The tour of the mill](https://youtu.be/3URtTIdnXIk)\n\n      _The mill in 1921._\n") },
     });
     try {
       assert.ok(build.ok, build.output);
@@ -162,6 +164,10 @@ describe("embedLoad", () => {
       assert.equal(post.split(SCRIPTS.embed).length - 1, 0, "a page without a placeholder gets no embed script");
       const prop = await build.read("prop-video/index.html");
       assert.match(prop, /<iframe class="sk-embed__iframe" src="https:\/\/www\.youtube-nocookie\.com\/embed\/3URtTIdnXIk" title="The tour of the mill"/);
+      // site-kit-webflow-migration design D198: no caption of its own, and the body's italic paragraph after it.
+      assert.doesNotMatch(prop, /sk-embed__caption/);
+      assert.match(prop, /<\/figure>\s*<p><em>The mill in 1921\.<\/em><\/p>/);
+      assert.doesNotMatch(post, /sk-embed__caption/);
       const embeds = await build.read("embed/index.html");
       assert.match(embeds, /<iframe class="sk-embed__iframe" src="https:\/\/www\.openstreetmap\.org\/export\/embed\.html\?bbox=[^"]*" title="The map" loading="lazy">/);
       assert.match(embeds, /<iframe class="sk-embed__iframe" src="https:\/\/www\.youtube-nocookie\.com\/embed\/3URtTIdnXIk" title="A tour of the mill"/);

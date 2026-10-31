@@ -9,7 +9,9 @@
 // body's locale, read from its file as facts are (lib/facts.ts), and the base
 // layout adds the script that loads the frame. A site whose `embedLoad` is
 // "direct" renders the frame at once, which needs no strings
-// (site-kit-webflow-migration design D196).
+// (site-kit-webflow-migration design D196), and no caption: the player shows
+// the video's title, and the body captions it with an italic paragraph after
+// the link, as an image (D198).
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -52,7 +54,7 @@ export const videoLinksPlugin = {
       const source = typeof href === "string" ? videoSource(href) : undefined;
       if (!source) return;
       const title = ctx.textContent(link).trim() || source.linkHost;
-      if (siteEmbedLoad() === "direct") return { type: "raw", value: embedHtml({ source, kind: "video", title, caption: title, load: "direct" }) };
+      if (siteEmbedLoad() === "direct") return { type: "raw", value: embedHtml({ source, kind: "video", title, load: "direct" }) };
       const root = process.cwd();
       const ui = readStrings(bodyLocale(ctx.fileURL ? fileURLToPath(ctx.fileURL) : undefined, root), root);
       const strings = { button: ui.embedPlayVideo, notice: ui.embedNotice.replaceAll("{host}", source.host), open: ui.embedOpen.replaceAll("{host}", source.linkHost) };

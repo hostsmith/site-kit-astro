@@ -67,7 +67,7 @@ Turn each rich text field's HTML into Markdown in the kit's portable dialect: Co
 | `p`, `strong`, `em`, `a`, `ul`, `ol`, `li`, `blockquote`, `code`, `pre` | the same, in Markdown |
 | `br` | a line break: a backslash at the end of the line |
 | a figure with an image and a caption | the image, `![alt](/assets/images/<name>)`, in its own paragraph, then its caption as an italic paragraph right after it, such as `_Laptops and coffee on a long table._` |
-| a figure with a YouTube or Vimeo frame | a link alone in its paragraph, with the frame's `title` as its text and the video's page as its URL, such as `[A tour of the mill](https://www.youtube.com/watch?v=3URtTIdnXIk)` |
+| a figure with a YouTube or Vimeo frame | a link alone in its paragraph, with the frame's `title` as its text and the video's page as its URL, such as `[A tour of the mill](https://www.youtube.com/watch?v=3URtTIdnXIk)`. When the figure has a caption, it's an italic paragraph right after the link, as an image's. A frame that loads at once shows no other caption |
 | a figure or embed with any other frame or code | nothing: list it in the report's "Not carried over", with its item |
 | a link to a page or an item | its clean path, such as `/blog/hot-desk-or-private-office` |
 
