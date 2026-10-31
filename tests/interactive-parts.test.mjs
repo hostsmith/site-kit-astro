@@ -141,6 +141,51 @@ describe("a video link in a markdown prop", () => {
     ));
 });
 
+// site-kit-interactive-parts, "Embeds load on a click": the site's embedLoad
+// (site-kit-webflow-migration design D196).
+describe("embedLoad", () => {
+  const setting = (value) => ({ "src/site.config.ts": (text) => text.replace("  collections: {", `  embedLoad: ${JSON.stringify(value)},\n  collections: {`) });
+
+  it('loads an entry body\'s video links, a markdown prop\'s, and every embed without load at once with "direct", and keeps load: click', async () => {
+    const build = await buildFixture("interactive", {
+      example: "webflow",
+      edit: { ...setting("direct"), "src/content/pages/embed.en.md": (text) => text.replace('    aspect: "21:9"\n', '    aspect: "21:9"\n    load: click\n') },
+      files: { "src/content/pages/prop-video.en.md": page("  - id: r1v1\n    type: rich-text\n    body: |-\n      [The tour of the mill](https://youtu.be/3URtTIdnXIk)\n") },
+    });
+    try {
+      assert.ok(build.ok, build.output);
+      const post = await build.read("news/video-post/index.html");
+      assert.match(post, /<iframe class="sk-embed__iframe" src="https:\/\/www\.youtube-nocookie\.com\/embed\/3URtTIdnXIk" title="A tour of the mill" loading="lazy" allow=/);
+      assert.match(post, /<iframe class="sk-embed__iframe" src="https:\/\/player\.vimeo\.com\/video\/76979871\?[^"]*dnt=1[^"]*" title="A Vimeo video"/);
+      assert.match(post, /<p>A paragraph with <a href="https:\/\/www\.youtube\.com\/watch\?v=3URtTIdnXIk">a video link in running text<\/a>/);
+      assert.doesNotMatch(post, /sk-embed__placeholder/);
+      assert.equal(post.split(SCRIPTS.embed).length - 1, 0, "a page without a placeholder gets no embed script");
+      const prop = await build.read("prop-video/index.html");
+      assert.match(prop, /<iframe class="sk-embed__iframe" src="https:\/\/www\.youtube-nocookie\.com\/embed\/3URtTIdnXIk" title="The tour of the mill"/);
+      const embeds = await build.read("embed/index.html");
+      assert.match(embeds, /<iframe class="sk-embed__iframe" src="https:\/\/www\.openstreetmap\.org\/export\/embed\.html\?bbox=[^"]*" title="The map" loading="lazy">/);
+      assert.match(embeds, /<iframe class="sk-embed__iframe" src="https:\/\/www\.youtube-nocookie\.com\/embed\/3URtTIdnXIk" title="A tour of the mill"/);
+      assert.match(embeds, /data-src="https:\/\/player\.vimeo\.com\/video\/76979871\?[^"]*" data-title="A Vimeo video" data-kind="video" hidden>Play video<\/button>/);
+      assert.equal(embeds.split(SCRIPTS.embed).length - 1, 1);
+    } finally {
+      await build.cleanup();
+    }
+  });
+
+  it('builds with "click" as without the setting', async () => {
+    const [plain, click] = await Promise.all([buildFixture("interactive", { example: "webflow" }), buildFixture("interactive", { example: "webflow", edit: setting("click") })]);
+    try {
+      assert.ok(click.ok, click.output);
+      for (const path of ["embed/index.html", "news/video-post/index.html"]) assert.equal(await click.read(path), await plain.read(path), path);
+    } finally {
+      await Promise.all([plain.cleanup(), click.cleanup()]);
+    }
+  });
+
+  it("fails the build on an unknown value, naming the allowed ones", () =>
+    expectFailure({ edit: setting("lazy") }, 'embedLoad in src/site.config.ts is "lazy". It is "click", the default, or "direct".'));
+});
+
 // site-kit-interactive-parts, "Interface strings of interactive parts".
 describe("interactive parts' interface strings", () => {
   const slider = "  - id: w1f1\n    type: slider\n    slides:\n      - { title: One }\n      - { title: Two }\n";

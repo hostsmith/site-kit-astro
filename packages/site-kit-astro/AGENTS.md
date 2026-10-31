@@ -45,7 +45,7 @@ Never edit files in `node_modules`: the next install replaces them.
 
 Every file in the site repository is the site's. The kit reads these from it, so keep them where they are:
 
-- `src/site.config.ts`: the production site URL, the site's locales, each collection's base path, the site variants and `reducedMotion`, which a migration sets to `"ignore"` when the old site played its motion for every visitor. Keep it plain TypeScript without imports: the kit's commands read it outside the build;
+- `src/site.config.ts`: the production site URL, the site's locales, each collection's base path, the site variants, `reducedMotion`, which a migration sets to `"ignore"` when the old site played its motion for every visitor, and `embedLoad`, which a migration sets to `"direct"` when the old site's frames loaded with the page. Keep it plain TypeScript without imports: the kit's commands read it outside the build;
 - `src/content/`: the pages, each collection's entries and the settings, one file each per locale, with the locale's code before the extension, such as `src/content/pages/about.en.md` and `src/content/settings/site.en.yml`;
 - `src/site.schema.ts`: the site-local section types, the site's collections, each declared by its schema alone, and its interface strings (`siteUi`). The kit loads the collections: never give one a `loader`;
 - `src/components/sections/site/<type>.astro`: site-local section types;
@@ -120,7 +120,7 @@ The kit's parts replace the interactive elements of site builders, such as Webfl
 
 - Webflow's Tabs: `tabs`. Its Slider: `slider`. Its Lightbox: `lightbox: true` on `gallery`. Its Dropdown: `children` on a nav item, one level deep.
 - A background video: `video` (an MP4 under `/assets/`, and an optional `videoWebm`) on a `hero` with the variant `background`, or on a `split`, with `image` as its poster. Keep the clip short and small.
-- Map, Embed, Video and YouTube elements: `embed`. It loads on a click, so the page sends nothing to the provider until the visitor asks. Set `load: direct` only when the owner confirms that the site's privacy notice names the provider. In a Markdown body, a YouTube or Vimeo link alone in its paragraph renders as the same embed: never paste an embed's HTML.
+- Map, Embed, Video and YouTube elements: `embed`. It loads on a click, so the page sends nothing to the provider until the visitor asks. Set `load: direct` only when the owner confirms that the site's privacy notice names the provider. A migration carries the old site's frames as they loaded, with `embedLoad: "direct"` in `src/site.config.ts` when they loaded with the page, and notes them in its report. In a Markdown body, a YouTube or Vimeo link alone in its paragraph renders as the same embed: never paste an embed's HTML.
 - Simple entrance animations: `reveal` on a section, one of `fade`, `fade-up`, `fade-down`, `slide-left`, `slide-right` or `scale`, or `data-reveal` on an element of the site's own markup. The theme animates it, and never under reduced motion.
 
 Each part works by keyboard and shows its content without scripts. A page that renders a part needs the part's interface strings in every locale's settings, such as `sliderNext`, and the build names any that are missing. The kit's README, "Interactive parts", lists them.

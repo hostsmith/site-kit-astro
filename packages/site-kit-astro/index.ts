@@ -18,6 +18,7 @@ import type { AstroIntegration } from "astro";
 import { passthroughImageService } from "astro/config";
 import { staleness } from "./scripts/decap-config.mjs";
 import { coreHooks } from "./src/core/integration.ts";
+import { setEmbedLoad } from "./src/lib/embed.ts";
 import { type LocaleConfig, resolveLocales } from "./src/lib/locales.ts";
 import { markdownOptions, markdownProcessor } from "./src/lib/markdown.ts";
 
@@ -43,9 +44,15 @@ export type SiteConfig = {
   // "respect", the default, or "ignore", for a site migrated from one that
   // played its motion for every visitor (site-kit-motion design D164).
   reducedMotion?: "respect" | "ignore";
+  // How the site's embeds load when they set no `load` of their own, and its
+  // video links in Markdown bodies, which can't: "click", the default, or
+  // "direct", for a site migrated from one whose frames loaded with the page
+  // (site-kit-webflow-migration design D196).
+  embedLoad?: "click" | "direct";
 };
 
 const REDUCED_MOTION = ["respect", "ignore"];
+const EMBED_LOAD = ["click", "direct"];
 
 const CONFIG_MODULE = "virtual:site-kit/config";
 const SITE_SCHEMA_MODULE = "virtual:site-kit/site-schema";
@@ -80,6 +87,10 @@ export default function siteKit(siteConfig: SiteConfig): AstroIntegration {
         if (siteConfig.reducedMotion !== undefined && !REDUCED_MOTION.includes(siteConfig.reducedMotion)) {
           throw new Error(`reducedMotion in src/site.config.ts is ${JSON.stringify(siteConfig.reducedMotion)}. It is "respect", the default, or "ignore".`);
         }
+        if (siteConfig.embedLoad !== undefined && !EMBED_LOAD.includes(siteConfig.embedLoad)) {
+          throw new Error(`embedLoad in src/site.config.ts is ${JSON.stringify(siteConfig.embedLoad)}. It is "click", the default, or "direct".`);
+        }
+        setEmbedLoad(siteConfig.embedLoad ?? "click");
         if (command === "build") {
           const problem = staleness(root, locales.map((locale) => locale.code), siteConfig.siteVariants);
           if (problem) throw new Error(problem);
