@@ -84,6 +84,19 @@ type EmbedOptions = {
   strings?: EmbedStrings;
 };
 
+// The site's `embedLoad` from src/site.config.ts (site-kit-webflow-migration
+// design D196), which the integration sets and a video link in a Markdown body
+// follows. Astro's content layer loads this module through the integration,
+// and components through Vite, each its own copy, so the value lives on the
+// process, not in the module.
+const EMBED_LOAD = Symbol.for("@hostsmith/site-kit-astro/embedLoad");
+export function setEmbedLoad(load: "click" | "direct"): void {
+  (globalThis as Record<symbol, unknown>)[EMBED_LOAD] = load;
+}
+export function siteEmbedLoad(): "click" | "direct" {
+  return (globalThis as Record<symbol, unknown>)[EMBED_LOAD] === "direct" ? "direct" : "click";
+}
+
 // The frame's attributes: a video player may go full screen.
 export function frameAttributes(kind: EmbedKind): string {
   return kind === "video" ? ' allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen' : "";
@@ -91,7 +104,8 @@ export function frameAttributes(kind: EmbedKind): string {
 
 // The embed as HTML: a figure with the placeholder, or with the frame itself
 // for `load: direct`, which a site uses only when its privacy notice names
-// the provider.
+// the provider, such as one migrated from a site whose frames loaded with the
+// page.
 export function embedHtml({ source, kind, title, aspect = "16:9", caption, captionAttributes = "", load = "click", strings }: EmbedOptions): string {
   const frameClass = `sk-embed__frame sk-embed__frame--${aspect.replace(":", "-")}`;
   const inner =

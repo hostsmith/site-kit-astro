@@ -4,7 +4,9 @@
 // presses its button, which loads the frame (site-kit-webflow-example design
 // D105): the page requests nothing from the provider before that. The base
 // layout adds the script that loads it. The title is the section's heading and
-// the frame's name.
+// the frame's name. Without `load`, the site's `embedLoad` decides, "click"
+// by default (site-kit-webflow-migration design D196).
+import { siteConfig } from "virtual:site-kit/config";
 import type { Section } from "../../kit-content.ts";
 import { sectionFields } from "../../core/field.ts";
 import { EMBED_UI_KEYS, embedHtml, embedSource } from "../../lib/embed.ts";
@@ -21,7 +23,8 @@ interface Props {
 }
 
 const { section, entry } = Astro.props;
-const { title, url, kind, aspect, caption, load } = section;
+const { title, url, kind, aspect, caption } = section;
+const load = section.load ?? siteConfig.embedLoad ?? "click";
 const f = sectionFields(entry, section);
 const source = embedSource(url, kind)!;
 let strings;

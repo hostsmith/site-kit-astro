@@ -364,7 +364,9 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
   // A map, a video or other content in a frame, which loads only when the
   // visitor asks for it (site-kit-webflow-example design D105). The title
   // names the frame. `direct` loads it at once: only for a site whose privacy
-  // notice names the provider.
+  // notice names the provider. Without `load`, the site's `embedLoad` in
+  // src/site.config.ts decides, "click" by default (site-kit-webflow-migration
+  // design D196).
   embed: section("embed", {
     eyebrow: z.string().min(1).optional(),
     title: z.string().min(1),
@@ -372,7 +374,7 @@ const librarySectionSchemas = (collectionNames: [string, ...string[]]) => ({
     kind: z.enum(["map", "video", "other"]).default("other"),
     aspect: z.enum(EMBED_ASPECTS).default("16:9"),
     caption: z.string().min(1).optional(),
-    load: z.enum(["click", "direct"]).default("click"),
+    load: z.enum(["click", "direct"]).optional(),
   }).superRefine((embed, ctx) => {
     if (embed.kind === "video" && URL.canParse(embed.url) && videoSource(embed.url) === undefined) {
       ctx.addIssue({ code: "custom", path: ["url"], message: `prop "url": "${embed.url}" isn't a YouTube or Vimeo video, which kind "video" plays. Use kind "other" for another player.` });

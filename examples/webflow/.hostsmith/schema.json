@@ -1923,7 +1923,6 @@
                       "x-widget": "string"
                     },
                     "load": {
-                      "default": "click",
                       "type": "string",
                       "enum": [
                         "click",

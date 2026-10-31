@@ -415,7 +415,7 @@ collections:
               - { name: kind, label: Kind, widget: select, options: [ map, video, other ], default: other, required: false, hint: "A video is a YouTube or Vimeo link.", i18n: true }
               - { name: aspect, label: Aspect ratio, widget: select, options: [ "16:9", "4:3", "1:1", "21:9" ], default: "16:9", required: false, i18n: true }
               - { name: caption, label: Caption, widget: string, required: false, i18n: true }
-              - { name: load, label: Loads, widget: select, options: [ click, direct ], default: click, required: false, hint: "click shows a button first, so nothing loads from the provider until the visitor asks. Use direct only when the site's privacy notice names the provider.", i18n: true }
+              - { name: load, label: Loads, widget: select, options: [ click, direct ], required: false, hint: "click shows a button first, so nothing loads from the provider until the visitor asks. Use direct only when the site's privacy notice names the provider. Left empty, the site's embedLoad in src/site.config.ts decides, click unless it says direct.", i18n: true }
   - name: settings
     label: Settings
     label_singular: Settings

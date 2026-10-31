@@ -7,12 +7,14 @@
 // A plugin of the kit's Markdown processor, so entry bodies and markdown props
 // get it alike. The placeholder's strings come from the settings' `ui` of the
 // body's locale, read from its file as facts are (lib/facts.ts), and the base
-// layout adds the script that loads the frame.
+// layout adds the script that loads the frame. A site whose `embedLoad` is
+// "direct" renders the frame at once, which needs no strings
+// (site-kit-webflow-migration design D196).
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
-import { embedHtml, videoSource } from "./embed.ts";
+import { embedHtml, siteEmbedLoad, videoSource } from "./embed.ts";
 import { localeOfFile, settingsFile } from "./facts.ts";
 
 type HastNode = { type: string; tagName?: string; value?: string; properties?: Record<string, unknown>; children?: HastNode[] };
@@ -49,9 +51,10 @@ export const videoLinksPlugin = {
       const href = link.properties?.href;
       const source = typeof href === "string" ? videoSource(href) : undefined;
       if (!source) return;
+      const title = ctx.textContent(link).trim() || source.linkHost;
+      if (siteEmbedLoad() === "direct") return { type: "raw", value: embedHtml({ source, kind: "video", title, caption: title, load: "direct" }) };
       const root = process.cwd();
       const ui = readStrings(bodyLocale(ctx.fileURL ? fileURLToPath(ctx.fileURL) : undefined, root), root);
-      const title = ctx.textContent(link).trim() || source.linkHost;
       const strings = { button: ui.embedPlayVideo, notice: ui.embedNotice.replaceAll("{host}", source.host), open: ui.embedOpen.replaceAll("{host}", source.linkHost) };
       return { type: "raw", value: embedHtml({ source, kind: "video", title, caption: title, strings }) };
     },
