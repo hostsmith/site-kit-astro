@@ -122,7 +122,7 @@ Releases are automated from `main`. The release workflow makes the version commi
 
 - the App installed on this repository, with contents write access;
 - the App in the bypass list of `main`'s ruleset;
-- the repository secrets `RELEASE_APP_CLIENT_ID` (the App's client ID) and `RELEASE_APP_PRIVATE_KEY` (its private key).
+- the environment `release`, limited to the `main` branch, with the secrets `RELEASE_APP_CLIENT_ID` (the App's client ID) and `RELEASE_APP_PRIVATE_KEY` (its private key). The release job runs in it, so no other branch can read them.
 
 The workflow then publishes the package from the tag to npm with provenance. npm authenticates the job through the package's trusted publisher, set on npmjs.com to this repository and `release.yml`, so there is no npm token. If publishing fails, re-run the job: the tag and the GitHub release stay.
 
