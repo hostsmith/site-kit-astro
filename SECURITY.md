@@ -4,7 +4,7 @@
 
 If you believe you've found a security issue in the Site Kit, please report it privately.
 
-Email: **security@ops42.org**
+Email: **security@hostsmith.net**
 
 Please include:
 
